@@ -159,6 +159,14 @@ void test_success()
       fix.st.sentinels.end(),
       std::begin(expected_sentinels),
       std::end(expected_sentinels));
+
+   // Logs
+   fix.check_log({
+      {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
+      {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
+      {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
+      {logger::level::info,  "Sentinel at host1:1000 resolved the server address to test.host:6380"},
+   });
 }
 
 }  // namespace

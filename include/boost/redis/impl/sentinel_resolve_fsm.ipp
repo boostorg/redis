@@ -43,8 +43,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
          " '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel ",
-         st.cfg.sentinel.use_ssl ? "(TLS enabled)" : "(TLS disabled)");
+         "' using Sentinel");
 
       // Try all Sentinels in order.
       // The following errors can be encountered for each Sentinel:
@@ -173,7 +172,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             st.logger,
             "Sentinel at ",
             st.sentinels[idx_],
-            " successfully resolved the server address to ",
+            " resolved the server address to ",
             st.cfg.addr);
 
          update_sentinel_list(
@@ -194,9 +193,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          st.cfg.sentinel.server_role == role::master ? "master" : "a replica of master",
          " '",
          st.cfg.sentinel.master_name,
-         "' using Sentinel ",
-         st.cfg.sentinel.use_ssl ? "(TLS enabled)" : "(TLS disabled)",
-         ": ",
+         "' using Sentinel: ",
          ec);
 
       return ec;
