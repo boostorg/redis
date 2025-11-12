@@ -773,6 +773,26 @@ void test_sentinel_resolve_error()
    });
 }
 
+void test_sentinel_resolve_cancel()
+{
+   // Setup
+   fixture fix;
+   fix.st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+
+   // Start the Sentinel resolve operation
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::sentinel_resolve);
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
+   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+
+   // Log
+   fix.check_log({
+      {logger::level::debug, "Run: cancelled (4)"},
+   });
+}
+
 }  // namespace
 
 int main()
@@ -809,6 +829,7 @@ int main()
 
    test_sentinel_reconnection();
    test_sentinel_resolve_error();
+   test_sentinel_resolve_cancel();
 
    return boost::report_errors();
 }
