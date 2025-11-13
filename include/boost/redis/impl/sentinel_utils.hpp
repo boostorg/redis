@@ -28,6 +28,9 @@
 
 namespace boost::redis::detail {
 
+// Returns true if Sentinel should be used
+inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
+
 // Composes the request to send to Sentinel modifying cfg.sentinel.setup
 inline void compose_sentinel_request(config& cfg)
 {

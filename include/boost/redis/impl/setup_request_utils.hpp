@@ -10,6 +10,7 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>  // use_sentinel
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/type.hpp>
@@ -18,9 +19,6 @@
 #include <cstddef>
 
 namespace boost::redis::detail {
-
-// Not strictly related to setup, but used across .ipp files
-inline bool use_sentinel(const config& cfg) { return !cfg.sentinel.addresses.empty(); }
 
 // Modifies config::setup to make a request suitable to be sent
 // to the server using async_exec
