@@ -76,7 +76,6 @@ void run_coroutine_test(net::awaitable<void> op, std::chrono::steady_clock::dura
 
 // Finds a value in the output of the CLIENT INFO command
 // format: key1=value1 key2=value2
-// TODO: duplicated
 std::string_view find_client_info(std::string_view client_info, std::string_view key)
 {
    std::string prefix{key};
