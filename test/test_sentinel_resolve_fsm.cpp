@@ -176,7 +176,9 @@ void test_success_replica()
    // Setup
    fixture fix;
    fix.st.cfg.sentinel.server_role = role::replica;
-   fix.st.eng.seed(183984887232u);  // this returns index 1. TODO: is this portable?
+   fix.st.eng.seed(
+      static_cast<std::uint_fast32_t>(
+         183984887232u));  // this returns index 1. TODO: is this portable?
 
    // Initiate. We should connect to the 1st sentinel
    auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
