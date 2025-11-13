@@ -203,7 +203,7 @@ run_action run_fsm::resume(
 
             // Add the setup request to the multiplexer
             if (st.cfg.setup.get_commands() != 0u) {
-               auto elm = make_elem(st.cfg.setup, make_any_adapter(setup_adapter{st}));
+               auto elm = make_elem(st.cfg.setup, make_any_adapter_impl(setup_adapter{st}));
                elm->set_done_callback([&elem_ref = *elm, &st] {
                   on_setup_done(elem_ref, st);
                });
