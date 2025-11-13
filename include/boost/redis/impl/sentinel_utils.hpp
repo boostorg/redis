@@ -28,6 +28,19 @@
 
 namespace boost::redis::detail {
 
+// Composes the request to send to Sentinel modifying cfg.sentinel.setup
+inline void compose_sentinel_request(config& cfg)
+{
+   // These commands should go after the user-supplied setup, as this might involve authentication.
+   // We ask for the master even when connecting to replicas to correctly detect when the master doesn't exist
+   cfg.sentinel.setup.push("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.sentinel.master_name);
+   if (cfg.sentinel.server_role == role::replica)
+      cfg.sentinel.setup.push("SENTINEL", "REPLICAS", cfg.sentinel.master_name);
+   cfg.sentinel.setup.push("SENTINEL", "SENTINELS", cfg.sentinel.master_name);
+
+   // Note that we don't care about request flags because this is a one-time request
+}
+
 // Parses a list of replicas or sentinels
 inline system::error_code parse_server_list(
    const resp3::node*& first,

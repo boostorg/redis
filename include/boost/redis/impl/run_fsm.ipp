@@ -16,6 +16,7 @@
 #include <boost/redis/error.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
 #include <boost/redis/request.hpp>
 
@@ -47,21 +48,6 @@ inline void compose_ping_request(const config& cfg, request& to)
 {
    to.clear();
    to.push("PING", cfg.health_check_id);
-}
-
-// Composes the request modifying cfg.sentinel.setup
-inline void compose_sentinel_request(config& cfg)
-{
-   if (use_sentinel(cfg)) {
-      // These commands should go after the user-supplied setup, as this might involve authentication.
-      // We ask for the master even when connecting to replicas to correctly detect when the master doesn't exist
-      cfg.sentinel.setup.push("SENTINEL", "GET-MASTER-ADDR-BY-NAME", cfg.sentinel.master_name);
-      if (cfg.sentinel.server_role == role::replica)
-         cfg.sentinel.setup.push("SENTINEL", "REPLICAS", cfg.sentinel.master_name);
-      cfg.sentinel.setup.push("SENTINEL", "SENTINELS", cfg.sentinel.master_name);
-   }
-
-   // Note that we don't care about request flags because this is a one-time request
 }
 
 inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
@@ -118,7 +104,8 @@ run_action run_fsm::resume(
       compose_ping_request(st.cfg, st.ping_req);
 
       // Sentinel request. Same as above
-      compose_sentinel_request(st.cfg);
+      if (use_sentinel(st.cfg))
+         compose_sentinel_request(st.cfg);
 
       // Bootstrap the sentinel list with the ones configured by the user
       st.sentinels = st.cfg.sentinel.addresses;
