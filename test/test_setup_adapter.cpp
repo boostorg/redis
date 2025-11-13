@@ -45,11 +45,52 @@ void test_success()
    BOOST_TEST_EQ(st.setup_diagnostic, "");
 }
 
+void test_simple_error()
+{
+   // Setup
+   connection_state st;
+   setup_adapter adapter{st};
+
+   // Response to HELLO contains an error
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "-ERR unauthorized\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error::resp3_hello);
+   BOOST_TEST_EQ(st.setup_diagnostic, "ERR unauthorized");
+}
+
+void test_blob_error()
+{
+   // Setup
+   connection_state st;
+   st.cfg.setup.push("SELECT", 1);
+   setup_adapter adapter{st};
+
+   // Response to HELLO
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "%1\r\n$6\r\nserver\r\n$5\r\nredis\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Response to select contains an error
+   p.reset();
+   done = resp3::parse(p, "!3\r\nBad\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error::resp3_hello);
+
+   // No diagnostic
+   BOOST_TEST_EQ(st.setup_diagnostic, "Bad");
+}
+
 }  // namespace
 
 int main()
 {
    test_success();
+   test_simple_error();
+   test_blob_error();
 
    return boost::report_errors();
 }
