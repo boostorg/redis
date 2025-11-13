@@ -141,7 +141,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             std::uniform_int_distribution<std::size_t> dist{
                0u,
                st.sentinel_resp.replicas.size() - 1u};
-            const auto idx = dist(st.eng);
+            const auto idx = dist(st.eng.get());
             st.cfg.addr = st.sentinel_resp.replicas[idx];
          }
 

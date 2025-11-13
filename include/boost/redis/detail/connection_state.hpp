@@ -29,6 +29,24 @@ struct sentinel_response {
    std::vector<address> sentinels;
 };
 
+// A random engine that gets seeded lazily.
+// Seeding with std::random_device is not trivial and might fail.
+class lazy_random_engine {
+   bool seeded_{};
+   std::minstd_rand eng_;
+
+public:
+   lazy_random_engine() = default;
+   std::minstd_rand& get()
+   {
+      if (!seeded_) {
+         eng_.seed(static_cast<std::minstd_rand::result_type>(std::random_device{}()));
+         seeded_ = true;
+      }
+      return eng_;
+   }
+};
+
 // Contains all the members in connection that don't depend on the Executor.
 // Makes implementing sans-io algorithms easier
 struct connection_state {
@@ -39,8 +57,7 @@ struct connection_state {
    request ping_req{};
 
    // Sentinel stuff
-   // TODO: seeding the engine can fail and is not trivial, could we do it lazily?
-   std::minstd_rand eng{static_cast<std::minstd_rand::result_type>(std::random_device{}())};
+   lazy_random_engine eng{};
    std::vector<address> sentinels{};
    std::vector<resp3::node> sentinel_resp_nodes{};  // for parsing
    sentinel_response sentinel_resp{};
