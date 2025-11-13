@@ -86,10 +86,12 @@ class setup_adapter {
       // When using Sentinel, we add a ROLE command at the end.
       // We need to ensure that this instance is a master.
       if (use_sentinel(st_->cfg) && response_idx_ == st_->cfg.setup.get_expected_responses() - 1u) {
-         // ROLE's response should be an array
+         // ROLE's response should be an array of at least 1 element
          if (nd.depth == 0u) {
             if (nd.data_type != resp3::type::array)
                return error::invalid_data_type;
+            if (nd.aggregate_size == 0u)
+               return error::incompatible_size;
          }
 
          // The first node should be 'master' if we're connecting to a primary,
