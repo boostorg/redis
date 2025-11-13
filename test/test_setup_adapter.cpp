@@ -17,6 +17,7 @@
 using namespace boost::redis;
 using detail::setup_adapter;
 using detail::connection_state;
+using detail::compose_setup_request;
 using boost::system::error_code;
 
 namespace {
@@ -25,7 +26,9 @@ void test_success()
 {
    // Setup
    connection_state st;
+   st.cfg.use_setup = true;
    st.cfg.setup.push("SELECT", 2);
+   compose_setup_request(st.cfg);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -49,6 +52,8 @@ void test_simple_error()
 {
    // Setup
    connection_state st;
+   st.cfg.use_setup = true;
+   compose_setup_request(st.cfg);
    setup_adapter adapter{st};
 
    // Response to HELLO contains an error
@@ -64,7 +69,9 @@ void test_blob_error()
 {
    // Setup
    connection_state st;
+   st.cfg.use_setup = true;
    st.cfg.setup.push("SELECT", 1);
+   compose_setup_request(st.cfg);
    setup_adapter adapter{st};
 
    // Response to HELLO
