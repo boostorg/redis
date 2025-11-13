@@ -5,7 +5,7 @@
  */
 
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/impl/sentinel_utils.hpp>  // for make_vector_adapter
+#include <boost/redis/impl/vector_adapter.hpp>
 
 #include <boost/assert/source_location.hpp>
 #include <boost/core/ignore_unused.hpp>

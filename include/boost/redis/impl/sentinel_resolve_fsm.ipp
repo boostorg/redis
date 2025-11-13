@@ -19,6 +19,7 @@
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>
+#include <boost/redis/impl/vector_adapter.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>

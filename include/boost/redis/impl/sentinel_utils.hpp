@@ -9,7 +9,6 @@
 #ifndef BOOST_REDIS_SENTINEL_UTILS_HPP
 #define BOOST_REDIS_SENTINEL_UTILS_HPP
 
-#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
@@ -243,19 +242,6 @@ inline system::error_code parse_sentinel_response(
 
    // Done
    return system::error_code();
-}
-
-// TODO: move
-// An adapter like generic_response, but without checking for error nodes.
-// Exposed for testing
-inline any_adapter make_vector_adapter(std::vector<resp3::node>& output)
-{
-   return any_adapter::impl_t(
-      [&output](any_adapter::parse_event ev, resp3::node_view const& nd, system::error_code&) {
-         if (ev == any_adapter::parse_event::node) {
-            output.push_back({nd.data_type, nd.aggregate_size, nd.depth, std::string(nd.value)});
-         }
-      });
 }
 
 // Updates the internal Sentinel list.
