@@ -79,7 +79,7 @@ class setup_adapter {
       // An error node is always an error
       switch (nd.data_type) {
          case resp3::type::simple_error:
-         case resp3::type::blob_error:   st_->setup_diagnostic = nd.value; return error::resp3_hello;
+         case resp3::type::blob_error:   st_->diagnostic = nd.value; return error::resp3_hello;
          default:                        ;
       }
 

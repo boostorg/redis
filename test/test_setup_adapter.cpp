@@ -47,7 +47,7 @@ void test_success()
    BOOST_TEST_EQ(ec, error_code());
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 void test_simple_error()
@@ -64,7 +64,7 @@ void test_simple_error()
    bool done = resp3::parse(p, "-ERR unauthorized\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::resp3_hello);
-   BOOST_TEST_EQ(st.setup_diagnostic, "ERR unauthorized");
+   BOOST_TEST_EQ(st.diagnostic, "ERR unauthorized");
 }
 
 void test_blob_error()
@@ -88,7 +88,7 @@ void test_blob_error()
    done = resp3::parse(p, "!3\r\nBad\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::resp3_hello);
-   BOOST_TEST_EQ(st.setup_diagnostic, "Bad");
+   BOOST_TEST_EQ(st.diagnostic, "Bad");
 }
 
 // A NULL is not an error
@@ -108,7 +108,7 @@ void test_null()
    BOOST_TEST_EQ(ec, error_code());
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 // Sentinel adds a ROLE command and checks its output.
@@ -152,7 +152,7 @@ void test_sentinel_master()
    BOOST_TEST_EQ(ec, error_code());
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 void test_sentinel_replica()
@@ -181,7 +181,7 @@ void test_sentinel_replica()
    BOOST_TEST_EQ(ec, error_code());
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 // If the role is not the one expected, a role failed error is issued
@@ -210,7 +210,7 @@ void test_sentinel_role_check_failed_master()
    BOOST_TEST_EQ(ec, error::role_check_failed);
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 void test_sentinel_role_check_failed_replica()
@@ -239,7 +239,7 @@ void test_sentinel_role_check_failed_replica()
    BOOST_TEST_EQ(ec, error::role_check_failed);
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 // If the role command errors or has an unexpected format, we fail
@@ -261,7 +261,7 @@ void test_sentinel_role_error_node()
    bool done = resp3::parse(p, "-ERR unauthorized\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::resp3_hello);
-   BOOST_TEST_EQ(st.setup_diagnostic, "ERR unauthorized");
+   BOOST_TEST_EQ(st.diagnostic, "ERR unauthorized");
 }
 
 void test_sentinel_role_not_array()
@@ -282,7 +282,7 @@ void test_sentinel_role_not_array()
    bool done = resp3::parse(p, "+OK\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::invalid_data_type);
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 void test_sentinel_role_empty_array()
@@ -303,7 +303,7 @@ void test_sentinel_role_empty_array()
    bool done = resp3::parse(p, "*0\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::incompatible_size);
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 void test_sentinel_role_first_element_not_string()
@@ -324,7 +324,7 @@ void test_sentinel_role_first_element_not_string()
    bool done = resp3::parse(p, "*1\r\n:2000\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::invalid_data_type);
-   BOOST_TEST_EQ(st.setup_diagnostic, "");
+   BOOST_TEST_EQ(st.diagnostic, "");
 }
 
 }  // namespace

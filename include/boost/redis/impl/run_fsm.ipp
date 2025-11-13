@@ -75,7 +75,7 @@ inline void process_setup_node(
       case resp3::type::blob_error:
       case resp3::type::null:
          ec = redis::error::resp3_hello;
-         st.setup_diagnostic = nd.value;
+         st.diagnostic = nd.value;
          break;
       default:;
    }
@@ -90,10 +90,10 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
             st.logger,
             "Role check failed: this instance is not a master as expected. This is likely a "
             "transient failure caused by a failover in progress");
-      } else if (st.setup_diagnostic.empty()) {
+      } else if (st.diagnostic.empty()) {
          log_info(st.logger, "Setup request execution: ", ec);
       } else {
-         log_info(st.logger, "Setup request execution: ", ec, " (", st.setup_diagnostic, ")");
+         log_info(st.logger, "Setup request execution: ", ec, " (", st.diagnostic, ")");
       }
    } else {
       log_info(st.logger, "Setup request execution: success");
@@ -199,7 +199,7 @@ run_action run_fsm::resume(
 
             // Initialization
             st.mpx.reset();
-            st.setup_diagnostic.clear();
+            st.diagnostic.clear();
 
             // Add the setup request to the multiplexer
             if (st.cfg.setup.get_commands() != 0u) {

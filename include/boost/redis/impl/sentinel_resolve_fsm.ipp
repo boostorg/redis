@@ -33,10 +33,10 @@ namespace boost::redis::detail {
 template <class... Args>
 void log_sentinel_error(connection_state& st, std::size_t current_idx, const Args&... args)
 {
-   st.setup_diagnostic += "\n  ";
-   std::size_t size_before = st.setup_diagnostic.size();
-   format_log_args(st.setup_diagnostic, "Sentinel at ", st.sentinels[current_idx], ": ", args...);
-   log_info(st.logger, std::string_view{st.setup_diagnostic}.substr(size_before));
+   st.diagnostic += "\n  ";
+   std::size_t size_before = st.diagnostic.size();
+   format_log_args(st.diagnostic, "Sentinel at ", st.sentinels[current_idx], ": ", args...);
+   log_info(st.logger, std::string_view{st.diagnostic}.substr(size_before));
 }
 
 sentinel_action sentinel_resolve_fsm::resume(
@@ -48,7 +48,7 @@ sentinel_action sentinel_resolve_fsm::resume(
       BOOST_REDIS_CORO_INITIAL
 
       // Contains a diagnostic with all errors we encounter
-      st.setup_diagnostic.clear();
+      st.diagnostic.clear();
 
       log_info(
          st.logger,
@@ -170,7 +170,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          " '",
          st.cfg.sentinel.master_name,
          "'. Tried the following Sentinels:",
-         st.setup_diagnostic);
+         st.diagnostic);
       return {error::sentinel_resolve_failed};
    }
 

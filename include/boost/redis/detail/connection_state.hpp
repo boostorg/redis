@@ -35,7 +35,7 @@ struct connection_state {
    buffered_logger logger;
    config cfg{};
    multiplexer mpx{};
-   std::string setup_diagnostic{};  // TODO: rename
+   std::string diagnostic{};  // Used by the setup request and Sentinel
    request ping_req{};
 
    // Sentinel stuff

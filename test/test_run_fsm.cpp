@@ -647,7 +647,7 @@ void test_setup_request_server_error()
 {
    // Setup
    fixture fix;
-   fix.st.setup_diagnostic = "leftover";  // simulate a leftover from previous runs
+   fix.st.diagnostic = "leftover";  // simulate a leftover from previous runs
    fix.st.cfg.setup.clear();
    fix.st.cfg.setup.push("HELLO", 3);
 
