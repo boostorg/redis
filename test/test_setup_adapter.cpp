@@ -111,7 +111,15 @@ void test_null()
    BOOST_TEST_EQ(st.setup_diagnostic, "");
 }
 
-// Sentinel adds a ROLE command
+// Sentinel adds a ROLE command and checks its output.
+// These are real wire values.
+constexpr std::string_view role_master_response =
+   "*3\r\n$6\r\nmaster\r\n:567942\r\n*2\r\n"
+   "*3\r\n$9\r\nlocalhost\r\n$4\r\n6381\r\n$6\r\n567809\r\n*3\r\n$9\r\nlocalhost\r\n"
+   "$4\r\n6382\r\n$6\r\n567809\r\n";
+constexpr std::string_view role_replica_response =
+   "*5\r\n$5\r\nslave\r\n$9\r\nlocalhost\r\n:6380\r\n$9\r\nconnected\r\n:617355\r\n";
+
 void test_sentinel_master()
 {
    // Setup
@@ -138,12 +146,8 @@ void test_sentinel_master()
    BOOST_TEST_EQ(ec, error_code());
 
    // Response to the ROLE command
-   constexpr std::string_view role_response =
-      "*3\r\n$6\r\nmaster\r\n:567942\r\n*2\r\n"
-      "*3\r\n$9\r\nlocalhost\r\n$4\r\n6381\r\n$6\r\n567809\r\n*3\r\n$9\r\nlocalhost\r\n"
-      "$4\r\n6382\r\n$6\r\n567809\r\n";
    p.reset();
-   done = resp3::parse(p, role_response, adapter, ec);
+   done = resp3::parse(p, role_master_response, adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error_code());
 
@@ -171,12 +175,68 @@ void test_sentinel_replica()
    BOOST_TEST_EQ(ec, error_code());
 
    // Response to the ROLE command
-   constexpr std::string_view role_response =
-      "*5\r\n$5\r\nslave\r\n$9\r\nlocalhost\r\n:6380\r\n$9\r\nconnected\r\n:617355\r\n";
    p.reset();
-   done = resp3::parse(p, role_response, adapter, ec);
+   done = resp3::parse(p, role_replica_response, adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error_code());
+
+   // No diagnostic
+   BOOST_TEST_EQ(st.setup_diagnostic, "");
+}
+
+// If the role is not the one expected, a role failed error is issued
+void test_sentinel_role_check_failed_master()
+{
+   // Setup
+   connection_state st;
+   st.cfg.use_setup = true;
+   st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   compose_setup_request(st.cfg);
+   setup_adapter adapter{st};
+
+   // Response to HELLO
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "%1\r\n$6\r\nserver\r\n$5\r\nredis\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Response to the ROLE command
+   p.reset();
+   done = resp3::parse(p, role_replica_response, adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error::role_check_failed);
+
+   // No diagnostic
+   BOOST_TEST_EQ(st.setup_diagnostic, "");
+}
+
+void test_sentinel_role_check_failed_replica()
+{
+   // Setup
+   connection_state st;
+   st.cfg.use_setup = true;
+   st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   st.cfg.sentinel.server_role = role::replica;
+   compose_setup_request(st.cfg);
+   setup_adapter adapter{st};
+
+   // Response to HELLO
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "%1\r\n$6\r\nserver\r\n$5\r\nredis\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error_code());
+
+   // Response to the ROLE command
+   p.reset();
+   done = resp3::parse(p, role_master_response, adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error::role_check_failed);
 
    // No diagnostic
    BOOST_TEST_EQ(st.setup_diagnostic, "");
@@ -193,6 +253,8 @@ int main()
 
    test_sentinel_master();
    test_sentinel_replica();
+   test_sentinel_role_check_failed_master();
+   test_sentinel_role_check_failed_replica();
 
    return boost::report_errors();
 }
