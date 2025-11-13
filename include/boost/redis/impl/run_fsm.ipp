@@ -64,23 +64,6 @@ inline void compose_sentinel_request(config& cfg)
    // Note that we don't care about request flags because this is a one-time request
 }
 
-inline void process_setup_node(
-   connection_state& st,
-   resp3::basic_node<std::string_view> const& nd,
-   system::error_code& ec)
-{
-   // TODO: check the output of the ROLE command for sentinel
-   switch (nd.data_type) {
-      case resp3::type::simple_error:
-      case resp3::type::blob_error:
-      case resp3::type::null:
-         ec = redis::error::resp3_hello;
-         st.diagnostic = nd.value;
-         break;
-      default:;
-   }
-}
-
 inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 {
    const auto ec = elm.get_error();
