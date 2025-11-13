@@ -7,7 +7,7 @@
 //
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/impl/update_sentinel_list.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>

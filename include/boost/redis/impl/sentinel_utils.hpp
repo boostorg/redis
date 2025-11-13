@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef BOOST_REDIS_PARSE_SENTINEL_RESPONSE_HPP
-#define BOOST_REDIS_PARSE_SENTINEL_RESPONSE_HPP
+#ifndef BOOST_REDIS_SENTINEL_UTILS_HPP
+#define BOOST_REDIS_SENTINEL_UTILS_HPP
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace boost::redis::detail {
@@ -230,6 +231,34 @@ inline any_adapter make_vector_adapter(std::vector<resp3::node>& output)
             output.push_back({nd.data_type, nd.aggregate_size, nd.depth, std::string(nd.value)});
          }
       });
+}
+
+// Updates the internal Sentinel list.
+// to should never be empty
+inline void update_sentinel_list(
+   std::vector<address>& to,
+   std::size_t current_index,               // the one to maintain and place first
+   span<const address> gossip_sentinels,    // the ones that SENTINEL SENTINELS returned
+   span<const address> bootstrap_sentinels  // the ones the user supplied
+)
+{
+   BOOST_ASSERT(!to.empty());
+
+   // Remove everything, except the Sentinel that succeeded
+   if (current_index != 0u)
+      std::swap(to.front(), to[current_index]);
+   to.resize(1u);
+
+   // Add one group. These Sentinels are always unique and don't include the one we're currently connected to.
+   to.insert(to.end(), gossip_sentinels.begin(), gossip_sentinels.end());
+
+   // Insert any user-supplied sentinels, if not already present.
+   // This is O(n^2), but is okay because n will be small.
+   // The list can't be sorted, anyway
+   for (const auto& sentinel : bootstrap_sentinels) {
+      if (std::find(to.begin(), to.end(), sentinel) == to.end())
+         to.push_back(sentinel);
+   }
 }
 
 }  // namespace boost::redis::detail

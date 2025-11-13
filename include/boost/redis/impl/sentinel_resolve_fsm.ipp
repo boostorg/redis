@@ -18,8 +18,7 @@
 #include <boost/redis/error.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
-#include <boost/redis/impl/parse_sentinel_response.hpp>
-#include <boost/redis/impl/update_sentinel_list.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>

@@ -10,7 +10,7 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/error.hpp>
-#include <boost/redis/impl/parse_sentinel_response.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>

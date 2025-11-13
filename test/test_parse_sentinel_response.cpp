@@ -9,7 +9,7 @@
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
-#include <boost/redis/impl/parse_sentinel_response.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
 
