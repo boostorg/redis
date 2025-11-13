@@ -41,18 +41,23 @@ void test_exec()
    };
    cfg.sentinel.master_name = "mymaster";
 
-   // Verify that we're connected to the master, listening at port 6380
+   // Verify that we're connected to the master
    request req;
-   req.push("CLIENT", "INFO");
+   req.push("ROLE");
 
-   response<std::string> resp;
+   generic_response resp;
 
    bool exec_finished = false, run_finished = false;
 
    conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
       exec_finished = true;
       BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "laddr"), "127.0.0.1:6380");
+
+      // ROLE outputs an array, 1st element should be 'master'
+      BOOST_TEST(resp.has_value());
+      BOOST_TEST_GE(resp.value().size(), 2u);
+      BOOST_TEST_EQ(resp.value().at(1u).value, "master");
+
       conn.cancel();
    });
 
