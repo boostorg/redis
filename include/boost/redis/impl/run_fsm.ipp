@@ -111,9 +111,9 @@ run_action run_fsm::resume(
       st.sentinels = st.cfg.sentinel.addresses;
 
       for (;;) {
-         // Sentinel connect
+         // Sentinel resolve, if required. This leaves the address in st.cfg.address
          if (use_sentinel(st.cfg)) {
-            // Ask Sentinel where our server lives. This operation does the logging for us.
+            // This operation does the logging for us.
             BOOST_REDIS_YIELD(resume_point_, 2, run_action_type::sentinel_resolve)
 
             // Check for cancellations
@@ -123,26 +123,8 @@ run_action run_fsm::resume(
             }
 
             // Check for errors
-            if (ec) {
-               // If we are not going to try again, we're done
-               if (st.cfg.reconnect_wait_interval.count() == 0) {
-                  return ec;
-               }
-
-               // Wait for the reconnection interval.
-               // This is not technically what Redis docs recommends,
-               // but I think it's consistent with what non-sentinel run does
-               BOOST_REDIS_YIELD(resume_point_, 3, run_action_type::wait_for_reconnection)
-
-               // Check for cancellations
-               if (is_terminal_cancel(cancel_state)) {
-                  log_debug(st.logger, "Run: cancelled (5)");
-                  return system::error_code(asio::error::operation_aborted);
-               }
-
-               // Try again
-               continue;
-            }
+            if (ec)
+               goto sleep_and_reconnect;
          }
 
          // Try to connect
@@ -163,47 +145,50 @@ run_action run_fsm::resume(
                get_server_address(st),
                ": ",
                ec);
-         } else {
-            // We were successful
-            log_info(st.logger, "Connected to Redis server at ", get_server_address(st));
-
-            // Initialization
-            st.mpx.reset();
-            st.diagnostic.clear();
-
-            // Add the setup request to the multiplexer
-            if (st.cfg.setup.get_commands() != 0u) {
-               auto elm = make_elem(st.cfg.setup, make_any_adapter_impl(setup_adapter{st}));
-               elm->set_done_callback([&elem_ref = *elm, &st] {
-                  on_setup_done(elem_ref, st);
-               });
-               st.mpx.add(elm);
-            }
-
-            // Run the tasks
-            BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::parallel_group)
-
-            // Store any error yielded by the tasks for later
-            stored_ec_ = ec;
-
-            // We've lost connection or otherwise been cancelled.
-            // Remove from the multiplexer the required requests.
-            st.mpx.cancel_on_conn_lost();
-
-            // The receive operation must be cancelled because channel
-            // subscription does not survive a reconnection but requires
-            // re-subscription.
-            BOOST_REDIS_YIELD(resume_point_, 6, run_action_type::cancel_receive)
-
-            // Restore the error
-            ec = stored_ec_;
-
-            // Check for cancellations
-            if (is_terminal_cancel(cancel_state)) {
-               log_debug(st.logger, "Run: cancelled (2)");
-               return system::error_code(asio::error::operation_aborted);
-            }
+            goto sleep_and_reconnect;
          }
+
+         // We were successful
+         log_info(st.logger, "Connected to Redis server at ", get_server_address(st));
+
+         // Initialization
+         st.mpx.reset();
+         st.diagnostic.clear();
+
+         // Add the setup request to the multiplexer
+         if (st.cfg.setup.get_commands() != 0u) {
+            auto elm = make_elem(st.cfg.setup, make_any_adapter_impl(setup_adapter{st}));
+            elm->set_done_callback([&elem_ref = *elm, &st] {
+               on_setup_done(elem_ref, st);
+            });
+            st.mpx.add(elm);
+         }
+
+         // Run the tasks
+         BOOST_REDIS_YIELD(resume_point_, 5, run_action_type::parallel_group)
+
+         // Store any error yielded by the tasks for later
+         stored_ec_ = ec;
+
+         // We've lost connection or otherwise been cancelled.
+         // Remove from the multiplexer the required requests.
+         st.mpx.cancel_on_conn_lost();
+
+         // The receive operation must be cancelled because channel
+         // subscription does not survive a reconnection but requires
+         // re-subscription.
+         BOOST_REDIS_YIELD(resume_point_, 6, run_action_type::cancel_receive)
+
+         // Restore the error
+         ec = stored_ec_;
+
+         // Check for cancellations
+         if (is_terminal_cancel(cancel_state)) {
+            log_debug(st.logger, "Run: cancelled (2)");
+            return system::error_code(asio::error::operation_aborted);
+         }
+
+sleep_and_reconnect:
 
          // If we are not going to try again, we're done
          if (st.cfg.reconnect_wait_interval.count() == 0) {
