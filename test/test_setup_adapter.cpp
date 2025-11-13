@@ -306,6 +306,27 @@ void test_sentinel_role_empty_array()
    BOOST_TEST_EQ(st.setup_diagnostic, "");
 }
 
+void test_sentinel_role_first_element_not_string()
+{
+   // Setup
+   connection_state st;
+   st.cfg.use_setup = true;
+   st.cfg.setup.clear();
+   st.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   compose_setup_request(st.cfg);
+   setup_adapter adapter{st};
+
+   // Response to ROLE
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "*1\r\n:2000\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error::invalid_data_type);
+   BOOST_TEST_EQ(st.setup_diagnostic, "");
+}
+
 }  // namespace
 
 int main()
@@ -322,6 +343,7 @@ int main()
    test_sentinel_role_error_node();
    test_sentinel_role_not_array();
    test_sentinel_role_empty_array();
+   test_sentinel_role_first_element_not_string();
 
    return boost::report_errors();
 }

@@ -98,11 +98,13 @@ class setup_adapter {
          // 'slave' if we're connecting to a replica
          if (nd.depth == 1u && !role_seen_) {
             role_seen_ = true;
+            if (nd.data_type != resp3::type::blob_string)
+               return error::invalid_data_type;
+
             const char* expected_role = st_->cfg.sentinel.server_role == role::master ? "master"
                                                                                       : "slave";
-            if (nd.value != expected_role) {
+            if (nd.value != expected_role)
                return error::role_check_failed;
-            }
          }
       }
 
