@@ -347,8 +347,8 @@ jobs:
           --variant debug,release
 
   # Checks that we don't have any errors in docs
-  check-docs:
-    name: Check docs
+  linux-check-docs:
+    name: Linux check docs
     defaults:
       run:
         shell: bash
@@ -360,6 +360,26 @@ jobs:
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build docs
+      run: |
+        cd ~/boost-root
+        ./b2 libs/redis/doc
+        [ -f ~/boost-root/libs/redis/doc/html/index.html ]
+
+  windows-check-docs:
+    name: Windows check docs
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Boost
+      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
     
     - name: Build docs
       run: |
