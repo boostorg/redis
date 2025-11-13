@@ -95,18 +95,12 @@ sentinel_action sentinel_resolve_fsm::resume(
          }
 
          // Parse the response
-         ec = parse_sentinel_response(
-            st.sentinel_resp_nodes,
-            st.cfg.sentinel.server_role,
-            st.sentinel_resp);
+         sentinel_response resp;
+         ec = parse_sentinel_response(st.sentinel_resp_nodes, st.cfg.sentinel.server_role, resp);
 
          if (ec) {
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
-               log_sentinel_error(
-                  st,
-                  idx_,
-                  "responded with an error: ",
-                  st.sentinel_resp.diagnostic);
+               log_sentinel_error(st, idx_, "responded with an error: ", resp.diagnostic);
             } else if (ec == error::resp3_null) {
                log_sentinel_error(st, idx_, "doesn't know about the configured master");
             } else {
@@ -121,22 +115,19 @@ sentinel_action sentinel_resolve_fsm::resume(
          }
 
          // When asking for replicas, we might get no replicas
-         if (st.cfg.sentinel.server_role == role::replica && st.sentinel_resp.replicas.empty()) {
+         if (st.cfg.sentinel.server_role == role::replica && resp.replicas.empty()) {
             log_sentinel_error(st, idx_, "the configured master has no replicas");
-
             continue;
          }
 
          // Store the resulting address in a well-known place
          if (st.cfg.sentinel.server_role == role::master) {
-            st.cfg.addr = st.sentinel_resp.master_addr;
+            st.cfg.addr = resp.master_addr;
          } else {
             // Choose a random replica
-            std::uniform_int_distribution<std::size_t> dist{
-               0u,
-               st.sentinel_resp.replicas.size() - 1u};
+            std::uniform_int_distribution<std::size_t> dist{0u, resp.replicas.size() - 1u};
             const auto idx = dist(st.eng.get());
-            st.cfg.addr = st.sentinel_resp.replicas[idx];
+            st.cfg.addr = resp.replicas[idx];
          }
 
          // Sentinel knows about this master. Log and update our config
@@ -147,11 +138,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             " resolved the server address to ",
             st.cfg.addr);
 
-         update_sentinel_list(
-            st.sentinels,
-            idx_,
-            st.sentinel_resp.sentinels,
-            st.cfg.sentinel.addresses);
+         update_sentinel_list(st.sentinels, idx_, resp.sentinels, st.cfg.sentinel.addresses);
 
          st.sentinel_resp_nodes.clear();  // reduce memory consumption
          return system::error_code();

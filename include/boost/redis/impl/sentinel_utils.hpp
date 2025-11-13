@@ -9,8 +9,8 @@
 #ifndef BOOST_REDIS_SENTINEL_UTILS_HPP
 #define BOOST_REDIS_SENTINEL_UTILS_HPP
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/type.hpp>
@@ -111,6 +111,14 @@ inline system::error_code parse_server_list(
    first = it;
    return system::error_code();
 }
+
+// The output type of parse_sentinel_response
+struct sentinel_response {
+   std::string diagnostic;         // In case the server returned an error
+   address master_addr;            // Always populated
+   std::vector<address> replicas;  // Populated only when connecting to replicas
+   std::vector<address> sentinels;
+};
 
 // Parses an array of nodes into a sentinel_response.
 // The request originating this response should be:
@@ -237,6 +245,7 @@ inline system::error_code parse_sentinel_response(
    return system::error_code();
 }
 
+// TODO: move
 // An adapter like generic_response, but without checking for error nodes.
 // Exposed for testing
 inline any_adapter make_vector_adapter(std::vector<resp3::node>& output)

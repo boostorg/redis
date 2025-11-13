@@ -22,13 +22,6 @@
 
 namespace boost::redis::detail {
 
-struct sentinel_response {
-   std::string diagnostic;         // In case the server returned an error
-   address master_addr;            // Always populated
-   std::vector<address> replicas;  // Populated only when connecting to replicas
-   std::vector<address> sentinels;
-};
-
 // A random engine that gets seeded lazily.
 // Seeding with std::random_device is not trivial and might fail.
 class lazy_random_engine {
@@ -60,7 +53,6 @@ struct connection_state {
    lazy_random_engine eng{};
    std::vector<address> sentinels{};
    std::vector<resp3::node> sentinel_resp_nodes{};  // for parsing
-   sentinel_response sentinel_resp{};
 };
 
 }  // namespace boost::redis::detail
