@@ -64,7 +64,6 @@ std::ostream& operator<<(std::ostream& os, const exec_one_action& act)
 
 namespace {
 
-// TODO: simplify this
 struct adapter_event {
    parse_event type;
    resp3::node node{};
@@ -98,7 +97,6 @@ any_adapter make_snoop_adapter(std::vector<adapter_event>& events)
    }};
 }
 
-// TODO: duplicated
 void copy_to(read_buffer& buff, std::string_view data)
 {
    auto const buffer = buff.get_prepared();
