@@ -85,14 +85,12 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Sentinel resolve: cancelled (2)");
-            st.sentinel_resp_nodes.clear();
             return system::error_code(asio::error::operation_aborted);
          }
 
          // Check for errors
          if (ec) {
             log_sentinel_error(st, idx_, "error while executing request: ", ec);
-            st.sentinel_resp_nodes.clear();
             continue;
          }
 
@@ -101,9 +99,6 @@ sentinel_action sentinel_resolve_fsm::resume(
             st.sentinel_resp_nodes,
             st.cfg.sentinel.server_role,
             st.sentinel_resp);
-
-         // Reduce memory consumption. TODO: do we want to make these temporaries, instead?
-         st.sentinel_resp_nodes.clear();
 
          if (ec) {
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
@@ -158,6 +153,7 @@ sentinel_action sentinel_resolve_fsm::resume(
             st.sentinel_resp.sentinels,
             st.cfg.sentinel.addresses);
 
+         st.sentinel_resp_nodes.clear();  // reduce memory consumption
          return system::error_code();
       }
 
