@@ -5,7 +5,9 @@
  */
 
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/impl/sentinel_utils.hpp>  // for make_vector_adapter
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/core/lightweight_test.hpp>
 
@@ -70,6 +72,26 @@ logger log_fixture::make_logger()
    return logger(logger::level::debug, [&](logger::level lvl, std::string_view msg) {
       msgs.push_back({lvl, std::string(msg)});
    });
+}
+
+std::vector<resp3::node> nodes_from_resp3(
+   const std::vector<std::string_view>& msgs,
+   source_location loc)
+{
+   std::vector<resp3::node> nodes;
+   auto adapter = detail::make_vector_adapter(nodes);
+
+   for (std::string_view resp : msgs) {
+      resp3::parser p;
+      system::error_code ec;
+      bool done = resp3::parse(p, resp, adapter, ec);
+      if (!BOOST_TEST(done))
+         std::cerr << "Called from " << loc << std::endl;
+      if (!BOOST_TEST_EQ(ec, system::error_code()))
+         std::cerr << "Called from " << loc << std::endl;
+   }
+
+   return nodes;
 }
 
 }  // namespace boost::redis::detail

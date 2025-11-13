@@ -17,12 +17,15 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "sansio_utils.hpp"
+
 #include <initializer_list>
 #include <ostream>
 #include <string_view>
 #include <vector>
 
 using namespace boost::redis;
+using detail::nodes_from_resp3;
 using detail::parse_sentinel_response;
 using detail::sentinel_response;
 using boost::system::error_code;
@@ -38,26 +41,6 @@ std::ostream& operator<<(std::ostream& os, const address& addr)
 }  // namespace boost::redis
 
 namespace {
-
-// Loads a vector of nodes from a set of RESP3 messages.
-// Using the raw RESP values ensures that the correct
-// node tree is built, which is not always obvious
-std::vector<resp3::node> from_resp3(const std::vector<std::string_view>& responses)
-{
-   std::vector<resp3::node> nodes;
-   auto adapter = detail::make_vector_adapter(nodes);
-
-   for (std::string_view resp : responses) {
-      resp3::parser p;
-      error_code ec;
-      bool ok = resp3::parse(p, resp, adapter, ec);
-      BOOST_TEST(ok);
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST(p.done());
-   }
-
-   return nodes;
-}
 
 struct fixture {
    sentinel_response resp{
@@ -97,7 +80,7 @@ void test_master()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*2\r\n"
@@ -133,7 +116,7 @@ void test_master_no_sentinels()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -149,7 +132,7 @@ void test_master_setup_request()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "+OK\r\n",
       "%6\r\n$6\r\nserver\r\n$5\r\nredis\r\n$7\r\nversion\r\n$5\r\n7.4.2\r\n$5\r\nproto\r\n:3\r\n$2\r\nid\r\n:3\r\n$4\r\nmode\r\n$8\r\nsentinel\r\n$7\r\nmodules\r\n*0\r\n",
@@ -187,7 +170,7 @@ void test_master_ip_port_out_of_order()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*1\r\n"
@@ -212,7 +195,7 @@ void test_replica()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*2\r\n"
@@ -271,7 +254,7 @@ void test_replica_no_sentinels()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*2\r\n"
@@ -300,7 +283,7 @@ void test_replica_no_replicas()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
       "*0\r\n",
@@ -321,7 +304,7 @@ void test_replica_setup_request()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n+OK\r\n+OK\r\n",
       "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
@@ -359,7 +342,7 @@ void test_replica_ip_port_out_of_order()
 {
    // Setup
    fixture fix;
-   auto nodes = from_resp3({
+   auto nodes = nodes_from_resp3({
       // clang-format off
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6389\r\n",
       "*1\r\n"
@@ -714,7 +697,7 @@ void test_errors()
       // Setup
       std::cerr << "Running error test case: " << tc.name << std::endl;
       fixture fix;
-      auto nodes = from_resp3(tc.responses);
+      auto nodes = nodes_from_resp3(tc.responses);
 
       // Call the function
       auto ec = parse_sentinel_response(nodes, tc.server_role, fix.resp);
