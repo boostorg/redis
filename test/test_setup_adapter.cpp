@@ -86,9 +86,27 @@ void test_blob_error()
    done = resp3::parse(p, "!3\r\nBad\r\n", adapter, ec);
    BOOST_TEST(done);
    BOOST_TEST_EQ(ec, error::resp3_hello);
+   BOOST_TEST_EQ(st.setup_diagnostic, "Bad");
+}
+
+// A NULL is not an error
+void test_null()
+{
+   // Setup
+   connection_state st;
+   st.cfg.use_setup = true;
+   compose_setup_request(st.cfg);
+   setup_adapter adapter{st};
+
+   // Response to HELLO
+   resp3::parser p;
+   error_code ec;
+   bool done = resp3::parse(p, "_\r\n", adapter, ec);
+   BOOST_TEST(done);
+   BOOST_TEST_EQ(ec, error_code());
 
    // No diagnostic
-   BOOST_TEST_EQ(st.setup_diagnostic, "Bad");
+   BOOST_TEST_EQ(st.setup_diagnostic, "");
 }
 
 }  // namespace
@@ -98,6 +116,7 @@ int main()
    test_success();
    test_simple_error();
    test_blob_error();
+   test_null();
 
    return boost::report_errors();
 }
