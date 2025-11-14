@@ -5,7 +5,6 @@ services:
     network_mode: host
     command: >
       sh -c 'chmod 777 /tmp/redis-socks &&
-             echo hola > /tmp/redis-socks/mytext.txt &&
              redis-server \
               --replica-announce-ip localhost \
               --port 6379 \
@@ -65,20 +64,21 @@ services:
     image: ${SERVER_IMAGE}
     network_mode: host
     command: >
-      sh -c 'echo "port 26379" >> /etc/sentinel.conf &&
-            echo "tls-port 36379" >> /etc/sentinel.conf &&
-            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
-            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
-            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
-            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
-            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
-            echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
-            redis-sentinel /etc/sentinel.conf'
+      sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
+        port 26379
+        tls-port 36379
+        tls-cert-file /docker/tls/server.crt
+        tls-key-file /docker/tls/server.key
+        tls-ca-cert-file /docker/tls/ca.crt
+        tls-auth-clients no
+        sentinel resolve-hostnames yes
+        sentinel announce-hostnames yes
+        sentinel announce-ip localhost
+        sentinel monitor mymaster localhost 6379 2
+        sentinel down-after-milliseconds mymaster 10000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+      EOF'
     volumes:
       - ./docker:/docker
 
@@ -88,20 +88,21 @@ services:
     image: ${SERVER_IMAGE}
     network_mode: host
     command: >
-      sh -c 'echo "port 26380" >> /etc/sentinel.conf &&
-            echo "tls-port 36380" >> /etc/sentinel.conf &&
-            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
-            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
-            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
-            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
-            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
-            echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
-            redis-sentinel /etc/sentinel.conf'
+      sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
+        port 26380
+        tls-port 36380
+        tls-cert-file /docker/tls/server.crt
+        tls-key-file /docker/tls/server.key
+        tls-ca-cert-file /docker/tls/ca.crt
+        tls-auth-clients no
+        sentinel resolve-hostnames yes
+        sentinel announce-hostnames yes
+        sentinel announce-ip localhost
+        sentinel monitor mymaster localhost 6379 2
+        sentinel down-after-milliseconds mymaster 10000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+      EOF'
     volumes:
       - ./docker:/docker
 
@@ -110,20 +111,20 @@ services:
     image: ${SERVER_IMAGE}
     network_mode: host
     command: >
-      sh -c 'echo "port 26381" >> /etc/sentinel.conf &&
-            echo "tls-port 36381" >> /etc/sentinel.conf &&
-            echo "tls-cert-file /docker/tls/server.crt" >> /etc/sentinel.conf &&
-            echo "tls-key-file /docker/tls/server.key" >> /etc/sentinel.conf &&
-            echo "tls-ca-cert-file /docker/tls/ca.crt" >> /etc/sentinel.conf &&
-            echo "tls-auth-clients no" >> /etc/sentinel.conf &&
-            echo "sentinel monitor mymaster localhost 6379 2" >> /etc/sentinel.conf &&
-            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-hostnames yes" >> /etc/sentinel.conf &&
-            echo "sentinel announce-ip localhost" >> /etc/sentinel.conf &&
-            echo "sentinel down-after-milliseconds mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel failover-timeout mymaster 10000" >> /etc/sentinel.conf &&
-            echo "sentinel parallel-syncs mymaster 1" >> /etc/sentinel.conf &&
-            redis-sentinel /etc/sentinel.conf'
+      sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
+        tls-port 36381
+        tls-cert-file /docker/tls/server.crt
+        tls-key-file /docker/tls/server.key
+        tls-ca-cert-file /docker/tls/ca.crt
+        tls-auth-clients no
+        sentinel resolve-hostnames yes
+        sentinel announce-hostnames yes
+        sentinel announce-ip localhost
+        sentinel monitor mymaster localhost 6379 2
+        sentinel down-after-milliseconds mymaster 10000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+      EOF'
     volumes:
       - ./docker:/docker
 
