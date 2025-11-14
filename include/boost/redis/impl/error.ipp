@@ -62,8 +62,8 @@ struct error_category_impl : system::error_category {
          case error::sentinel_resolve_failed:
             return "No Sentinel could be used to obtain the address of the Redis server.";
          case error::role_check_failed:
-            return "The contacted server is not a master as expected. This is likely a transient "
-                   "failure caused by a Sentinel failover in progress.";
+            return "The contacted server does not have the expected role. "
+                   "This is likely a transient failure caused by a Sentinel failover in progress.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }
