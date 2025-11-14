@@ -112,6 +112,7 @@ services:
     network_mode: host
     command: >
       sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
+        port 26381
         tls-port 36381
         tls-cert-file /docker/tls/server.crt
         tls-key-file /docker/tls/server.key
