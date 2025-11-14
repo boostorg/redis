@@ -3,6 +3,7 @@
 * xref:cancellation.adoc[]
 * xref:serialization.adoc[]
 * xref:logging.adoc[]
+* xref:sentinel.adoc[]
 * xref:benchmarks.adoc[]
 * xref:comparison.adoc[]
 * xref:examples.adoc[]

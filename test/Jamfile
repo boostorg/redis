@@ -54,15 +54,20 @@ local tests =
     test_request
     test_low_level_sync_sans_io
     test_any_adapter
-    test_exec_fsm
     test_log_to_file
     test_conn_logging
+    test_exec_fsm
+    test_exec_one_fsm
     test_writer_fsm
     test_reader_fsm
+    test_sentinel_resolve_fsm
     test_run_fsm
     test_connect_fsm
     test_setup_request_utils
+    test_setup_adapter
     test_multiplexer
+    test_parse_sentinel_response
+    test_update_sentinel_list
 ;
 
 # Build and run the tests

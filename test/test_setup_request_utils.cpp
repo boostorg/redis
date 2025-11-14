@@ -23,6 +23,8 @@ namespace redis = boost::redis;
 using redis::detail::compose_setup_request;
 using boost::system::error_code;
 
+// TODO: rename the file
+
 namespace {
 
 void test_compose_setup()
@@ -178,6 +180,50 @@ void test_compose_setup_use_setup_flags()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
+// When using Sentinel, a ROLE command is added. This works
+// both with the old HELLO and new setup strategies.
+void test_compose_setup_sentinel_auth()
+{
+   redis::config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   cfg.clientname = "";
+   cfg.username = "foo";
+   cfg.password = "bar";
+
+   compose_setup_request(cfg);
+
+   std::string_view const expected =
+      "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
+      "*1\r\n$4\r\nROLE\r\n";
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
+}
+
+void test_compose_setup_sentinel_use_setup()
+{
+   redis::config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+   cfg.use_setup = true;
+   cfg.setup.push("SELECT", 42);
+
+   compose_setup_request(cfg);
+
+   std::string_view const expected =
+      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
+      "*2\r\n$6\r\nSELECT\r\n$2\r\n42\r\n"
+      "*1\r\n$4\r\nROLE\r\n";
+   BOOST_TEST_EQ(cfg.setup.payload(), expected);
+   BOOST_TEST(cfg.setup.has_hello_priority());
+   BOOST_TEST(cfg.setup.get_config().cancel_if_unresponded);
+   BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
+}
+
 }  // namespace
 
 int main()
@@ -191,6 +237,8 @@ int main()
    test_compose_setup_use_setup();
    test_compose_setup_use_setup_no_hello();
    test_compose_setup_use_setup_flags();
+   test_compose_setup_sentinel_auth();
+   test_compose_setup_sentinel_use_setup();
 
    return boost::report_errors();
 }
