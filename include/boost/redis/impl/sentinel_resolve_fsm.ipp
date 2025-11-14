@@ -30,6 +30,8 @@
 
 namespace boost::redis::detail {
 
+// Logs an error at info level, and also stores it in the state,
+// so it can be logged at error level if all Sentinels fail.
 template <class... Args>
 void log_sentinel_error(connection_state& st, std::size_t current_idx, const Args&... args)
 {
@@ -47,7 +49,6 @@ sentinel_action sentinel_resolve_fsm::resume(
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
-      // Contains a diagnostic with all errors we encounter
       st.diagnostic.clear();
 
       log_info(
