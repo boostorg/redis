@@ -44,9 +44,13 @@ exec_one_action exec_one_fsm::resume(
       if (ec)
          return ec;
 
+      // If the request didn't expect any response, we're done
+      if (remaining_responses_ == 0u)
+         return system::error_code{};
+
       // Read responses until we're done
       buffer.clear();
-      while (remaining_responses_ != 0u) {
+      while (true) {
          // Prepare the buffer to read some data
          ec = buffer.prepare();
          if (ec)
@@ -74,15 +78,12 @@ exec_one_action exec_one_fsm::resume(
             buffer.consume(parser_.get_consumed());
             parser_.reset();
 
-            // When no more responses remain, stop.
+            // When no more responses remain, we're done.
             // Don't read ahead, even if more data is available
             if (--remaining_responses_ == 0u)
-               break;
+               return system::error_code{};
          }
       }
-
-      // Done
-      return system::error_code();
    }
 
    BOOST_ASSERT(false);
