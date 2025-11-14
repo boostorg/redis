@@ -18,15 +18,11 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
-#include <boost/redis/request.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
-#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
-
-#include <vector>
 
 namespace boost::redis::detail {
 
@@ -35,7 +31,7 @@ inline system::error_code check_config(const config& cfg)
    if (!cfg.unix_socket.empty()) {
       if (cfg.use_ssl)
          return error::unix_sockets_ssl_unsupported;
-      if (!cfg.sentinel.addresses.empty())
+      if (use_sentinel(cfg))
          return error::sentinel_unix_sockets_unsupported;
 #ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
       return error::unix_sockets_unsupported;
@@ -54,12 +50,7 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 {
    const auto ec = elm.get_error();
    if (ec) {
-      if (ec == error::role_check_failed) {
-         log_info(
-            st.logger,
-            "Role check failed: this instance is not a master as expected. This is likely a "
-            "transient failure caused by a failover in progress");
-      } else if (st.diagnostic.empty()) {
+      if (st.diagnostic.empty()) {
          log_info(st.logger, "Setup request execution: ", ec);
       } else {
          log_info(st.logger, "Setup request execution: ", ec, " (", st.diagnostic, ")");
@@ -78,13 +69,26 @@ inline any_address_view get_server_address(const connection_state& st)
    }
 }
 
+template <>
+struct log_traits<any_address_view> {
+   static inline void log(std::string& to, any_address_view value)
+   {
+      if (value.type() == transport_type::unix_socket) {
+         to += '\'';
+         to += value.unix_socket();
+         to += '\'';
+      } else {
+         log_traits<address>::log(to, value.tcp_address());
+         to += value.type() == transport_type::tcp_tls ? " (TLS enabled)" : " (TLS disabled)";
+      }
+   }
+};
+
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
    asio::cancellation_type_t cancel_state)
 {
-   run_action act{system::error_code()};
-
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
@@ -103,12 +107,13 @@ run_action run_fsm::resume(
       // Compose the PING request. Same as above
       compose_ping_request(st.cfg, st.ping_req);
 
-      // Sentinel request. Same as above
-      if (use_sentinel(st.cfg))
+      if (use_sentinel(st.cfg)) {
+         // Sentinel request. Same as above
          compose_sentinel_request(st.cfg);
 
-      // Bootstrap the sentinel list with the ones configured by the user
-      st.sentinels = st.cfg.sentinel.addresses;
+         // Bootstrap the sentinel list with the ones configured by the user
+         st.sentinels = st.cfg.sentinel.addresses;
+      }
 
       for (;;) {
          // Sentinel resolve, if required. This leaves the address in st.cfg.address

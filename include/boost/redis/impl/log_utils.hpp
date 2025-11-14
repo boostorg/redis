@@ -8,7 +8,6 @@
 #define BOOST_REDIS_LOG_UTILS_HPP
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/logger.hpp>
 
 #include <boost/core/ignore_unused.hpp>
@@ -57,21 +56,6 @@ struct log_traits<address> {
       to += value.host;
       to += ':';
       to += value.port;
-   }
-};
-
-template <>
-struct log_traits<any_address_view> {
-   static inline void log(std::string& to, any_address_view value)
-   {
-      if (value.type() == transport_type::unix_socket) {
-         to += '\'';
-         to += value.unix_socket();
-         to += '\'';
-      } else {
-         log_traits<address>::log(to, value.tcp_address());
-         to += value.type() == transport_type::tcp_tls ? " (TLS enabled)" : " (TLS disabled)";
-      }
    }
 };
 
