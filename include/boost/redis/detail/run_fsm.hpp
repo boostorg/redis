@@ -12,10 +12,7 @@
 #include <boost/redis/detail/connect_params.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
-
-#include <cstddef>
 
 // Sans-io algorithm for async_run, as a finite state machine
 
