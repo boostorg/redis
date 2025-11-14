@@ -3,7 +3,17 @@ services:
     container_name: redis-standalone
     image: ${SERVER_IMAGE}
     network_mode: host
-    entrypoint: "/docker/entrypoint.sh"
+    command: >
+      sh -c 'chmod 777 /tmp/redis-socks &&
+             redis-server
+              --port 6379
+              --tls-port 16379
+              --tls-cert-file /docker/tls/server.crt
+              --tls-key-file /docker/tls/server.key
+              --tls-ca-cert-file /docker/tls/ca.crt
+              --tls-auth-clients no
+              --unixsocket /tmp/redis-socks/redis.sock
+              --unixsocketperm 777'
     volumes:
       - ./docker:/docker
       - /tmp/redis-socks:/tmp/redis-socks
