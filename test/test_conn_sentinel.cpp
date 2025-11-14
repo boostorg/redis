@@ -406,9 +406,9 @@ void test_error_unknown_master_replica()
 int main()
 {
    // Create the required users in the master, replicas and sentinels
+   create_user("6379", "redis_user", "redis_pass");
    create_user("6380", "redis_user", "redis_pass");
    create_user("6381", "redis_user", "redis_pass");
-   create_user("6382", "redis_user", "redis_pass");
    create_user("26379", "sentinel_user", "sentinel_pass");
    create_user("26380", "sentinel_user", "sentinel_pass");
    create_user("26381", "sentinel_user", "sentinel_pass");
