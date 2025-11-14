@@ -118,7 +118,7 @@ any_adapter::impl_t make_any_adapter_impl(Adapter&& value)
 template <class T>
 auto boost::redis::any_adapter::create_impl(T& resp) -> impl_t
 {
-   using namespace boost::redis::adapter;
+   using adapter::boost_redis_adapt;
    return detail::make_any_adapter_impl(boost_redis_adapt(resp));
 }
 
