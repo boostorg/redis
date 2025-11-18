@@ -87,9 +87,9 @@ them are:
 * [Client-side caching](https://redis.io/docs/manual/client-side-caching/).
 
 The connection class supports server pushes by means of the
-`connection::async_receive` function, which can be
+`connection::async_receive2` function, which can be
 called in the same connection that is being used to execute commands.
-The coroutine below shows how to use it:
+The coroutine below shows how to use it
 
 
 ```cpp
@@ -99,26 +99,25 @@ receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   generic_response resp;
+   flat_tree resp;
    conn->set_receive_response(resp);
 
    // Loop while reconnection is enabled
    while (conn->will_reconnect()) {
 
       // Reconnect to channels.
-      co_await conn->async_exec(req, ignore);
+      co_await conn->async_exec(req);
 
       // Loop reading Redis pushes.
-      for (;;) {
-         error_code ec;
-         co_await conn->async_receive(resp, net::redirect_error(net::use_awaitable, ec));
+      for (error_code ec;;) {
+         co_await conn->async_receive2(resp, redirect_error(ec));
          if (ec)
             break; // Connection lost, break so we can reconnect to channels.
 
          // Use the response resp in some way and then clear it.
          ...
 
-         consume_one(resp);
+         resp.clear();
       }
    }
 }

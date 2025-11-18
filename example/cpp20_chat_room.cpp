@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
@@ -30,11 +30,9 @@ using boost::asio::consign;
 using boost::asio::detached;
 using boost::asio::dynamic_buffer;
 using boost::asio::redirect_error;
-using boost::asio::use_awaitable;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::generic_response;
-using boost::redis::ignore;
+using boost::redis::generic_flat_response;
 using boost::redis::request;
 using boost::system::error_code;
 using namespace std::chrono_literals;
@@ -47,20 +45,24 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   generic_response resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
    while (conn->will_reconnect()) {
       // Subscribe to channels.
-      co_await conn->async_exec(req, ignore);
+      co_await conn->async_exec(req);
 
       // Loop reading Redis push messages.
       for (error_code ec;;) {
-         co_await conn->async_receive(redirect_error(use_awaitable, ec));
+         co_await conn->async_receive2(redirect_error(ec));
          if (ec)
             break;  // Connection lost, break so we can reconnect to channels.
-         std::cout << resp.value().at(1).value << " " << resp.value().at(2).value << " "
-                   << resp.value().at(3).value << std::endl;
+
+         for (auto const& elem: resp.value().get_view())
+            std::cout << elem.value << "\n";
+
+         std::cout << std::endl;
+
          resp.value().clear();
       }
    }
@@ -74,7 +76,7 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
       auto n = co_await async_read_until(*in, dynamic_buffer(msg, 1024), "\n");
       request req;
       req.push("PUBLISH", "channel", msg);
-      co_await conn->async_exec(req, ignore);
+      co_await conn->async_exec(req);
       msg.erase(0, n);
    }
 }
