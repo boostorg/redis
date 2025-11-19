@@ -318,7 +318,8 @@ void test_one_request_parse_error()
       {logger::level::info,  "Trying to resolve the address of master 'mymaster' using Sentinel"   },
       {logger::level::debug, "Trying to contact Sentinel at host1:1000"                            },
       {logger::level::debug, "Executing Sentinel request at host1:1000"                            },
-      {logger::level::info,  "Sentinel at host1:1000: error parsing response (maybe forgot to upgrade to RESP3?): Invalid resp3 type. [boost.redis:1]"},
+      {logger::level::info,  "Sentinel at host1:1000: error parsing response (maybe forgot to upgrade to RESP3?): "
+                             "Expects a RESP3 array, but got a different data type. [boost.redis:32]"},
       {logger::level::debug, "Trying to contact Sentinel at host2:2000"                            },
       {logger::level::debug, "Executing Sentinel request at host2:2000"                            },
       {logger::level::info,  "Sentinel at host2:2000 resolved the server address to test.host:6380"},
