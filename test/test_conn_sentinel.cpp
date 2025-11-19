@@ -10,6 +10,9 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/tree.hpp>
+#include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/ssl/context.hpp>
@@ -23,6 +26,18 @@ namespace net = boost::asio;
 using namespace boost::redis;
 using namespace std::chrono_literals;
 using boost::system::error_code;
+
+// TODO: duplicated
+namespace boost::redis::resp3 {
+
+std::ostream& operator<<(std::ostream& os, node const& nd)
+{
+   return os << "node{ .data_type=" << to_string(nd.data_type)
+             << ", .aggregate_size=" << nd.aggregate_size << ", .depth=" << nd.depth
+             << ", .value=" << nd.value << "}";
+}
+
+}  // namespace boost::redis::resp3
 
 namespace {
 
@@ -70,6 +85,63 @@ void test_exec()
 
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
+}
+
+// We can use receive normally when using Sentinel run
+void test_receive()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+
+   config cfg;
+   cfg.sentinel.addresses = {
+      {"localhost", "26379"},
+      {"localhost", "26380"},
+      {"localhost", "26381"},
+   };
+   cfg.sentinel.master_name = "mymaster";
+
+   resp3::tree resp;
+   conn.set_receive_response(resp);
+
+   // Subscribe to a channel. This produces a push message on itself
+   request req;
+   req.push("SUBSCRIBE", "sentinel_channel");
+
+   bool exec_finished = false, receive_finished = false, run_finished = false;
+
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+
+      conn.async_receive2([&](error_code ec2) {
+         receive_finished = true;
+         BOOST_TEST_EQ(ec2, error_code());
+         conn.cancel();
+      });
+   });
+
+   conn.async_run(cfg, [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(receive_finished);
+   BOOST_TEST(run_finished);
+
+   // We subscribed to channel 'sentinel_channel', and have 1 active subscription
+   const resp3::node expected[] = {
+      {resp3::type::push,        3u, 0u, ""                },
+      {resp3::type::blob_string, 1u, 1u, "subscribe"       },
+      {resp3::type::blob_string, 1u, 1u, "sentinel_channel"},
+      {resp3::type::number,      1u, 1u, "1"               },
+   };
+
+   BOOST_TEST_ALL_EQ(resp.begin(), resp.end(), std::begin(expected), std::end(expected));
 }
 
 // If connectivity to the Redis master fails, we can reconnect
@@ -415,6 +487,7 @@ int main()
 
    // Actual tests
    test_exec();
+   test_receive();
    test_reconnect();
    test_sentinel_not_reachable();
    test_auth();
