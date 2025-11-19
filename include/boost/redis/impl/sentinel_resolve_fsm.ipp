@@ -80,7 +80,7 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Execute the Sentinel request
          log_debug(st.logger, "Executing Sentinel request at ", st.sentinels[idx_]);
-         st.sentinel_resp_nodes.clear();
+         st.sentinel_resp.clear();
          BOOST_REDIS_YIELD(resume_point_, 2, sentinel_action::request())
 
          // Check for cancellations
@@ -97,7 +97,10 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          // Parse the response
          sentinel_response resp;
-         ec = parse_sentinel_response(st.sentinel_resp_nodes, st.cfg.sentinel.server_role, resp);
+         ec = parse_sentinel_response(
+            st.sentinel_resp.get_view(),
+            st.cfg.sentinel.server_role,
+            resp);
 
          if (ec) {
             if (ec == error::resp3_simple_error || ec == error::resp3_blob_error) {
@@ -141,7 +144,6 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          update_sentinel_list(st.sentinels, idx_, resp.sentinels, st.cfg.sentinel.addresses);
 
-         st.sentinel_resp_nodes.clear();  // reduce memory consumption
          return system::error_code();
       }
 
@@ -172,10 +174,7 @@ connect_params make_sentinel_connect_params(const config& cfg, const address& ad
    };
 }
 
-any_adapter make_sentinel_adapter(connection_state& st)
-{
-   return any_adapter(st.sentinel_resp_nodes);
-}
+any_adapter make_sentinel_adapter(connection_state& st) { return any_adapter(st.sentinel_resp); }
 
 }  // namespace boost::redis::detail
 

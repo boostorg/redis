@@ -26,7 +26,7 @@ namespace asio = boost::asio;
 using detail::sentinel_resolve_fsm;
 using detail::sentinel_action;
 using detail::connection_state;
-using detail::nodes_from_resp3;
+using detail::make_flat_tree;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
 
@@ -115,7 +115,7 @@ void test_success()
    // Now send the request
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       // clang-format off
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*1\r\n"
@@ -166,7 +166,7 @@ void test_success_replica()
    // Now send the request
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       // clang-format off
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*3\r\n"
@@ -215,7 +215,7 @@ void test_one_connect_error()
    // Now send the request
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -257,7 +257,7 @@ void test_one_request_network_error()
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -292,7 +292,7 @@ void test_one_request_parse_error()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "+OK\r\n",
       "+OK\r\n",
    });
@@ -302,7 +302,7 @@ void test_one_request_parse_error()
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -337,7 +337,7 @@ void test_one_request_error_node()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "-ERR needs authentication\r\n",
       "-ERR needs authentication\r\n",
    });
@@ -347,7 +347,7 @@ void test_one_request_error_node()
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -382,7 +382,7 @@ void test_one_master_unknown()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "_\r\n",
       "-ERR unknown master\r\n",
    });
@@ -393,7 +393,7 @@ void test_one_master_unknown()
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
@@ -429,7 +429,7 @@ void test_one_no_replicas()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
       "*0\r\n",
@@ -440,7 +440,7 @@ void test_one_no_replicas()
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       // clang-format off
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*1\r\n"
@@ -480,7 +480,7 @@ void test_error()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "_\r\n",
       "-ERR unknown master\r\n",
    });
@@ -494,7 +494,7 @@ void test_error()
    BOOST_TEST_EQ(act, (address{"host3", "3000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "-ERR unauthorized\r\n",
       "-ERR unauthorized\r\n",
    });
@@ -545,7 +545,7 @@ void test_error_replica()
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   fix.st.sentinel_resp_nodes = nodes_from_resp3({
+   fix.st.sentinel_resp = make_flat_tree({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
       "*0\r\n",
