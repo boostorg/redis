@@ -62,10 +62,10 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 
 inline any_address_view get_server_address(const connection_state& st)
 {
-   if (!st.cfg.unix_socket.empty()) {
-      return any_address_view{st.cfg.unix_socket};
-   } else {
+   if (st.cfg.unix_socket.empty()) {
       return {st.cfg.addr, st.cfg.use_ssl};
+   } else {
+      return any_address_view{st.cfg.unix_socket};
    }
 }
 
