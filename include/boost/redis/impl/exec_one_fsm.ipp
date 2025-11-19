@@ -69,7 +69,7 @@ exec_one_action exec_one_fsm::resume(
          buffer.commit(bytes_transferred);
 
          // Consume the data until we run out or all the responses have been read
-         while (resp3::parse(parser_, buffer.get_commited(), resp_, ec)) {
+         while (resp3::parse(parser_, buffer.get_commited(), adapter_, ec)) {
             // Check for errors
             if (ec)
                return ec;

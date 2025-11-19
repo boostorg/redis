@@ -47,13 +47,13 @@ struct exec_one_action {
 
 class exec_one_fsm {
    int resume_point_{0};
-   any_adapter resp_;
+   any_adapter adapter_;
    std::size_t remaining_responses_;
    resp3::parser parser_;
 
 public:
    exec_one_fsm(any_adapter resp, std::size_t expected_responses)
-   : resp_(std::move(resp))
+   : adapter_(std::move(resp))
    , remaining_responses_(expected_responses)
    { }
 
