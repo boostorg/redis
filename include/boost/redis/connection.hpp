@@ -12,10 +12,12 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/detail/exec_one_fsm.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
+#include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
@@ -32,9 +34,11 @@
 #include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio/cancel_after.hpp>
 #include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/compose.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/cancellation_condition.hpp>
@@ -45,6 +49,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
@@ -230,6 +235,7 @@ struct connection_impl {
    template <class CompletionToken>
    auto async_receive2(CompletionToken&& token)
    {
+      // clang-format off
       return
          receive_channel_.async_receive(
             asio::deferred(
@@ -250,8 +256,103 @@ struct connection_impl {
                }
             )
          )(std::forward<CompletionToken>(token));
+      // clang-format on
    }
 };
+
+template <class Executor>
+struct exec_one_op {
+   connection_impl<Executor>* conn_;
+   const request* req_;
+   exec_one_fsm fsm_;
+
+   explicit exec_one_op(connection_impl<Executor>& conn, const request& req, any_adapter resp)
+   : conn_(&conn)
+   , req_(&req)
+   , fsm_(std::move(resp), req.get_expected_responses())
+   { }
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
+   {
+      exec_one_action act = fsm_.resume(
+         conn_->st_.mpx.get_read_buffer(),
+         ec,
+         bytes_written,
+         self.get_cancellation_state().cancelled());
+
+      switch (act.type) {
+         case exec_one_action_type::done: self.complete(act.ec); return;
+         case exec_one_action_type::write:
+            asio::async_write(conn_->stream_, asio::buffer(req_->payload()), std::move(self));
+            return;
+         case exec_one_action_type::read_some:
+            conn_->stream_.async_read_some(
+               conn_->st_.mpx.get_read_buffer().get_prepared(),
+               std::move(self));
+            return;
+      }
+   }
+};
+
+template <class Executor, class CompletionToken>
+auto async_exec_one(
+   connection_impl<Executor>& conn,
+   const request& req,
+   any_adapter resp,
+   CompletionToken&& token)
+{
+   return asio::async_compose<CompletionToken, void(system::error_code)>(
+      exec_one_op<Executor>{conn, req, std::move(resp)},
+      token,
+      conn);
+}
+
+template <class Executor>
+struct sentinel_resolve_op {
+   connection_impl<Executor>* conn_;
+   sentinel_resolve_fsm fsm_;
+
+   explicit sentinel_resolve_op(connection_impl<Executor>& conn)
+   : conn_(&conn)
+   { }
+
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {})
+   {
+      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
+      sentinel_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+
+      switch (act.get_type()) {
+         case sentinel_action::type::done: self.complete(act.error()); return;
+         case sentinel_action::type::connect:
+            conn->stream_.async_connect(
+               make_sentinel_connect_params(conn->st_.cfg, act.connect_addr()),
+               conn->st_.logger,
+               std::move(self));
+            return;
+         case sentinel_action::type::request:
+            async_exec_one(
+               *conn,
+               conn->st_.cfg.sentinel.setup,
+               make_sentinel_adapter(conn->st_),
+               asio::cancel_after(
+                  conn->reconnect_timer_,  // should be safe to re-use this
+                  conn->st_.cfg.sentinel.request_timeout,
+                  std::move(self)));
+            return;
+      }
+   }
+};
+
+template <class Executor, class CompletionToken>
+auto async_sentinel_resolve(connection_impl<Executor>& conn, CompletionToken&& token)
+{
+   return asio::async_compose<CompletionToken, void(system::error_code)>(
+      sentinel_resolve_op<Executor>{conn},
+      token,
+      conn);
+}
 
 template <class Executor>
 struct writer_op {
@@ -379,8 +480,14 @@ public:
          case run_action_type::immediate:
             asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
+         case run_action_type::sentinel_resolve:
+            async_sentinel_resolve(*conn_, std::move(self));
+            return;
          case run_action_type::connect:
-            conn_->stream_.async_connect(conn_->st_.cfg, conn_->st_.logger, std::move(self));
+            conn_->stream_.async_connect(
+               make_run_connect_params(conn_->st_),
+               conn_->st_.logger,
+               std::move(self));
             return;
          case run_action_type::parallel_group:
             asio::experimental::make_parallel_group(
@@ -531,6 +638,8 @@ public:
     * This function establishes a connection to the Redis server and keeps
     * it healthy by performing the following operations:
     *
+    *  @li For Sentinel deployments (`config::sentinel::addresses` is not empty),
+    *      contacts Sentinels to obtain the address of the configured master.
     *  @li For TCP connections, resolves the server hostname passed in
     *      @ref boost::redis::config::addr.
     *  @li Establishes a physical connection to the server. For TCP connections,
@@ -728,10 +837,7 @@ public:
     *  @returns The number of bytes read from the socket.
     */
    BOOST_DEPRECATED("Please, use async_receive2 instead.")
-   std::size_t receive(system::error_code& ec)
-   {
-      return impl_->receive(ec);
-   }
+   std::size_t receive(system::error_code& ec) { return impl_->receive(ec); }
 
    /** @brief Executes commands on the Redis server asynchronously.
     *
@@ -1119,10 +1225,7 @@ public:
 
    /// @copydoc basic_connection::receive
    BOOST_DEPRECATED("Please use async_receive2 instead.")
-   std::size_t receive(system::error_code& ec)
-   {
-      return impl_.impl_->receive(ec);
-   }
+   std::size_t receive(system::error_code& ec) { return impl_.impl_->receive(ec); }
 
    /**
     * @brief Calls @ref boost::redis::basic_connection::async_exec.
