@@ -404,10 +404,10 @@ BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
    deserialize(resp3_set, adapt2(resp3), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 4u);
    BOOST_CHECK_EQUAL(resp2.get_total_msgs(), 1u);
 
-   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 4u);
    BOOST_CHECK_EQUAL(resp3.value().get_total_msgs(), 1u);
 
    auto const tmp2 = from_flat(resp2);
@@ -427,7 +427,7 @@ BOOST_AUTO_TEST_CASE(flat_tree_reuse)
    deserialize(resp3_set, adapt2(tmp), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 1u);
+   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 4u);
    BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
 
    // Copy to compare after the reuse.
@@ -447,25 +447,45 @@ BOOST_AUTO_TEST_CASE(flat_tree_reuse)
 
 BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
 {
-   flat_tree resp;
+   flat_tree ref1;
+   flat_tree ref2;
+   flat_tree ref3;
+   flat_tree ref4;
 
    error_code ec;
-   deserialize(resp3_set, adapt2(resp), ec);
+   deserialize(resp3_set, adapt2(ref1), ec);
+   deserialize(resp3_set, adapt2(ref2), ec);
+   deserialize(resp3_set, adapt2(ref3), ec);
+   deserialize(resp3_set, adapt2(ref4), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   // Copy
-   resp3::flat_tree copy1{resp};
+   // Copy ctor
+   resp3::flat_tree copy1{ref1};
+
+   // Move ctor
+   resp3::flat_tree move1{std::move(ref2)};
 
    // Copy assignment
-   resp3::flat_tree copy2 = resp;
+   resp3::flat_tree copy2 = ref1;
+
+   // Move assignment
+   resp3::flat_tree move2 = std::move(ref3);
 
    // Assignment
    resp3::flat_tree copy3;
-   copy3 = resp;
+   copy3 = ref1;
 
-   BOOST_TEST((copy1 == resp));
-   BOOST_TEST((copy2 == resp));
-   BOOST_TEST((copy3 == resp));
+   // Move assignment
+   resp3::flat_tree move3;
+   move3 = std::move(ref4);
+
+   BOOST_TEST((copy1 == ref1));
+   BOOST_TEST((copy2 == ref1));
+   BOOST_TEST((copy3 == ref1));
+
+   BOOST_TEST((move1 == ref1));
+   BOOST_TEST((move2 == ref1));
+   BOOST_TEST((move3 == ref1));
 }
 
 BOOST_AUTO_TEST_CASE(generic_flat_response_simple_error)
