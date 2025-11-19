@@ -235,6 +235,7 @@ struct connection_impl {
    template <class CompletionToken>
    auto async_receive2(CompletionToken&& token)
    {
+      // clang-format off
       return
          receive_channel_.async_receive(
             asio::deferred(
@@ -255,6 +256,7 @@ struct connection_impl {
                }
             )
          )(std::forward<CompletionToken>(token));
+      // clang-format on
    }
 };
 
@@ -321,15 +323,15 @@ struct sentinel_resolve_op {
       auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
       sentinel_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
 
-      switch (act.type()) {
-         case sentinel_action_type::done: self.complete(act.error()); return;
-         case sentinel_action_type::connect:
+      switch (act.get_type()) {
+         case sentinel_action::type::done: self.complete(act.error()); return;
+         case sentinel_action::type::connect:
             conn->stream_.async_connect(
                make_sentinel_connect_params(conn->st_.cfg, act.connect_addr()),
                conn->st_.logger,
                std::move(self));
             return;
-         case sentinel_action_type::request:
+         case sentinel_action::type::request:
             async_exec_one(
                *conn,
                conn->st_.cfg.sentinel.setup,
@@ -835,10 +837,7 @@ public:
     *  @returns The number of bytes read from the socket.
     */
    BOOST_DEPRECATED("Please, use async_receive2 instead.")
-   std::size_t receive(system::error_code& ec)
-   {
-      return impl_->receive(ec);
-   }
+   std::size_t receive(system::error_code& ec) { return impl_->receive(ec); }
 
    /** @brief Executes commands on the Redis server asynchronously.
     *
@@ -1226,10 +1225,7 @@ public:
 
    /// @copydoc basic_connection::receive
    BOOST_DEPRECATED("Please use async_receive2 instead.")
-   std::size_t receive(system::error_code& ec)
-   {
-      return impl_.impl_->receive(ec);
-   }
+   std::size_t receive(system::error_code& ec) { return impl_.impl_->receive(ec); }
 
    /**
     * @brief Calls @ref boost::redis::basic_connection::async_exec.

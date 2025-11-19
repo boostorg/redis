@@ -24,27 +24,26 @@
 using namespace boost::redis;
 namespace asio = boost::asio;
 using detail::sentinel_resolve_fsm;
-using detail::sentinel_action_type;
 using detail::sentinel_action;
 using detail::connection_state;
 using detail::nodes_from_resp3;
 using boost::system::error_code;
 using boost::asio::cancellation_type_t;
 
-static char const* to_string(sentinel_action_type t)
+static char const* to_string(sentinel_action::type t)
 {
    switch (t) {
-      case sentinel_action_type::done:    return "sentinel_action_type::done";
-      case sentinel_action_type::connect: return "sentinel_action_type::connect";
-      case sentinel_action_type::request: return "sentinel_action_type::request";
-      default:                            return "sentinel_action_type::<invalid type>";
+      case sentinel_action::type::done:    return "sentinel_action::type::done";
+      case sentinel_action::type::connect: return "sentinel_action::type::connect";
+      case sentinel_action::type::request: return "sentinel_action::type::request";
+      default:                             return "sentinel_action::type::<invalid type>";
    }
 }
 
 // Operators
 namespace boost::redis::detail {
 
-std::ostream& operator<<(std::ostream& os, sentinel_action_type type)
+std::ostream& operator<<(std::ostream& os, sentinel_action::type type)
 {
    os << to_string(type);
    return os;
@@ -52,11 +51,11 @@ std::ostream& operator<<(std::ostream& os, sentinel_action_type type)
 
 bool operator==(sentinel_action lhs, sentinel_action rhs) noexcept
 {
-   if (lhs.type() != rhs.type())
+   if (lhs.get_type() != rhs.get_type())
       return false;
-   else if (lhs.type() == sentinel_action_type::done)
+   else if (lhs.get_type() == sentinel_action::type::done)
       return lhs.error() == rhs.error();
-   else if (lhs.type() == sentinel_action_type::connect)
+   else if (lhs.get_type() == sentinel_action::type::connect)
       return lhs.connect_addr() == rhs.connect_addr();
    else
       return true;
@@ -64,10 +63,10 @@ bool operator==(sentinel_action lhs, sentinel_action rhs) noexcept
 
 std::ostream& operator<<(std::ostream& os, sentinel_action act)
 {
-   os << "exec_action{ .type=" << act.type();
-   if (act.type() == sentinel_action_type::done)
+   os << "exec_action{ .type=" << act.get_type();
+   if (act.get_type() == sentinel_action::type::done)
       os << ", .error=" << act.error();
-   else if (act.type() == sentinel_action_type::connect)
+   else if (act.get_type() == sentinel_action::type::connect)
       os << ", .addr=" << act.connect_addr().host << ":" << act.connect_addr().port;
    return os << " }";
 }

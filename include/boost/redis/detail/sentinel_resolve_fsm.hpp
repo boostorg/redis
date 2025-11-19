@@ -24,51 +24,52 @@ namespace boost::redis::detail {
 // Forward decls
 struct connection_state;
 
-// What should we do next?
-enum class sentinel_action_type
-{
-   done,     // Call the final handler
-   connect,  // Transport connection establishment
-   request,  // Send the Sentinel request
-};
-
 class sentinel_action {
-   sentinel_action_type type_;
-   union {
-      system::error_code ec_;
-      const address* connect_;
+public:
+   enum class type
+   {
+      done,     // Call the final handler
+      connect,  // Transport connection establishment
+      request,  // Send the Sentinel request
    };
 
-   sentinel_action(sentinel_action_type type) noexcept
-   : type_(type)
-   { }
-
-public:
    sentinel_action(system::error_code ec) noexcept
-   : type_(sentinel_action_type::done)
+   : type_(type::done)
    , ec_(ec)
    { }
 
    sentinel_action(const address& addr) noexcept
-   : type_(sentinel_action_type::connect)
+   : type_(type::connect)
    , connect_(&addr)
    { }
 
-   static sentinel_action request() { return {sentinel_action_type::request}; }
+   static sentinel_action request() { return {type::request}; }
 
-   sentinel_action_type type() const { return type_; }
+   type get_type() const { return type_; }
 
+   [[nodiscard]]
    system::error_code error() const
    {
-      BOOST_ASSERT(type_ == sentinel_action_type::done);
+      BOOST_ASSERT(type_ == type::done);
       return ec_;
    }
 
    const address& connect_addr() const
    {
-      BOOST_ASSERT(type_ == sentinel_action_type::connect);
+      BOOST_ASSERT(type_ == type::connect);
       return *connect_;
    }
+
+private:
+   type type_;
+   union {
+      system::error_code ec_;
+      const address* connect_;
+   };
+
+   sentinel_action(type type) noexcept
+   : type_(type)
+   { }
 };
 
 class sentinel_resolve_fsm {
