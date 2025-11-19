@@ -114,12 +114,12 @@ void test_receive()
    conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
       exec_finished = true;
       BOOST_TEST_EQ(ec, error_code());
+   });
 
-      conn.async_receive2([&](error_code ec2) {
-         receive_finished = true;
-         BOOST_TEST_EQ(ec2, error_code());
-         conn.cancel();
-      });
+   conn.async_receive2([&](error_code ec2) {
+      receive_finished = true;
+      BOOST_TEST_EQ(ec2, error_code());
+      conn.cancel();
    });
 
    conn.async_run(cfg, [&](error_code ec) {
