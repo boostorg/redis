@@ -36,7 +36,7 @@ inline bool operator==(address const& a, address const& b)
    return a.host == b.host && a.port == b.port;
 }
 
-/** @brief Compares two addresses for difference.
+/** @brief Compares two addresses for inequality.
  *  @relates address
  *
  *  @param a Left hand side address.
