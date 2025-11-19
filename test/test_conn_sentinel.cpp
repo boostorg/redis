@@ -19,6 +19,7 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
+#include "print_node.hpp"
 
 #include <string>
 
@@ -26,18 +27,6 @@ namespace net = boost::asio;
 using namespace boost::redis;
 using namespace std::chrono_literals;
 using boost::system::error_code;
-
-// TODO: duplicated
-namespace boost::redis::resp3 {
-
-std::ostream& operator<<(std::ostream& os, node const& nd)
-{
-   return os << "node{ .data_type=" << to_string(nd.data_type)
-             << ", .aggregate_size=" << nd.aggregate_size << ", .depth=" << nd.depth
-             << ", .value=" << nd.value << "}";
-}
-
-}  // namespace boost::redis::resp3
 
 namespace {
 

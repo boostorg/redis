@@ -18,6 +18,8 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "print_node.hpp"
+
 #include <iterator>
 #include <ostream>
 #include <string_view>
@@ -79,9 +81,7 @@ struct adapter_event {
          case parse_event::init: return os << "adapter_event{ .type=init }";
          case parse_event::done: return os << "adapter_event{ .type=done }";
          case parse_event::node:
-            return os << "adapter_event{ .type=node, .data_type=" << to_string(value.node.data_type)
-                      << ", .aggregate_size=" << value.node.aggregate_size
-                      << ", .depth=" << value.node.depth << ", .value=" << value.node.value << " }";
+            return os << "adapter_event{ .type=node, .node=" << value.node << " }";
          default: return os << "adapter_event{ .type=unknown }";
       }
    }

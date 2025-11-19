@@ -13,6 +13,8 @@
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 
+#include "print_node.hpp"
+
 #define BOOST_TEST_MODULE low_level_sync_sans_io
 #include <boost/test/included/unit_test.hpp>
 
@@ -338,24 +340,14 @@ BOOST_AUTO_TEST_CASE(check_counter_adapter)
 namespace boost::redis::resp3 {
 
 template <class String>
-std::ostream& operator<<(std::ostream& os, basic_node<String> const& nd)
-{
-   os << "type: " << to_string(nd.data_type) << "\n"
-      << "aggregate_size: " << nd.aggregate_size << "\n"
-      << "depth: " << nd.depth << "\n"
-      << "value: " << nd.value << "\n";
-   return os;
-}
-
-template <class String>
 std::ostream& operator<<(std::ostream& os, basic_tree<String> const& resp)
 {
-   for (auto const& e: resp)
+   for (auto const& e : resp)
       os << e << ",";
    return os;
 }
 
-}
+}  // namespace boost::redis::resp3
 
 node from_node_view(node_view const& v)
 {
@@ -370,7 +362,7 @@ node from_node_view(node_view const& v)
 tree from_flat(flat_tree const& resp)
 {
    tree ret;
-   for (auto const& e: resp.get_view())
+   for (auto const& e : resp.get_view())
       ret.push_back(from_node_view(e));
 
    return ret;
@@ -379,12 +371,11 @@ tree from_flat(flat_tree const& resp)
 tree from_flat(generic_flat_response const& resp)
 {
    tree ret;
-   for (auto const& e: resp.value().get_view())
+   for (auto const& e : resp.value().get_view())
       ret.push_back(from_node_view(e));
 
    return ret;
 }
-
 
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
