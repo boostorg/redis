@@ -19,7 +19,6 @@
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>
-#include <boost/redis/impl/vector_adapter.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
@@ -173,10 +172,9 @@ connect_params make_sentinel_connect_params(const config& cfg, const address& ad
    };
 }
 
-// Note that we can't use generic_response because we need to tolerate error nodes.
 any_adapter make_sentinel_adapter(connection_state& st)
 {
-   return make_vector_adapter(st.sentinel_resp_nodes);
+   return any_adapter(st.sentinel_resp_nodes);
 }
 
 }  // namespace boost::redis::detail

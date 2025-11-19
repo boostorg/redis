@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/impl/vector_adapter.hpp>
 
 #include <boost/assert/source_location.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -79,7 +79,7 @@ std::vector<resp3::node> nodes_from_resp3(
    source_location loc)
 {
    std::vector<resp3::node> nodes;
-   auto adapter = detail::make_vector_adapter(nodes);
+   any_adapter adapter{nodes};
 
    for (std::string_view resp : msgs) {
       resp3::parser p;
