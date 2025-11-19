@@ -6,7 +6,6 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/resp3/flat_tree.hpp>
 
 #include <boost/assert/source_location.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -75,10 +74,12 @@ logger log_fixture::make_logger()
    });
 }
 
-resp3::flat_tree make_flat_tree(const std::vector<std::string_view>& msgs, source_location loc)
+std::vector<resp3::node> nodes_from_resp3(
+   const std::vector<std::string_view>& msgs,
+   source_location loc)
 {
-   resp3::flat_tree res;
-   any_adapter adapter{res};
+   std::vector<resp3::node> nodes;
+   any_adapter adapter{nodes};
 
    for (std::string_view resp : msgs) {
       resp3::parser p;
@@ -90,7 +91,7 @@ resp3::flat_tree make_flat_tree(const std::vector<std::string_view>& msgs, sourc
          std::cerr << "Called from " << loc << std::endl;
    }
 
-   return res;
+   return nodes;
 }
 
 }  // namespace boost::redis::detail
