@@ -106,6 +106,12 @@ enum class error
    /// The contacted server is not a master as expected.
    /// This is likely a transient failure caused by a Sentinel failover in progress.
    role_check_failed,
+
+   /// Expects a RESP3 string, but got a different data type.
+   expects_resp3_string,
+
+   /// Expects a RESP3 array, but got a different data type.
+   expects_resp3_array,
 };
 
 /**

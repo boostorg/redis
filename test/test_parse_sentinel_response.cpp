@@ -482,7 +482,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_array
       },
       {
          // Root node should have exactly 2 elements
@@ -515,7 +515,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
       {
          // Port should be a string
@@ -526,7 +526,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
 
       // SENTINEL SENTINELS
@@ -550,7 +550,7 @@ void test_errors()
             "+OK\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_array
       },
       {
          // Each Sentinel object should be a map
@@ -561,7 +561,7 @@ void test_errors()
             "*1\r\n*1\r\n$9\r\nlocalhost\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_map
       },
       {
          // Keys in the Sentinel object should be strings
@@ -572,7 +572,7 @@ void test_errors()
             "*1\r\n%1\r\n*0\r\n$5\r\nhello\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
       {
          // Values in the Sentinel object should be strings
@@ -583,7 +583,7 @@ void test_errors()
             "*1\r\n%1\r\n$5\r\nhello\r\n*1\r\n+OK\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
       {
          "sentinels_ip_not_found",
@@ -629,7 +629,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_array
       },
       {
          // Each replica object should be a map
@@ -641,7 +641,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_map
       },
       {
          // Keys in the replica object should be strings
@@ -653,7 +653,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
       {
          // Values in the replica object should be strings
@@ -665,7 +665,7 @@ void test_errors()
             "*0\r\n",
          },
          "",
-         error::invalid_data_type
+         error::expects_resp3_string
       },
       {
          "replicas_ip_not_found",

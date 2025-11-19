@@ -64,6 +64,10 @@ struct error_category_impl : system::error_category {
          case error::role_check_failed:
             return "The contacted server does not have the expected role. "
                    "This is likely a transient failure caused by a Sentinel failover in progress.";
+         case error::expects_resp3_string:
+            return "Expects a RESP3 string, but got a different data type.";
+         case error::expects_resp3_array:
+            return "Expects a RESP3 array, but got a different data type.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }

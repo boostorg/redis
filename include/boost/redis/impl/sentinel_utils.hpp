@@ -56,7 +56,7 @@ inline system::error_code parse_server_list(
    BOOST_ASSERT(it != last);
    BOOST_ASSERT(it->depth == 0u);
    if (it->data_type != resp3::type::array)
-      return {error::invalid_data_type};
+      return {error::expects_resp3_array};
    const std::size_t num_servers = it->aggregate_size;
    ++it;
 
@@ -67,7 +67,7 @@ inline system::error_code parse_server_list(
       BOOST_ASSERT(it != last);
       BOOST_ASSERT(it->depth == 1u);
       if (it->data_type != resp3::type::map)
-         return {error::invalid_data_type};
+         return {error::expects_resp3_map};
       const std::size_t num_key_values = it->aggregate_size;
       ++it;
 
@@ -79,7 +79,7 @@ inline system::error_code parse_server_list(
          BOOST_ASSERT(it != last);
          BOOST_ASSERT(it->depth == 2u);
          if (it->data_type != resp3::type::blob_string)
-            return {error::invalid_data_type};
+            return {error::expects_resp3_string};
          const std::string_view key = it->value;
          ++it;
 
@@ -87,7 +87,7 @@ inline system::error_code parse_server_list(
          BOOST_ASSERT(it != last);
          BOOST_ASSERT(it->depth == 2u);
          if (it->data_type != resp3::type::blob_string)
-            return {error::invalid_data_type};
+            return {error::expects_resp3_string};
 
          // Record it
          if (key == "ip") {
@@ -193,7 +193,7 @@ inline system::error_code parse_sentinel_response(
 
    // If the root node is an array, an IP and port follow
    if (it->data_type != resp3::type::array)
-      return {error::invalid_data_type};
+      return {error::expects_resp3_array};
    if (it->aggregate_size != 2u)
       return {error::incompatible_size};
    ++it;
@@ -202,7 +202,7 @@ inline system::error_code parse_sentinel_response(
    BOOST_ASSERT(it != last);
    BOOST_ASSERT(it->depth == 1u);
    if (it->data_type != resp3::type::blob_string)
-      return {error::invalid_data_type};
+      return {error::expects_resp3_string};
    out.master_addr.host = it->value;
    ++it;
 
@@ -210,7 +210,7 @@ inline system::error_code parse_sentinel_response(
    BOOST_ASSERT(it != last);
    BOOST_ASSERT(it->depth == 1u);
    if (it->data_type != resp3::type::blob_string)
-      return {error::invalid_data_type};
+      return {error::expects_resp3_string};
    out.master_addr.port = it->value;
    ++it;
 
