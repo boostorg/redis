@@ -13,6 +13,7 @@
 #include <boost/assert.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <string_view>
 
@@ -20,11 +21,64 @@ namespace boost::redis::resp3 {
 
 namespace detail {
 
-inline std::size_t compute_capacity(std::size_t requested_cap, std::size_t current_cap)
+// --- Operations in flat_buffer ---
+
+// Copies the entire buffer
+inline flat_buffer copy(const flat_buffer& other)
 {
+   flat_buffer res{{}, other.size, other.capacity, other.reallocs};
+
+   if (other.data) {
+      BOOST_ASSERT(other.capacity > 0u);
+      res.data.reset(new char[other.capacity]);
+      std::memcpy(res.data.get(), other.data.get(), other.size);
+   }
+
+   return res;
+}
+
+// Grows the buffer until reaching a target size
+template <class Callable>
+inline void grow(flat_buffer& buff, std::size_t new_capacity, Callable on_realloc)
+{
+   if (new_capacity <= buff.capacity)
+      return;
+
+   // Compute the actual capacity that we will be using
    // Prevent many small allocations when starting from an empty buffer
-   requested_cap = (std::max)(requested_cap, static_cast<std::size_t>(512u));
-   return (std::max)(requested_cap, 2 * current_cap);
+   new_capacity = (std::max)(new_capacity, static_cast<std::size_t>(512u));
+   new_capacity = (std::max)(new_capacity, 2 * buff.capacity);
+
+   // Allocate space
+   std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
+
+   if (buff.size > 0u) {
+      // Copy any data into the newly allocated space
+      const char* data_before = buff.data.get();
+      char* data_after = new_buffer.get();
+      std::memcpy(data_after, data_before, buff.size);
+
+      // Inform the caller that there has been a reallocation
+      on_realloc(data_before, static_cast<const char*>(data_after));
+   }
+
+   // Replace the buffer. Note that size hasn't changed here
+   buff.data = std::move(new_buffer);
+   buff.capacity = new_capacity;
+   ++buff.reallocs;
+}
+
+// Appends a string to the buffer. There should be enough size for it.
+inline std::string_view append(flat_buffer& buff, std::string_view value)
+{
+   const std::size_t offset = buff.size;
+   const std::size_t new_size = buff.size + value.size();
+   BOOST_ASSERT(buff.capacity >= new_size);
+   if (!value.empty()) {
+      std::memmove(buff.data.get() + offset, value.data(), value.size());
+   }
+   buff.size = new_size;
+   return {buff.data.get() + offset, value.size()};
 }
 
 inline std::string_view rebase_string(
@@ -47,53 +101,16 @@ inline void rebase_strings(view_tree& nodes, const char* old_base, const char* n
 
 }  // namespace detail
 
-flat_tree::buffer flat_tree::copy(const buffer& other)
+void flat_tree::reserve_data(std::size_t new_capacity)
 {
-   buffer res{{}, other.size, other.capacity};
-
-   if (other.data) {
-      BOOST_ASSERT(other.capacity > 0u);
-      res.data.reset(new char[other.capacity]);
-      std::memcpy(res.data.get(), other.data.get(), other.size);
-   }
-
-   return res;
-}
-
-void flat_tree::grow(std::size_t new_capacity)
-{
-   BOOST_ASSERT(new_capacity > data_.capacity);
-
-   // Compute the actual capacity that we will be using
-   new_capacity = detail::compute_capacity(new_capacity, data_.capacity);
-
-   // Allocate space
-   std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
-
-   if (data_.data) {
-      BOOST_ASSERT(data_.capacity > 0u);
-
-      // Rebase strings. This operation must be performed after allocating
-      // the new buffer and before freeing the old one. Otherwise, we're
-      // comparing invalid pointers, which is UB.
-      const char* data_before = data_.data.get();
-      char* data_after = new_buffer.get();
-      detail::rebase_strings(view_tree_, data_before, data_after);
-
-      // Copy contents
-      std::memcpy(data_after, data_before, data_.size);
-   }
-
-   // Replace the buffer
-   data_.data = std::move(new_buffer);
-   data_.capacity = new_capacity;
-   ++reallocs_;
+   detail::grow(data_, new_capacity, [this](const char* old_base, const char* new_base) {
+      detail::rebase_strings(view_tree_, old_base, new_base);
+   });
 }
 
 flat_tree::flat_tree(flat_tree const& other)
-: data_{copy(other.data_)}
+: data_{detail::copy(other.data_)}
 , view_tree_{other.view_tree_}
-, reallocs_{0u}
 , total_msgs_{other.total_msgs_}
 {
    detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
@@ -115,7 +132,6 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
       detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
 
       // Copy the other fields
-      reallocs_ = other.reallocs_;
       total_msgs_ = other.total_msgs_;
    }
 
@@ -125,9 +141,7 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
 void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
 {
    // Space for the strings
-   if (bytes > data_.capacity) {
-      grow(bytes);
-   }
+   reserve_data(bytes);
 
    // Space for the nodes
    view_tree_.reserve(nodes);
@@ -137,33 +151,26 @@ void flat_tree::clear()
 {
    data_.size = 0u;
    view_tree_.clear();
-   reallocs_ = 0u;
    total_msgs_ = 0u;
 }
 
 void flat_tree::push(node_view const& nd)
 {
-   // Add the string first
-   const std::size_t offset = data_.size;
-   const std::size_t new_size = data_.size + nd.value.size();
-   if (new_size > data_.capacity) {
-      grow(new_size);
-   }
-   std::memcpy(data_.data.get() + offset, nd.value.data(), nd.value.size());
-   data_.size = new_size;
+   // Add the string
+   reserve_data(data_.size + nd.value.size());
+   const std::string_view str = detail::append(data_, nd.value);
 
    // Add the node
    view_tree_.push_back({
       nd.data_type,
       nd.aggregate_size,
       nd.depth,
-      std::string_view{data_.data.get() + offset, nd.value.size()}
+      str,
    });
 }
 
 bool operator==(flat_tree const& a, flat_tree const& b)
 {
-   // reallocs is not taken into account.
    // data is already taken into account by comparing the nodes.
    return a.view_tree_ == b.view_tree_ && a.total_msgs_ == b.total_msgs_;
 }

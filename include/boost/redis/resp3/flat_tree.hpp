@@ -23,6 +23,17 @@ template <class> class general_aggregate;
 
 namespace resp3 {
 
+namespace detail {
+
+struct flat_buffer {
+   std::unique_ptr<char[]> data;
+   std::size_t size = 0u;
+   std::size_t capacity = 0u;
+   std::size_t reallocs = 0u;
+};
+
+}  // namespace detail
+
 /** @brief A generic-response that stores data contiguously
  *
  * Similar to the @ref boost::redis::resp3::tree but data is
@@ -79,7 +90,7 @@ public:
     *  This function returns how many reallocations were performed and
     *  can be useful to determine how much memory to reserve upfront.
     */
-   auto get_reallocs() const noexcept -> std::size_t { return reallocs_; }
+   auto get_reallocs() const noexcept -> std::size_t { return data_.reallocs; }
 
    /// Returns the number of complete RESP3 messages contained in this object.
    std::size_t get_total_msgs() const noexcept { return total_msgs_; }
@@ -87,24 +98,15 @@ public:
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
-   struct buffer {
-      std::unique_ptr<char[]> data;
-      std::size_t size = 0u;
-      std::size_t capacity = 0u;
-   };
-
    void notify_done() { ++total_msgs_; }
 
    // Push a new node to the response
    void push(node_view const& node);
 
-   void grow(std::size_t target_size);
+   void reserve_data(std::size_t target_size);
 
-   static buffer copy(const buffer& other);
-
-   buffer data_;
+   detail::flat_buffer data_;
    view_tree view_tree_;
-   std::size_t reallocs_ = 0u;
    std::size_t total_msgs_ = 0u;
 };
 
