@@ -81,7 +81,7 @@ void flat_tree::add_node_impl(node_view const& node)
    ranges_.push_back({data_.size(), node.value.size()});
 
    // This must come after setting the offset above.
-   data_.append(node.value.data(), node.value.size());
+   data_.insert(data_.end(), node.value.begin(), node.value.end());
 
    view_tree_.push_back(node);
 }

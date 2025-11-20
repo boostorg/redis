@@ -12,7 +12,6 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
-#include <string>
 #include <vector>
 
 namespace boost::redis {
@@ -108,7 +107,7 @@ private:
 
    friend bool operator==(range const&, range const&);
 
-   std::string data_;
+   std::vector<char> data_;
    view_tree view_tree_;
    std::vector<range> ranges_;
    std::size_t pos_ = 0u;
