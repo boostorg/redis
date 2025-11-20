@@ -26,19 +26,6 @@ inline std::size_t compute_capacity(std::size_t requested_cap, std::size_t curre
    return (std::max)(requested_cap, 2 * current_cap);
 }
 
-inline buffer_repr copy(const buffer_repr& rhs)
-{
-   buffer_repr res{{}, rhs.size, rhs.capacity};
-
-   if (rhs.data) {
-      BOOST_ASSERT(rhs.size > 0u);
-      res.data.reset(new char[rhs.capacity]);
-      std::memcpy(res.data.get(), rhs.data.get(), rhs.size);
-   }
-
-   return res;
-}
-
 inline void copy_nodes(
    const view_tree& from,
    const char* from_base,
@@ -58,6 +45,19 @@ inline void copy_nodes(
 }
 
 }  // namespace detail
+
+flat_tree::buffer flat_tree::copy(const buffer& other)
+{
+   buffer res{{}, other.size, other.capacity};
+
+   if (other.data) {
+      BOOST_ASSERT(other.capacity > 0u);
+      res.data.reset(new char[other.capacity]);
+      std::memcpy(res.data.get(), other.data.get(), other.size);
+   }
+
+   return res;
+}
 
 void flat_tree::grow(std::size_t new_capacity)
 {
@@ -91,7 +91,7 @@ void flat_tree::grow(std::size_t new_capacity)
 }
 
 flat_tree::flat_tree(flat_tree const& other)
-: data_{detail::copy(other.data_)}
+: data_{copy(other.data_)}
 , reallocs_{0u}
 , total_msgs_{other.total_msgs_}
 {
@@ -106,7 +106,7 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
          std::memcpy(data_.data.get(), other.data_.data.get(), other.data_.size);
          data_.size = other.data_.size;
       } else {
-         data_ = detail::copy(other.data_);
+         data_ = copy(other.data_);
       }
 
       // Copy the nodes

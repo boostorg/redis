@@ -23,14 +23,6 @@ template <class> class general_aggregate;
 
 namespace resp3 {
 
-namespace detail {
-struct buffer_repr {
-   std::unique_ptr<char[]> data;
-   std::size_t size = 0u;
-   std::size_t capacity = 0u;
-};
-}  // namespace detail
-
 /** @brief A generic-response that stores data contiguously
  *
  * Similar to the @ref boost::redis::resp3::tree but data is
@@ -95,6 +87,12 @@ public:
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
+   struct buffer {
+      std::unique_ptr<char[]> data;
+      std::size_t size = 0u;
+      std::size_t capacity = 0u;
+   };
+
    void notify_done() { ++total_msgs_; }
 
    // Push a new node to the response
@@ -102,7 +100,9 @@ private:
 
    void grow(std::size_t target_size);
 
-   detail::buffer_repr data_;
+   static buffer copy(const buffer& other);
+
+   buffer data_;
    view_tree view_tree_;
    std::size_t reallocs_ = 0u;
    std::size_t total_msgs_ = 0u;
