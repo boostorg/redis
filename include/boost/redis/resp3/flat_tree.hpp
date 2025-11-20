@@ -12,15 +12,24 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
-#include <vector>
+#include <cstddef>
+#include <memory>
 
 namespace boost::redis {
 
 namespace adapter::detail {
-   template <class> class general_aggregate;
-}
+template <class> class general_aggregate;
+}  // namespace adapter::detail
 
 namespace resp3 {
+
+namespace detail {
+struct buffer_repr {
+   std::unique_ptr<char[]> data;
+   std::size_t size = 0u;
+   std::size_t capacity = 0u;
+};
+}  // namespace detail
 
 /** @brief A generic-response that stores data contiguously
  *
@@ -38,16 +47,17 @@ public:
    /// Copy constructor
    flat_tree(flat_tree const& other);
 
+   /// Move assignment
+   flat_tree& operator=(flat_tree&& other) = default;
+
    /// Copy assignment
-   flat_tree& operator=(flat_tree other);
+   flat_tree& operator=(const flat_tree& other);
 
    friend void swap(flat_tree&, flat_tree&);
 
-   friend
-   bool operator==(flat_tree const&, flat_tree const&);
+   friend bool operator==(flat_tree const&, flat_tree const&);
 
-   friend
-   bool operator!=(flat_tree const&, flat_tree const&);
+   friend bool operator!=(flat_tree const&, flat_tree const&);
 
    /** @brief Reserve capacity
     *
@@ -67,56 +77,36 @@ public:
    void clear();
 
    /// Returns the size of the data buffer
-   auto data_size() const noexcept -> std::size_t
-      { return data_.size(); }
+   auto data_size() const noexcept -> std::size_t { return data_.size; }
 
    /// Returns the RESP3 response
-   auto get_view() const -> view_tree const&
-      { return view_tree_; }
+   auto get_view() const -> view_tree const& { return view_tree_; }
 
    /** @brief Returns the number of times reallocation took place
     *
     *  This function returns how many reallocations were performed and
     *  can be useful to determine how much memory to reserve upfront.
     */
-   auto get_reallocs() const noexcept -> std::size_t
-      { return reallocs_; }
+   auto get_reallocs() const noexcept -> std::size_t { return reallocs_; }
 
    /// Returns the number of complete RESP3 messages contained in this object.
-   std::size_t get_total_msgs() const noexcept
-      { return total_msgs_; }
+   std::size_t get_total_msgs() const noexcept { return total_msgs_; }
 
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
-   // Notify the object that all nodes were pushed.
-   void notify_done();
+   void notify_done() { ++total_msgs_; }
 
    // Push a new node to the response
    void push(node_view const& node);
 
-   void add_node_impl(node_view const& node);
+   void grow(std::size_t target_size);
 
-   void set_views();
-
-   // Range into the data buffer.
-   struct range {
-      std::size_t offset;
-      std::size_t size;
-   };
-
-   friend bool operator==(range const&, range const&);
-
-   std::vector<char> data_;
+   detail::buffer_repr data_;
    view_tree view_tree_;
-   std::vector<range> ranges_;
-   std::size_t pos_ = 0u;
    std::size_t reallocs_ = 0u;
    std::size_t total_msgs_ = 0u;
 };
-
-/// Swaps two responses
-void swap(flat_tree&, flat_tree&);
 
 /// Equality operator
 bool operator==(flat_tree const&, flat_tree const&);
@@ -124,7 +114,7 @@ bool operator==(flat_tree const&, flat_tree const&);
 /// Inequality operator
 bool operator!=(flat_tree const&, flat_tree const&);
 
-} // resp3
-} // namespace boost::redis
+}  // namespace resp3
+}  // namespace boost::redis
 
 #endif  // BOOST_REDIS_RESP3_FLAT_TREE_HPP

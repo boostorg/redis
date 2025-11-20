@@ -395,10 +395,10 @@ BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
    deserialize(resp3_set, adapt2(resp3), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 4u);
+   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 1u);
    BOOST_CHECK_EQUAL(resp2.get_total_msgs(), 1u);
 
-   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 4u);
+   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 1u);
    BOOST_CHECK_EQUAL(resp3.value().get_total_msgs(), 1u);
 
    auto const tmp2 = from_flat(resp2);
@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_CASE(flat_tree_reuse)
    deserialize(resp3_set, adapt2(tmp), ec);
    BOOST_CHECK_EQUAL(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 4u);
+   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 1u);
    BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
 
    // Copy to compare after the reuse.

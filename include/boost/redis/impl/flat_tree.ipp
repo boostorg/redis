@@ -7,119 +7,166 @@
 //
 
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/resp3/tree.hpp>
+
 #include <boost/assert.hpp>
+
+#include <algorithm>
+#include <cstring>
+#include <string_view>
 
 namespace boost::redis::resp3 {
 
+namespace detail {
+
+inline std::size_t compute_capacity(std::size_t requested_cap, std::size_t current_cap)
+{
+   // Prevent many small allocations when starting from an empty buffer
+   requested_cap = (std::max)(requested_cap, static_cast<std::size_t>(512u));
+   return (std::max)(requested_cap, 2 * current_cap);
+}
+
+inline buffer_repr copy(const buffer_repr& rhs)
+{
+   buffer_repr res{{}, rhs.size, rhs.capacity};
+
+   if (rhs.data) {
+      BOOST_ASSERT(rhs.size > 0u);
+      res.data.reset(new char[rhs.capacity]);
+      std::memcpy(res.data.get(), rhs.data.get(), rhs.size);
+   }
+
+   return res;
+}
+
+inline void copy_nodes(
+   const view_tree& from,
+   const char* from_base,
+   view_tree& to,
+   const char* to_base)
+{
+   to.reserve(from.size());
+   for (const auto& nd : from) {
+      const std::size_t offset = nd.value.data() - from_base;
+      to.push_back({
+         nd.data_type,
+         nd.aggregate_size,
+         nd.depth,
+         std::string_view{to_base + offset, nd.value.size()}
+      });
+   }
+}
+
+}  // namespace detail
+
+void flat_tree::grow(std::size_t new_capacity)
+{
+   BOOST_ASSERT(new_capacity > data_.capacity);
+
+   // Compute the actual capacity that we will be using
+   new_capacity = detail::compute_capacity(new_capacity, data_.capacity);
+
+   // Allocate space
+   std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
+
+   if (data_.data) {
+      BOOST_ASSERT(data_.size > 0u);
+
+      // Rebase strings
+      const char* data_before = data_.data.get();
+      char* data_after = new_buffer.get();
+      for (auto& nd : view_tree_) {
+         auto offset = nd.value.data() - data_before;
+         nd.value = {data_after + offset, nd.value.size()};
+      }
+
+      // Copy contents
+      std::memcpy(data_after, data_before, data_.size);
+   }
+
+   // Replace the buffer
+   data_.data = std::move(new_buffer);
+   data_.capacity = new_capacity;
+   ++reallocs_;
+}
+
 flat_tree::flat_tree(flat_tree const& other)
-: data_{other.data_}
-, view_tree_{other.view_tree_}
-, ranges_{other.ranges_}
-, pos_{0u}
+: data_{detail::copy(other.data_)}
 , reallocs_{0u}
 , total_msgs_{other.total_msgs_}
 {
-   view_tree_.resize(ranges_.size());
-   set_views();
+   detail::copy_nodes(other.view_tree_, other.data_.data.get(), view_tree_, data_.data.get());
 }
 
-flat_tree&
-flat_tree::operator=(flat_tree other)
+flat_tree& flat_tree::operator=(const flat_tree& other)
 {
-    swap(*this, other);
-    return *this;
+   if (this != &other) {
+      // Copy the data
+      if (data_.capacity >= other.data_.capacity) {
+         std::memcpy(data_.data.get(), other.data_.data.get(), other.data_.size);
+         data_.size = other.data_.size;
+      } else {
+         data_ = detail::copy(other.data_);
+      }
+
+      // Copy the nodes
+      view_tree_.clear();
+      detail::copy_nodes(other.view_tree_, other.data_.data.get(), view_tree_, data_.data.get());
+
+      // Copy the other fields
+      reallocs_ = other.reallocs_;
+      total_msgs_ = other.total_msgs_;
+   }
+
+   return *this;
 }
 
 void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
 {
-   data_.reserve(bytes);
+   // Space for the strings
+   if (bytes > data_.capacity) {
+      grow(bytes);
+   }
+
+   // Space for the nodes
    view_tree_.reserve(nodes);
-   ranges_.reserve(nodes);
 }
 
 void flat_tree::clear()
 {
-   pos_ = 0u;
-   total_msgs_ = 0u;
-   reallocs_ = 0u;
-   data_.clear();
+   data_.size = 0u;
    view_tree_.clear();
-   ranges_.clear();
+   reallocs_ = 0u;
+   total_msgs_ = 0u;
 }
 
-void flat_tree::set_views()
+void flat_tree::push(node_view const& nd)
 {
-   BOOST_ASSERT_MSG(pos_ < view_tree_.size(), "notify_done called but no nodes added.");
-   BOOST_ASSERT_MSG(view_tree_.size() == ranges_.size(), "Incompatible sizes.");
-
-   for (; pos_ < view_tree_.size(); ++pos_) {
-      auto const& r = ranges_.at(pos_);
-      view_tree_.at(pos_).value = std::string_view{data_.data() + r.offset, r.size};
+   // Add the string first
+   const std::size_t offset = data_.size;
+   const std::size_t new_size = data_.size + nd.value.size();
+   if (new_size > data_.capacity) {
+      grow(new_size);
    }
-}
+   std::memcpy(data_.data.get() + offset, nd.value.data(), nd.value.size());
+   data_.size = new_size;
 
-void flat_tree::notify_done()
-{
-   total_msgs_ += 1;
-   set_views();
-}
-
-void flat_tree::push(node_view const& node)
-{
-   auto data_before = data_.data();
-   add_node_impl(node);
-   auto data_after = data_.data();
-
-   if (data_after != data_before) {
-      pos_ = 0;
-      reallocs_ += 1;
-   }
-}
-
-void flat_tree::add_node_impl(node_view const& node)
-{
-   ranges_.push_back({data_.size(), node.value.size()});
-
-   // This must come after setting the offset above.
-   data_.insert(data_.end(), node.value.begin(), node.value.end());
-
-   view_tree_.push_back(node);
-}
-
-void swap(flat_tree& a, flat_tree& b)
-{
-   using std::swap;
-
-   swap(a.data_, b.data_);
-   swap(a.view_tree_, b.view_tree_);
-   swap(a.ranges_, b.ranges_);
-   swap(a.pos_, b.pos_);
-   swap(a.reallocs_, b.reallocs_);
-   swap(a.total_msgs_, b.total_msgs_);
-}
-
-bool
-operator==(
-   flat_tree::range const& a,
-   flat_tree::range const& b)
-{
-   return a.offset == b.offset && a.size == b.size;
+   // Add the node
+   view_tree_.push_back({
+      nd.data_type,
+      nd.aggregate_size,
+      nd.depth,
+      std::string_view{data_.data.get() + offset, nd.value.size()}
+   });
 }
 
 bool operator==(flat_tree const& a, flat_tree const& b)
 {
-   return
-      a.data_       == b.data_ &&
-      a.view_tree_  == b.view_tree_ &&
-      a.ranges_     == b.ranges_ &&
-      a.pos_        == b.pos_ &&
-      //a.reallocs_   == b.reallocs_ &&
-      a.total_msgs_ == b.total_msgs_;
+   // reallocs is not taken into account.
+   // data is already taken into account by comparing the nodes.
+   return a.view_tree_ == b.view_tree_ && a.total_msgs_ == b.total_msgs_;
 }
 
-bool operator!=(flat_tree const& a, flat_tree const& b)
-{
-   return !(a == b);
-}
+bool operator!=(flat_tree const& a, flat_tree const& b) { return !(a == b); }
 
-}  // namespace boost::redis
+}  // namespace boost::redis::resp3
