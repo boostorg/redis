@@ -21,6 +21,18 @@ namespace boost::redis::resp3 {
 
 namespace detail {
 
+// Updates string views by performing pointer arithmetic
+inline void rebase_strings(view_tree& nodes, const char* old_base, const char* new_base)
+{
+   for (auto& nd : nodes) {
+      if (!nd.value.empty()) {
+         const auto offset = nd.value.data() - old_base;
+         BOOST_ASSERT(offset >= 0);
+         nd.value = {new_base + offset, nd.value.size()};
+      }
+   }
+}
+
 // --- Operations in flat_buffer ---
 
 // Copy construction
@@ -57,9 +69,9 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    buff.reallocs = other.reallocs;
 }
 
-// Grows the buffer until reaching a target size
-template <class Callable>
-inline void grow(flat_buffer& buff, std::size_t new_capacity, Callable on_realloc)
+// Grows the buffer until reaching a target size.
+// Might rebase the strings in nodes
+inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
 {
    if (new_capacity <= buff.capacity)
       return;
@@ -78,8 +90,8 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, Callable on_reallo
       char* data_after = new_buffer.get();
       std::memcpy(data_after, data_before, buff.size);
 
-      // Inform the caller that there has been a reallocation
-      on_realloc(data_before, static_cast<const char*>(data_after));
+      // Update the string views so they don't dangle
+      rebase_strings(nodes, data_before, data_after);
    }
 
    // Replace the buffer. Note that size hasn't changed here
@@ -88,45 +100,26 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, Callable on_reallo
    ++buff.reallocs;
 }
 
-// Appends a string to the buffer. There should be enough size for it.
-inline std::string_view append(flat_buffer& buff, std::string_view value)
+// Appends a string to the buffer.
+// Might rebase the string in nodes, but doesn't append any new node.
+inline std::string_view append(flat_buffer& buff, std::string_view value, view_tree& nodes)
 {
-   const std::size_t offset = buff.size;
+   // If there is nothing to copy, do nothing
+   if (value.empty())
+      return value;
+
+   // Make space for the new string
    const std::size_t new_size = buff.size + value.size();
-   BOOST_ASSERT(buff.capacity >= new_size);
-   if (!value.empty()) {
-      std::memmove(buff.data.get() + offset, value.data(), value.size());
-   }
+   grow(buff, new_size, nodes);
+
+   // Copy the new value
+   const std::size_t offset = buff.size;
+   std::memmove(buff.data.get() + offset, value.data(), value.size());
    buff.size = new_size;
    return {buff.data.get() + offset, value.size()};
 }
 
-inline std::string_view rebase_string(
-   std::string_view value,
-   const char* old_base,
-   const char* new_base)
-{
-   if (value.empty())
-      return value;
-   const auto offset = value.data() - old_base;
-   BOOST_ASSERT(offset >= 0);
-   return {new_base + offset, value.size()};
-}
-
-inline void rebase_strings(view_tree& nodes, const char* old_base, const char* new_base)
-{
-   for (auto& nd : nodes)
-      nd.value = rebase_string(nd.value, old_base, new_base);
-}
-
 }  // namespace detail
-
-void flat_tree::reserve_data(std::size_t new_capacity)
-{
-   detail::grow(data_, new_capacity, [this](const char* old_base, const char* new_base) {
-      detail::rebase_strings(view_tree_, old_base, new_base);
-   });
-}
 
 flat_tree::flat_tree(flat_tree const& other)
 : data_{detail::copy_construct(other.data_)}
@@ -156,7 +149,7 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
 void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
 {
    // Space for the strings
-   reserve_data(bytes);
+   detail::grow(data_, bytes, view_tree_);
 
    // Space for the nodes
    view_tree_.reserve(nodes);
@@ -172,8 +165,7 @@ void flat_tree::clear()
 void flat_tree::push(node_view const& nd)
 {
    // Add the string
-   reserve_data(data_.size + nd.value.size());
-   const std::string_view str = detail::append(data_, nd.value);
+   const std::string_view str = detail::append(data_, nd.value, view_tree_);
 
    // Add the node
    view_tree_.push_back({

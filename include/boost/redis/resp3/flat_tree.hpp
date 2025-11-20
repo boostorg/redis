@@ -103,8 +103,6 @@ private:
    // Push a new node to the response
    void push(node_view const& node);
 
-   void reserve_data(std::size_t target_size);
-
    detail::flat_buffer data_;
    view_tree view_tree_;
    std::size_t total_msgs_ = 0u;
