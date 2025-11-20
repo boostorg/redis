@@ -56,8 +56,6 @@ public:
    /// Copy assignment
    flat_tree& operator=(const flat_tree& other);
 
-   friend void swap(flat_tree&, flat_tree&);
-
    friend bool operator==(flat_tree const&, flat_tree const&);
 
    friend bool operator!=(flat_tree const&, flat_tree const&);
