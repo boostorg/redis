@@ -23,8 +23,8 @@ namespace detail {
 
 // --- Operations in flat_buffer ---
 
-// Copies the entire buffer
-inline flat_buffer copy(const flat_buffer& other)
+// Copy construction
+inline flat_buffer copy_construct(const flat_buffer& other)
 {
    flat_buffer res{{}, other.size, other.capacity, other.reallocs};
 
@@ -35,6 +35,26 @@ inline flat_buffer copy(const flat_buffer& other)
    }
 
    return res;
+}
+
+// Copy assignment
+inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
+{
+   // Make space if required
+   if (buff.capacity < other.capacity) {
+      buff.data.reset(new char[other.capacity]);
+      buff.capacity = other.capacity;
+   }
+
+   // Copy the contents
+   if (other.size > 0u) {
+      BOOST_ASSERT(other.data.get() != nullptr);
+      std::memcpy(buff.data.get(), other.data.get(), other.size);
+   }
+
+   // Copy the other fields
+   buff.size = other.size;
+   buff.reallocs = other.reallocs;
 }
 
 // Grows the buffer until reaching a target size
@@ -109,7 +129,7 @@ void flat_tree::reserve_data(std::size_t new_capacity)
 }
 
 flat_tree::flat_tree(flat_tree const& other)
-: data_{detail::copy(other.data_)}
+: data_{detail::copy_construct(other.data_)}
 , view_tree_{other.view_tree_}
 , total_msgs_{other.total_msgs_}
 {
@@ -120,12 +140,7 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
 {
    if (this != &other) {
       // Copy the data
-      if (data_.capacity >= other.data_.capacity) {
-         std::memcpy(data_.data.get(), other.data_.data.get(), other.data_.size);
-         data_.size = other.data_.size;
-      } else {
-         data_ = copy(other.data_);
-      }
+      detail::copy_assign(data_, other.data_);
 
       // Copy the nodes
       view_tree_ = other.view_tree_;
