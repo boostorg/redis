@@ -7,6 +7,7 @@
 //
 
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
 #include <boost/assert.hpp>
@@ -26,6 +27,18 @@ inline std::size_t compute_capacity(std::size_t requested_cap, std::size_t curre
    return (std::max)(requested_cap, 2 * current_cap);
 }
 
+inline std::string_view rebase_string(
+   std::string_view value,
+   const char* old_base,
+   const char* new_base)
+{
+   if (value.empty())
+      return value;
+   const auto offset = value.data() - old_base;
+   BOOST_ASSERT(offset >= 0);
+   return {new_base + offset, value.size()};
+}
+
 inline void copy_nodes(
    const view_tree& from,
    const char* from_base,
@@ -34,12 +47,11 @@ inline void copy_nodes(
 {
    to.reserve(from.size());
    for (const auto& nd : from) {
-      const std::size_t offset = nd.value.data() - from_base;
       to.push_back({
          nd.data_type,
          nd.aggregate_size,
          nd.depth,
-         std::string_view{to_base + offset, nd.value.size()}
+         detail::rebase_string(nd.value, from_base, to_base),
       });
    }
 }
@@ -70,15 +82,13 @@ void flat_tree::grow(std::size_t new_capacity)
    std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
 
    if (data_.data) {
-      BOOST_ASSERT(data_.size > 0u);
+      BOOST_ASSERT(data_.capacity > 0u);
 
       // Rebase strings
       const char* data_before = data_.data.get();
       char* data_after = new_buffer.get();
-      for (auto& nd : view_tree_) {
-         auto offset = nd.value.data() - data_before;
-         nd.value = {data_after + offset, nd.value.size()};
-      }
+      for (auto& nd : view_tree_)
+         nd.value = detail::rebase_string(nd.value, data_before, data_after);
 
       // Copy contents
       std::memcpy(data_after, data_before, data_.size);
