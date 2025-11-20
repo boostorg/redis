@@ -73,7 +73,9 @@ void flat_tree::grow(std::size_t new_capacity)
    if (data_.data) {
       BOOST_ASSERT(data_.capacity > 0u);
 
-      // Rebase strings
+      // Rebase strings. This operation must be performed after allocating
+      // the new buffer and before freeing the old one. Otherwise, we're
+      // comparing invalid pointers, which is UB.
       const char* data_before = data_.data.get();
       char* data_after = new_buffer.get();
       detail::rebase_strings(view_tree_, data_before, data_after);
