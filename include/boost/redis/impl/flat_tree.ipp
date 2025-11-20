@@ -39,21 +39,10 @@ inline std::string_view rebase_string(
    return {new_base + offset, value.size()};
 }
 
-inline void copy_nodes(
-   const view_tree& from,
-   const char* from_base,
-   view_tree& to,
-   const char* to_base)
+inline void rebase_strings(view_tree& nodes, const char* old_base, const char* new_base)
 {
-   to.reserve(from.size());
-   for (const auto& nd : from) {
-      to.push_back({
-         nd.data_type,
-         nd.aggregate_size,
-         nd.depth,
-         detail::rebase_string(nd.value, from_base, to_base),
-      });
-   }
+   for (auto& nd : nodes)
+      nd.value = rebase_string(nd.value, old_base, new_base);
 }
 
 }  // namespace detail
@@ -87,8 +76,7 @@ void flat_tree::grow(std::size_t new_capacity)
       // Rebase strings
       const char* data_before = data_.data.get();
       char* data_after = new_buffer.get();
-      for (auto& nd : view_tree_)
-         nd.value = detail::rebase_string(nd.value, data_before, data_after);
+      detail::rebase_strings(view_tree_, data_before, data_after);
 
       // Copy contents
       std::memcpy(data_after, data_before, data_.size);
@@ -102,10 +90,11 @@ void flat_tree::grow(std::size_t new_capacity)
 
 flat_tree::flat_tree(flat_tree const& other)
 : data_{copy(other.data_)}
+, view_tree_{other.view_tree_}
 , reallocs_{0u}
 , total_msgs_{other.total_msgs_}
 {
-   detail::copy_nodes(other.view_tree_, other.data_.data.get(), view_tree_, data_.data.get());
+   detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
 }
 
 flat_tree& flat_tree::operator=(const flat_tree& other)
@@ -120,8 +109,8 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
       }
 
       // Copy the nodes
-      view_tree_.clear();
-      detail::copy_nodes(other.view_tree_, other.data_.data.get(), view_tree_, data_.data.get());
+      view_tree_ = other.view_tree_;
+      detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
 
       // Copy the other fields
       reallocs_ = other.reallocs_;
