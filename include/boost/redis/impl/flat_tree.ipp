@@ -40,10 +40,9 @@ inline flat_buffer copy_construct(const flat_buffer& other)
 {
    flat_buffer res{{}, other.size, other.capacity, other.reallocs};
 
-   if (other.data) {
-      BOOST_ASSERT(other.capacity > 0u);
+   if (other.capacity > 0u) {
       res.data.reset(new char[other.capacity]);
-      std::memcpy(res.data.get(), other.data.get(), other.size);
+      std::copy(other.data.get(), other.data.get() + other.size, res.data.get());
    }
 
    return res;
@@ -59,10 +58,7 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    }
 
    // Copy the contents
-   if (other.size > 0u) {
-      BOOST_ASSERT(other.data.get() != nullptr);
-      std::memcpy(buff.data.get(), other.data.get(), other.size);
-   }
+   std::copy(other.data.get(), other.data.get() + other.size, buff.data.get());
 
    // Copy the other fields
    buff.size = other.size;
@@ -84,15 +80,13 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
    // Allocate space
    std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
 
-   if (buff.size > 0u) {
-      // Copy any data into the newly allocated space
-      const char* data_before = buff.data.get();
-      char* data_after = new_buffer.get();
-      std::memcpy(data_after, data_before, buff.size);
+   // Copy any data into the newly allocated space
+   const char* data_before = buff.data.get();
+   char* data_after = new_buffer.get();
+   std::copy(data_before, data_before + buff.size, data_after);
 
-      // Update the string views so they don't dangle
-      rebase_strings(nodes, data_before, data_after);
-   }
+   // Update the string views so they don't dangle
+   rebase_strings(nodes, data_before, data_after);
 
    // Replace the buffer. Note that size hasn't changed here
    buff.data = std::move(new_buffer);
@@ -114,7 +108,7 @@ inline std::string_view append(flat_buffer& buff, std::string_view value, view_t
 
    // Copy the new value
    const std::size_t offset = buff.size;
-   std::memmove(buff.data.get() + offset, value.data(), value.size());
+   std::copy(value.data(), value.data() + value.size(), buff.data.get() + offset);
    buff.size = new_size;
    return {buff.data.get() + offset, value.size()};
 }
