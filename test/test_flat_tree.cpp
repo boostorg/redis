@@ -24,18 +24,6 @@ using boost::redis::resp3::to_string;
 using boost::redis::response;
 using boost::system::error_code;
 
-namespace boost::redis::resp3 {
-
-template <class String>
-std::ostream& operator<<(std::ostream& os, basic_tree<String> const& resp)
-{
-   for (auto const& e : resp)
-      os << e << ",";
-   return os;
-}
-
-}  // namespace boost::redis::resp3
-
 namespace {
 
 #define RESP3_SET_PART1 "~6\r\n+orange\r"
@@ -97,10 +85,10 @@ void test_views_are_set()
    BOOST_TEST_EQ(resp3.value().get_total_msgs(), 1u);
 
    auto const tmp2 = from_flat(resp2);
-   BOOST_TEST_EQ(resp1, tmp2);
+   BOOST_TEST_ALL_EQ(resp1.begin(), resp1.end(), tmp2.begin(), tmp2.end());
 
    auto const tmp3 = from_flat(resp3);
-   BOOST_TEST_EQ(resp1, tmp3);
+   BOOST_TEST_ALL_EQ(resp1.begin(), resp1.end(), tmp3.begin(), tmp3.end());
 }
 
 // The response should be reusable.
@@ -128,7 +116,7 @@ void test_reuse()
    BOOST_TEST_EQ(tmp.get_reallocs(), 1u);
    BOOST_TEST_EQ(tmp.get_total_msgs(), 1u);
 
-   BOOST_TEST_EQ(resp1, tmp.get_view());
+   BOOST_TEST_ALL_EQ(resp1.begin(), resp1.end(), tmp.get_view().begin(), tmp.get_view().end());
 }
 
 void test_copy_assign()
