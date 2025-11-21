@@ -7,12 +7,9 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 
+#include <boost/core/lightweight_test.hpp>
+
 #include "print_node.hpp"
-
-#define BOOST_TEST_MODULE low_level_sync_sans_io
-#include <boost/test/included/unit_test.hpp>
-
-// #include <boost/core/lightweight_test.hpp>
 
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
@@ -77,7 +74,7 @@ tree from_flat(flat_tree const& resp)
 
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
-BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
+void test_views_are_set()
 {
    tree resp1;
    flat_tree resp2;
@@ -85,39 +82,39 @@ BOOST_AUTO_TEST_CASE(flat_tree_views_are_set)
 
    error_code ec;
    deserialize(resp3_set, adapt2(resp1), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
    deserialize(resp3_set, adapt2(resp2), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
    deserialize(resp3_set, adapt2(resp3), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(resp2.get_reallocs(), 1u);
-   BOOST_CHECK_EQUAL(resp2.get_total_msgs(), 1u);
+   BOOST_TEST_EQ(resp2.get_reallocs(), 1u);
+   BOOST_TEST_EQ(resp2.get_total_msgs(), 1u);
 
-   BOOST_CHECK_EQUAL(resp3.value().get_reallocs(), 1u);
-   BOOST_CHECK_EQUAL(resp3.value().get_total_msgs(), 1u);
+   BOOST_TEST_EQ(resp3.value().get_reallocs(), 1u);
+   BOOST_TEST_EQ(resp3.value().get_total_msgs(), 1u);
 
    auto const tmp2 = from_flat(resp2);
-   BOOST_CHECK_EQUAL(resp1, tmp2);
+   BOOST_TEST_EQ(resp1, tmp2);
 
    auto const tmp3 = from_flat(resp3);
-   BOOST_CHECK_EQUAL(resp1, tmp3);
+   BOOST_TEST_EQ(resp1, tmp3);
 }
 
 // The response should be reusable.
-BOOST_AUTO_TEST_CASE(flat_tree_reuse)
+void test_reuse()
 {
    flat_tree tmp;
 
    // First use
    error_code ec;
    deserialize(resp3_set, adapt2(tmp), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
-   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 1u);
-   BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
+   BOOST_TEST_EQ(tmp.get_reallocs(), 1u);
+   BOOST_TEST_EQ(tmp.get_total_msgs(), 1u);
 
    // Copy to compare after the reuse.
    auto const resp1 = tmp.get_view();
@@ -125,16 +122,16 @@ BOOST_AUTO_TEST_CASE(flat_tree_reuse)
 
    // Second use
    deserialize(resp3_set, adapt2(tmp), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
    // No reallocation this time. TODO: check this
-   BOOST_CHECK_EQUAL(tmp.get_reallocs(), 1u);
-   BOOST_CHECK_EQUAL(tmp.get_total_msgs(), 1u);
+   BOOST_TEST_EQ(tmp.get_reallocs(), 1u);
+   BOOST_TEST_EQ(tmp.get_total_msgs(), 1u);
 
-   BOOST_CHECK_EQUAL(resp1, tmp.get_view());
+   BOOST_TEST_EQ(resp1, tmp.get_view());
 }
 
-BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
+void test_copy_assign()
 {
    flat_tree ref1;
    flat_tree ref2;
@@ -146,7 +143,7 @@ BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
    deserialize(resp3_set, adapt2(ref2), ec);
    deserialize(resp3_set, adapt2(ref3), ec);
    deserialize(resp3_set, adapt2(ref4), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
+   BOOST_TEST_EQ(ec, error_code{});
 
    // Copy ctor
    flat_tree copy1{ref1};
@@ -179,19 +176,11 @@ BOOST_AUTO_TEST_CASE(flat_tree_copy_assign)
 
 }  // namespace
 
-// int main()
-// {
-//    test_push_no_args();
-//    test_push_int();
-//    test_push_multiple_args();
-//    test_push_range();
+int main()
+{
+   test_views_are_set();
+   test_copy_assign();
+   test_reuse();
 
-//    test_append();
-//    test_append_no_response();
-//    test_append_flags();
-//    test_append_target_empty();
-//    test_append_source_empty();
-//    test_append_both_empty();
-
-//    return boost::report_errors();
-// }
+   return boost::report_errors();
+}
