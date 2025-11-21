@@ -326,6 +326,36 @@ void test_default_constructor()
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
 }
 
+// --- Clear ---
+void test_clear()
+{
+   flat_tree t;
+
+   // Add a bunch of nodes, then clear
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   t.clear();
+
+   // Nodes are no longer there, but memory hasn't been fred
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// Clearing an empty tree doesn't cause trouble
+void test_clear_empty()
+{
+   flat_tree t;
+   t.clear();
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -455,6 +485,9 @@ int main()
    test_reserve_not_power_of_2();
    test_reserve_below_current_capacity();
    test_reserve_with_data();
+
+   test_clear();
+   test_clear_empty();
 
    test_default_constructor();
 
