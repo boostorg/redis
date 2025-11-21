@@ -65,6 +65,16 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    buff.reallocs = other.reallocs;
 }
 
+// Compute the new capacity upon reallocation. We always use powers of 2,
+// starting in 512, to prevent many small allocations
+inline std::size_t compute_capacity(std::size_t current, std::size_t requested)
+{
+   std::size_t res = (std::max)(current, static_cast<std::size_t>(512u));
+   while (res < requested)
+      res *= 2u;
+   return res;
+}
+
 // Grows the buffer until reaching a target size.
 // Might rebase the strings in nodes
 inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
@@ -73,9 +83,7 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
       return;
 
    // Compute the actual capacity that we will be using
-   // Prevent many small allocations when starting from an empty buffer
-   new_capacity = (std::max)(new_capacity, static_cast<std::size_t>(512u));
-   new_capacity = (std::max)(new_capacity, 2 * buff.capacity);
+   new_capacity = compute_capacity(buff.capacity, new_capacity);
 
    // Allocate space
    std::unique_ptr<char[]> new_buffer{new char[new_capacity]};

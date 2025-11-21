@@ -224,6 +224,24 @@ void test_add_nodes_capacity_limit()
    BOOST_TEST_EQ(t.data_capacity(), 4096u);
 }
 
+// It's no problem if a node is big enough to surpass several reallocation limits
+void test_add_nodes_big_node()
+{
+   flat_tree t;
+
+   // Add a bunch of nodes. Single allocation. Some nodes are empty.
+   const std::string long_value(1500u, 'h');
+   add_nodes(t, "+" + long_value + "\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, long_value},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 1500u);
+   BOOST_TEST_EQ(t.data_capacity(), 2048u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -347,6 +365,7 @@ int main()
    test_add_nodes();
    test_add_nodes_copies();
    test_add_nodes_capacity_limit();
+   test_add_nodes_big_node();
 
    test_default_constructor();
 
