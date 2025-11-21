@@ -59,6 +59,17 @@ tree from_flat(flat_tree const& resp)
    return ret;
 }
 
+// Constructors
+void test_default_constructor()
+{
+   flat_tree t;
+
+   BOOST_TEST(t.get_view().empty());
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 void test_views_are_set()
@@ -165,6 +176,8 @@ void test_copy_assign()
 
 int main()
 {
+   test_default_constructor();
+
    test_views_are_set();
    test_copy_assign();
    test_reuse();
