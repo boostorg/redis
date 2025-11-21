@@ -183,6 +183,47 @@ void test_add_nodes_copies()
    check_nodes(t, expected_nodes);
 }
 
+// Reallocations happen only when we would exceed capacity
+void test_add_nodes_capacity_limit()
+{
+   flat_tree t;
+
+   // Add a node to reach capacity 512
+   add_nodes(t, "+hello\r\n");
+   BOOST_TEST_EQ(t.data_size(), 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+
+   // Fill the rest of the capacity
+   add_nodes(t, "+" + std::string(507u, 'b') + "\r\n");
+   BOOST_TEST_EQ(t.data_size(), 512u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+
+   // Adding an empty node here doesn't change capacity
+   add_nodes(t, "_\r\n");
+   BOOST_TEST_EQ(t.data_size(), 512u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+
+   // Adding more data causes a reallocation
+   add_nodes(t, "+a\r\n");
+   BOOST_TEST_EQ(t.data_size(), 513u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024);
+
+   // Same goes for the next capacity limit
+   add_nodes(t, "+" + std::string(511u, 'c') + "\r\n");
+   BOOST_TEST_EQ(t.data_size(), 1024);
+   BOOST_TEST_EQ(t.data_capacity(), 1024);
+
+   // Reallocation
+   add_nodes(t, "+u\r\n");
+   BOOST_TEST_EQ(t.data_size(), 1025u);
+   BOOST_TEST_EQ(t.data_capacity(), 2048u);
+
+   // This would continue
+   add_nodes(t, "+" + std::string(1024u, 'd') + "\r\n");
+   BOOST_TEST_EQ(t.data_size(), 2049u);
+   BOOST_TEST_EQ(t.data_capacity(), 4096u);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -305,6 +346,7 @@ int main()
 {
    test_add_nodes();
    test_add_nodes_copies();
+   test_add_nodes_capacity_limit();
 
    test_default_constructor();
 
