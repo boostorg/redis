@@ -15,8 +15,10 @@
 
 #include "print_node.hpp"
 
+#include <algorithm>
 #include <initializer_list>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -158,6 +160,29 @@ void test_add_nodes()
    BOOST_TEST_EQ(t.get_total_msgs(), 5u);
 }
 
+// Strings are really copied into the object
+void test_add_nodes_copies()
+{
+   flat_tree t;
+
+   // Place the message in dynamic memory
+   constexpr std::string_view const_msg = "+some_long_value_for_a_node\r\n";
+   std::unique_ptr<char[]> data{new char[100]{}};
+   std::copy(const_msg.begin(), const_msg.end(), data.get());
+
+   // Add nodes pointing into this message
+   add_nodes(t, data.get());
+
+   // Invalidate the original message
+   data.reset();
+
+   // Check
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "some_long_value_for_a_node"},
+   };
+   check_nodes(t, expected_nodes);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -278,8 +303,10 @@ void test_copy_assign()
 
 int main()
 {
-   test_default_constructor();
    test_add_nodes();
+   test_add_nodes_copies();
+
+   test_default_constructor();
 
    test_views_are_set();
    test_copy_assign();
