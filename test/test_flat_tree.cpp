@@ -11,6 +11,8 @@
 
 #include "print_node.hpp"
 
+#include <string_view>
+
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
 using boost::redis::resp3::tree;
@@ -26,11 +28,8 @@ using boost::system::error_code;
 
 namespace {
 
-#define RESP3_SET_PART1 "~6\r\n+orange\r"
-#define RESP3_SET_PART2 "\n+apple\r\n+one"
-#define RESP3_SET_PART3 "\r\n+two\r"
-#define RESP3_SET_PART4 "\n+three\r\n+orange\r\n"
-char const* resp3_set = RESP3_SET_PART1 RESP3_SET_PART2 RESP3_SET_PART3 RESP3_SET_PART4;
+constexpr std::string_view
+   resp3_set = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
 
 node from_node_view(node_view const& v)
 {
