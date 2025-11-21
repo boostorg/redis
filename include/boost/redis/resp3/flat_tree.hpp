@@ -80,6 +80,9 @@ public:
    /// Returns the size of the data buffer
    auto data_size() const noexcept -> std::size_t { return data_.size; }
 
+   // TODO: document
+   auto data_capacity() const noexcept -> std::size_t { return data_.capacity; }
+
    /// Returns the RESP3 response
    auto get_view() const -> view_tree const& { return view_tree_; }
 

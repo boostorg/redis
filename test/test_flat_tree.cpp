@@ -6,19 +6,27 @@
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/type.hpp>
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/core/span.hpp>
 
 #include "print_node.hpp"
 
+#include <initializer_list>
+#include <iostream>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
 using boost::redis::resp3::tree;
 using boost::redis::resp3::flat_tree;
 using boost::redis::generic_flat_response;
-using boost::redis::ignore_t;
+using boost::redis::resp3::type;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
 using boost::redis::resp3::node_view;
@@ -59,16 +67,110 @@ tree from_flat(flat_tree const& resp)
    return ret;
 }
 
-// Constructors
+void add_nodes(
+   flat_tree& to,
+   std::string_view data,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   error_code ec;
+   deserialize(data, adapt2(to), ec);
+   if (!BOOST_TEST_EQ(ec, error_code{}))
+      std::cerr << "Called from " << loc << std::endl;
+}
+
+void check_nodes(
+   const flat_tree& tree,
+   boost::span<const node_view> expected,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   if (!BOOST_TEST_ALL_EQ(
+          tree.get_view().begin(),
+          tree.get_view().end(),
+          expected.begin(),
+          expected.end()))
+      std::cerr << "Called from " << loc << std::endl;
+}
+
 void test_default_constructor()
 {
    flat_tree t;
 
-   BOOST_TEST(t.get_view().empty());
+   check_nodes(t, {});
    BOOST_TEST_EQ(t.data_size(), 0u);
    BOOST_TEST_EQ(t.get_reallocs(), 0u);
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
 }
+
+// Adding nodes works, even when reallocations happen.
+// Empty nodes don't cause trouble
+void test_add_nodes()
+{
+   flat_tree t;
+
+   // Add a bunch of nodes. Single allocation. Some nodes are empty.
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Capacity will have raised to 512 bytes, at least. Add some more without reallocations
+   add_nodes(t, "$3\r\nbye\r\n");
+   expected_nodes.push_back({type::blob_string, 1u, 0u, "bye"});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 13u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+
+   // Add nodes above the first reallocation threshold. Node strings are still valid
+   const std::string long_value(600u, 'a');
+   add_nodes(t, "+" + long_value + "\r\n");
+   expected_nodes.push_back({type::simple_string, 1u, 0u, long_value});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 613u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 3u);
+
+   // Add some more nodes, still within the reallocation threshold
+   add_nodes(t, "+some_other_value\r\n");
+   expected_nodes.push_back({type::simple_string, 1u, 0u, "some_other_value"});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 629u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 4u);
+
+   // Add some more, causing another reallocation
+   add_nodes(t, "+" + long_value + "\r\n");
+   expected_nodes.push_back({type::simple_string, 1u, 0u, long_value});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 1229u);
+   BOOST_TEST_EQ(t.data_capacity(), 2048u);
+   BOOST_TEST_EQ(t.get_reallocs(), 3u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 5u);
+}
+
+// --- Move
+// void test_move_ctor()
+// {
+//    flat_tree t;
+
+//    add_nodes(t, "$2\r\n+hello\r\n+world\r\n");
+//    flat_tree t2{std::move(t)};
+
+//    check_nodes(t2, {});
+//    BOOST_TEST_EQ(t2.data_size(), 0u);
+//    BOOST_TEST_EQ(t2.get_reallocs(), 0u);
+//    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+// }
 
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
@@ -177,6 +279,7 @@ void test_copy_assign()
 int main()
 {
    test_default_constructor();
+   test_add_nodes();
 
    test_views_are_set();
    test_copy_assign();
