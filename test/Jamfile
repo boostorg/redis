@@ -68,6 +68,7 @@ local tests =
     test_multiplexer
     test_parse_sentinel_response
     test_update_sentinel_list
+    test_flat_tree
 ;
 
 # Build and run the tests
