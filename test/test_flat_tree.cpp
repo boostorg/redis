@@ -93,16 +93,7 @@ void check_nodes(
       std::cerr << "Called from " << loc << std::endl;
 }
 
-void test_default_constructor()
-{
-   flat_tree t;
-
-   check_nodes(t, {});
-   BOOST_TEST_EQ(t.data_size(), 0u);
-   BOOST_TEST_EQ(t.get_reallocs(), 0u);
-   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
-}
-
+// --- Adding nodes ---
 // Adding nodes works, even when reallocations happen.
 // Empty nodes don't cause trouble
 void test_add_nodes()
@@ -242,6 +233,99 @@ void test_add_nodes_big_node()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// --- Reserving space ---
+// The usual case, calling it before using it
+void test_reserve()
+{
+   flat_tree t;
+
+   t.reserve(1024u, 5u);
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_view().capacity(), 5u);
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Adding some nodes now works
+   add_nodes(t, "+hello\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+   check_nodes(t, expected_nodes);
+}
+
+// Reserving space uses the same allocation thresholds
+void test_reserve_not_power_of_2()
+{
+   flat_tree t;
+
+   // First threshold at 512
+   t.reserve(200u, 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+
+   // Second threshold at 1024
+   t.reserve(600u, 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+}
+
+// Requesting a capacity below the current one does nothing
+void test_reserve_below_current_capacity()
+{
+   flat_tree t;
+
+   // Reserving with a zero capacity does nothing
+   t.reserve(0u, 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+
+   // Increase capacity
+   t.reserve(400u, 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+
+   // Reserving again does nothing
+   t.reserve(400u, 5u);
+   t.reserve(512u, 5u);
+   t.reserve(0u, 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+}
+
+// Reserving might reallocate. If there are nodes, strings remain valid
+void test_reserve_with_data()
+{
+   flat_tree t;
+
+   // Add a bunch of nodes, and then reserve
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   t.reserve(1000u, 10u);
+
+   // Check
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+void test_default_constructor()
+{
+   flat_tree t;
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -366,6 +450,11 @@ int main()
    test_add_nodes_copies();
    test_add_nodes_capacity_limit();
    test_add_nodes_big_node();
+
+   test_reserve();
+   test_reserve_not_power_of_2();
+   test_reserve_below_current_capacity();
+   test_reserve_with_data();
 
    test_default_constructor();
 
