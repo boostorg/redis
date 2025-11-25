@@ -35,13 +35,26 @@ inline void rebase_strings(view_tree& nodes, const char* old_base, const char* n
 
 // --- Operations in flat_buffer ---
 
+// Compute the new capacity upon reallocation. We always use powers of 2,
+// starting in 512, to prevent many small allocations
+inline std::size_t compute_capacity(std::size_t current, std::size_t requested)
+{
+   std::size_t res = (std::max)(current, static_cast<std::size_t>(512u));
+   while (res < requested)
+      res *= 2u;
+   return res;
+}
+
 // Copy construction
 inline flat_buffer copy_construct(const flat_buffer& other)
 {
-   flat_buffer res{{}, other.size, other.capacity, other.reallocs};
+   flat_buffer res{{}, other.size, 0u, 0u};
 
-   if (other.capacity > 0u) {
-      res.data.reset(new char[other.capacity]);
+   if (other.size > 0u) {
+      const std::size_t capacity = compute_capacity(0u, other.size);
+      res.data.reset(new char[capacity]);
+      res.capacity = capacity;
+      res.reallocs = 1u;
       std::copy(other.data.get(), other.data.get() + other.size, res.data.get());
    }
 
@@ -55,6 +68,7 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    if (buff.capacity < other.capacity) {
       buff.data.reset(new char[other.capacity]);
       buff.capacity = other.capacity;
+      ++buff.reallocs;
    }
 
    // Copy the contents
@@ -63,16 +77,6 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    // Copy the other fields
    buff.size = other.size;
    buff.reallocs = other.reallocs;
-}
-
-// Compute the new capacity upon reallocation. We always use powers of 2,
-// starting in 512, to prevent many small allocations
-inline std::size_t compute_capacity(std::size_t current, std::size_t requested)
-{
-   std::size_t res = (std::max)(current, static_cast<std::size_t>(512u));
-   while (res < requested)
-      res *= 2u;
-   return res;
 }
 
 // Grows the buffer until reaching a target size.

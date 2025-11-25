@@ -316,16 +316,6 @@ void test_reserve_with_data()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
-void test_default_constructor()
-{
-   flat_tree t;
-
-   check_nodes(t, {});
-   BOOST_TEST_EQ(t.data_size(), 0u);
-   BOOST_TEST_EQ(t.get_reallocs(), 0u);
-   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
-}
-
 // --- Clear ---
 void test_clear()
 {
@@ -354,6 +344,67 @@ void test_clear_empty()
    BOOST_TEST_EQ(t.data_capacity(), 0u);
    BOOST_TEST_EQ(t.get_reallocs(), 0u);
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// --- Default ctor ---
+void test_default_constructor()
+{
+   flat_tree t;
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// --- Copy ctor ---
+void test_copy_ctor()
+{
+   // Setup
+   auto t = std::make_unique<flat_tree>();
+   add_nodes(*t, "*2\r\n+hello\r\n+world\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+
+   // Construct, then destroy the original copy
+   flat_tree t2{*t};
+   t.reset();
+
+   // Check
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 10u);
+   BOOST_TEST_EQ(t2.data_capacity(), 512u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+}
+
+// Copying an empty tree doesn't cause problems
+void test_copy_ctor_empty()
+{
+   flat_tree t;
+   flat_tree t2{t};
+   check_nodes(t2, {});
+   BOOST_TEST_EQ(t2.data_size(), 0u);
+   BOOST_TEST_EQ(t2.data_capacity(), 0u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+}
+
+// Copying an object that has no elements but some capacity doesn't cause trouble
+void test_copy_ctor_empty_with_capacity()
+{
+   flat_tree t;
+   t.reserve(300u, 8u);
+
+   flat_tree t2{t};
+   check_nodes(t2, {});
+   BOOST_TEST_EQ(t2.data_size(), 0u);
+   BOOST_TEST_EQ(t2.data_capacity(), 0u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
 }
 
 // --- Move
@@ -490,6 +541,10 @@ int main()
    test_clear_empty();
 
    test_default_constructor();
+
+   test_copy_ctor();
+   test_copy_ctor_empty();
+   test_copy_ctor_empty_with_capacity();
 
    test_views_are_set();
    test_copy_assign();
