@@ -73,10 +73,7 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
 
    // Copy the contents
    std::copy(other.data.get(), other.data.get() + other.size, buff.data.get());
-
-   // Copy the other fields
    buff.size = other.size;
-   buff.reallocs = other.reallocs;
 }
 
 // Grows the buffer until reaching a target size.

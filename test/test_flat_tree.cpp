@@ -483,6 +483,91 @@ void test_move_ctor_with_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
 }
 
+// --- Copy assignment ---
+void test_copy_assign()
+{
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   auto t2 = std::make_unique<flat_tree>();
+   add_nodes(*t2, "*2\r\n+hello\r\n+world\r\n");
+
+   t = *t2;
+
+   // Delete the source object, to check that we copied the contents
+   t2.reset();
+
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// The lhs is empty and doesn't have any capacity
+void test_copy_assign_target_empty()
+{
+   flat_tree t;
+
+   flat_tree t2;
+   add_nodes(t2, "+hello\r\n");
+
+   t = t2;
+
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// If the target doesn't have enough capacity, a reallocation happens
+void test_copy_assign_target_not_enough_capacity()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   const std::string big_node(2000u, 'a');
+   flat_tree t2;
+   add_nodes(t2, "+" + big_node + "\r\n");
+
+   t = t2;
+
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, big_node},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 2000u);
+   BOOST_TEST_EQ(t.data_capacity(), 2048u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);  // initial + assignment
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// If the source of the assignment is empty, nothing bad happens
+void test_copy_assign_source_empty()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+
+   t = t2;
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);  // capacity is kept
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 void test_views_are_set()
@@ -542,7 +627,7 @@ void test_reuse()
    BOOST_TEST_ALL_EQ(resp1.begin(), resp1.end(), tmp.get_view().begin(), tmp.get_view().end());
 }
 
-void test_copy_assign()
+void test_copy_assign_2()
 {
    flat_tree ref1;
    flat_tree ref2;
@@ -613,8 +698,13 @@ int main()
    test_move_ctor_empty();
    test_move_ctor_with_capacity();
 
-   test_views_are_set();
    test_copy_assign();
+   test_copy_assign_target_empty();
+   test_copy_assign_target_not_enough_capacity();
+   test_copy_assign_source_empty();
+
+   test_views_are_set();
+   test_copy_assign_2();
    test_reuse();
 
    return boost::report_errors();
