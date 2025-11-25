@@ -609,6 +609,39 @@ void test_copy_assign_source_with_extra_capacity()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+void test_copy_assign_both_empty()
+{
+   flat_tree t;
+   flat_tree t2;
+
+   t = t2;
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// Self-assignment doesn't cause trouble
+void test_copy_assign_self()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   const auto& tref = t;
+   t = tref;
+
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 void test_views_are_set()
@@ -745,6 +778,8 @@ int main()
    test_copy_assign_source_empty();
    test_copy_assign_source_with_capacity();
    test_copy_assign_source_with_extra_capacity();
+   test_copy_assign_both_empty();
+   test_copy_assign_self();
 
    test_views_are_set();
    test_copy_assign_2();
