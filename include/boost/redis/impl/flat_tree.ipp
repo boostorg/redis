@@ -65,9 +65,10 @@ inline flat_buffer copy_construct(const flat_buffer& other)
 inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
 {
    // Make space if required
-   if (buff.capacity < other.capacity) {
-      buff.data.reset(new char[other.capacity]);
-      buff.capacity = other.capacity;
+   if (buff.capacity < other.size) {
+      const std::size_t capacity = compute_capacity(buff.capacity, other.size);
+      buff.data.reset(new char[capacity]);
+      buff.capacity = capacity;
       ++buff.reallocs;
    }
 

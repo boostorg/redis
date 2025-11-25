@@ -568,6 +568,47 @@ void test_copy_assign_source_empty()
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
 }
 
+// If the source of the assignment has capacity but no data, we're OK
+void test_copy_assign_source_with_capacity()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   t2.reserve(1000u, 4u);
+   t2.reserve(4000u, 8u);
+
+   t = t2;
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);  // capacity is kept
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);     // not propagated
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// If the source of the assignment has data with extra capacity
+// and a reallocation is needed, the minimum amount of space is allocated
+void test_copy_assign_source_with_extra_capacity()
+{
+   flat_tree t;
+
+   flat_tree t2;
+   add_nodes(t2, "+hello\r\n");
+   t2.reserve(4000u, 8u);
+
+   t = t2;
+
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 void test_views_are_set()
@@ -702,6 +743,8 @@ int main()
    test_copy_assign_target_empty();
    test_copy_assign_target_not_enough_capacity();
    test_copy_assign_source_empty();
+   test_copy_assign_source_with_capacity();
+   test_copy_assign_source_with_extra_capacity();
 
    test_views_are_set();
    test_copy_assign_2();
