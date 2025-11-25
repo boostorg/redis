@@ -642,6 +642,187 @@ void test_copy_assign_self()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// --- Move assignment ---
+void test_move_assign()
+{
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "*2\r\n+hello\r\n+world\r\n");
+
+   t = std::move(t2);
+
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// The lhs is empty and doesn't have any capacity
+void test_move_assign_target_empty()
+{
+   flat_tree t;
+
+   flat_tree t2;
+   add_nodes(t2, "+hello\r\n");
+
+   t = std::move(t2);
+
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 5u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// If the source of the assignment is empty, nothing bad happens
+void test_move_assign_source_empty()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+
+   t = std::move(t2);
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// If both source and target are empty, nothing bad happens
+void test_move_assign_both_empty()
+{
+   flat_tree t;
+
+   flat_tree t2;
+
+   t = std::move(t2);
+
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// --- Comparison ---
+void test_comparison_different()
+{
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "*2\r\n+hello\r\n+world\r\n");
+
+   BOOST_TEST_NOT(t == t2);
+   BOOST_TEST(t != t2);
+   BOOST_TEST_NOT(t2 == t);
+   BOOST_TEST(t2 != t);
+}
+
+// The only difference is node types
+void test_comparison_different_node_types()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "$5\r\nhello\r\n");
+
+   BOOST_TEST_NOT(t == t2);
+   BOOST_TEST(t != t2);
+}
+
+void test_comparison_equal()
+{
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+some_data\r\n");
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+// Allocations are not taken into account when comparing
+void test_comparison_equal_reallocations()
+{
+   const std::string big_node(2000u, 'a');
+   flat_tree t;
+   t.reserve(100u, 5u);
+   add_nodes(t, "+" + big_node + "\r\n");
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+
+   flat_tree t2;
+   t2.reserve(2048u, 5u);
+   add_nodes(t2, "+" + big_node + "\r\n");
+   BOOST_TEST_EQ(t2.get_reallocs(), 1u);
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+// Capacity is not taken into account when comparing
+void test_comparison_equal_capacity()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   t2.reserve(2048u, 5u);
+   add_nodes(t2, "+hello\r\n");
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+// Empty containers don't cause trouble
+void test_comparison_empty()
+{
+   flat_tree t;
+   add_nodes(t, "$5\r\nhello\r\n");
+
+   flat_tree tempty, tempty2;
+
+   BOOST_TEST_NOT(t == tempty);
+   BOOST_TEST(t != tempty);
+
+   BOOST_TEST_NOT(tempty == t);
+   BOOST_TEST(tempty != t);
+
+   BOOST_TEST(tempty == tempty2);
+   BOOST_TEST_NOT(tempty != tempty2);
+}
+
+// Self comparisons don't cause trouble
+void test_comparison_self()
+{
+   flat_tree t;
+   add_nodes(t, "$5\r\nhello\r\n");
+
+   flat_tree tempty;
+
+   BOOST_TEST(t == t);
+   BOOST_TEST_NOT(t != t);
+
+   BOOST_TEST(tempty == tempty);
+   BOOST_TEST_NOT(tempty != tempty);
+}
+
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
 void test_views_are_set()
@@ -772,6 +953,11 @@ int main()
    test_move_ctor_empty();
    test_move_ctor_with_capacity();
 
+   test_move_assign();
+   test_move_assign_target_empty();
+   test_move_assign_source_empty();
+   test_move_assign_both_empty();
+
    test_copy_assign();
    test_copy_assign_target_empty();
    test_copy_assign_target_not_enough_capacity();
@@ -780,6 +966,14 @@ int main()
    test_copy_assign_source_with_extra_capacity();
    test_copy_assign_both_empty();
    test_copy_assign_self();
+
+   test_comparison_different();
+   test_comparison_different_node_types();
+   test_comparison_equal();
+   test_comparison_equal_reallocations();
+   test_comparison_equal_capacity();
+   test_comparison_empty();
+   test_comparison_self();
 
    test_views_are_set();
    test_copy_assign_2();
