@@ -434,19 +434,54 @@ void test_copy_ctor_adjust_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
 }
 
-// --- Move
-// void test_move_ctor()
-// {
-//    flat_tree t;
+// --- Move ctor ---
+void test_move_ctor()
+{
+   flat_tree t;
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
 
-//    add_nodes(t, "$2\r\n+hello\r\n+world\r\n");
-//    flat_tree t2{std::move(t)};
+   flat_tree t2{std::move(t)};
 
-//    check_nodes(t2, {});
-//    BOOST_TEST_EQ(t2.data_size(), 0u);
-//    BOOST_TEST_EQ(t2.get_reallocs(), 0u);
-//    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
-// }
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 10u);
+   BOOST_TEST_EQ(t2.data_capacity(), 512u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+}
+
+// Moving an empty object doesn't cause trouble
+void test_move_ctor_empty()
+{
+   flat_tree t;
+
+   flat_tree t2{std::move(t)};
+
+   check_nodes(t2, {});
+   BOOST_TEST_EQ(t2.data_size(), 0u);
+   BOOST_TEST_EQ(t2.data_capacity(), 0u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 0u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+}
+
+// Moving an object with capacity but no data doesn't cause trouble
+void test_move_ctor_with_capacity()
+{
+   flat_tree t;
+   t.reserve(1000u, 10u);
+
+   flat_tree t2{std::move(t)};
+
+   check_nodes(t2, {});
+   BOOST_TEST_EQ(t2.data_size(), 0u);
+   BOOST_TEST_EQ(t2.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+}
 
 // Parses the same data into a tree and a
 // flat_tree, they should be equal to each other.
@@ -573,6 +608,10 @@ int main()
    test_copy_ctor_empty();
    test_copy_ctor_empty_with_capacity();
    test_copy_ctor_adjust_capacity();
+
+   test_move_ctor();
+   test_move_ctor_empty();
+   test_move_ctor_with_capacity();
 
    test_views_are_set();
    test_copy_assign();
