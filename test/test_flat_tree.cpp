@@ -407,6 +407,33 @@ void test_copy_ctor_empty_with_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
 }
 
+// Copying an object with more capacity than required adjusts its capacity
+void test_copy_ctor_adjust_capacity()
+{
+   // Setup
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "hello"},
+   };
+
+   // Cause reallocations
+   t.reserve(1000u, 10u);
+   t.reserve(2000u, 10u);
+   t.reserve(4000u, 10u);
+
+   // Copy
+   flat_tree t2{t};
+
+   // The target object has the minimum required capacity,
+   // and the number of reallocs has been reset
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 5u);
+   BOOST_TEST_EQ(t2.data_capacity(), 512u);
+   BOOST_TEST_EQ(t2.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+}
+
 // --- Move
 // void test_move_ctor()
 // {
@@ -545,6 +572,7 @@ int main()
    test_copy_ctor();
    test_copy_ctor_empty();
    test_copy_ctor_empty_with_capacity();
+   test_copy_ctor_adjust_capacity();
 
    test_views_are_set();
    test_copy_assign();
