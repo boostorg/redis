@@ -38,9 +38,6 @@ using boost::system::error_code;
 
 namespace {
 
-constexpr std::string_view
-   resp3_set = "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n";
-
 void add_nodes(
    flat_tree& to,
    std::string_view data,
@@ -316,6 +313,40 @@ void test_clear_empty()
    BOOST_TEST_EQ(t.data_capacity(), 0u);
    BOOST_TEST_EQ(t.get_reallocs(), 0u);
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// With clear, memory can be reused
+// The response should be reusable.
+void test_clear_reuse()
+{
+   flat_tree t;
+
+   // First use
+   add_nodes(t, "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::set,           6u, 0u, ""      },
+      {type::simple_string, 1u, 1u, "orange"},
+      {type::simple_string, 1u, 1u, "apple" },
+      {type::simple_string, 1u, 1u, "one"   },
+      {type::simple_string, 1u, 1u, "two"   },
+      {type::simple_string, 1u, 1u, "three" },
+      {type::simple_string, 1u, 1u, "orange"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Second use
+   t.clear();
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
 // --- Default ctor ---
@@ -795,35 +826,6 @@ void test_comparison_self()
    BOOST_TEST_NOT(tempty != tempty);
 }
 
-// The response should be reusable.
-// TODO: this belongs to clear
-void test_reuse()
-{
-   flat_tree tmp;
-
-   // First use
-   error_code ec;
-   deserialize(resp3_set, adapt2(tmp), ec);
-   BOOST_TEST_EQ(ec, error_code{});
-
-   BOOST_TEST_EQ(tmp.get_reallocs(), 1u);
-   BOOST_TEST_EQ(tmp.get_total_msgs(), 1u);
-
-   // Copy to compare after the reuse.
-   auto const resp1 = tmp.get_view();
-   tmp.clear();
-
-   // Second use
-   deserialize(resp3_set, adapt2(tmp), ec);
-   BOOST_TEST_EQ(ec, error_code{});
-
-   // No reallocation this time. TODO: check this
-   BOOST_TEST_EQ(tmp.get_reallocs(), 1u);
-   BOOST_TEST_EQ(tmp.get_total_msgs(), 1u);
-
-   BOOST_TEST_ALL_EQ(resp1.begin(), resp1.end(), tmp.get_view().begin(), tmp.get_view().end());
-}
-
 }  // namespace
 
 int main()
@@ -840,6 +842,7 @@ int main()
 
    test_clear();
    test_clear_empty();
+   test_clear_reuse();
 
    test_default_constructor();
 
@@ -873,8 +876,6 @@ int main()
    test_comparison_equal_capacity();
    test_comparison_empty();
    test_comparison_self();
-
-   test_reuse();
 
    return boost::report_errors();
 }
