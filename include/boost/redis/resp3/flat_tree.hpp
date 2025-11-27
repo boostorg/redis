@@ -140,7 +140,7 @@ public:
    /** @brief Clears the tree so it contains no nodes.
     * 
     * Calling this function removes every node, making
-    * @ref get_views return empty and @ref get_total_msgs
+    * @ref get_view return empty and @ref get_total_msgs
     * return zero. It does not modify the object's capacity.
     * 
     * To re-use a `flat_tree` for several requests,
@@ -154,11 +154,28 @@ public:
     */
    void clear() noexcept;
 
-   // TODO: this
-   /// Returns the size of the data buffer
+   /** @brief Returns the size of the data buffer, in bytes.
+    * 
+    * You may use this function to calculate how much capacity
+    * should be reserved for data when calling @ref reserve.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of bytes in use in the data buffer.
+    */
    auto data_size() const noexcept -> std::size_t { return data_.size; }
 
-   // TODO: document
+   /** @brief Returns the capacity of the data buffer, in bytes.
+    *
+    * Note that the actual capacity of the data buffer may be bigger
+    * than the one requested by @ref reserve.
+    *
+    * @par Exception safety
+    * No-throw guarantee. 
+    *
+    * @returns The capacity of the data buffer, in bytes.
+    */
    auto data_capacity() const noexcept -> std::size_t { return data_.capacity; }
 
    /** @brief Returns a vector with the nodes in the tree.
@@ -167,16 +184,20 @@ public:
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns The nodes in the tree.
     */
    auto get_view() const noexcept -> view_tree const& { return view_tree_; }
 
-   /** @brief Returns the number of memory reallocations that took place within this object.
+   /** @brief Returns the number of memory reallocations that took place in the data buffer.
     *
-    * This function returns how many reallocations were performed and
+    * This function returns how many reallocations in the data buffer were performed and
     * can be useful to determine how much memory to reserve upfront.
     * 
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns The number of times that the data buffer reallocated its memory.
     */
    auto get_reallocs() const noexcept -> std::size_t { return data_.reallocs; }
 
@@ -186,6 +207,8 @@ public:
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns The number of complete RESP3 messages contained in this object.
     */
    std::size_t get_total_msgs() const noexcept { return total_msgs_; }
 

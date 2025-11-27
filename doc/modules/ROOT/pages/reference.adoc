@@ -82,7 +82,7 @@ xref:reference:boost/redis/resp3/basic_tree.adoc[`basic_tree`]
 
 xref:reference:boost/redis/resp3/tree.adoc[`tree`]
 
-xref:reference:boost/redis/resp3/tree_view.adoc[`tree_view`]
+xref:reference:boost/redis/resp3/view_tree.adoc[`view_tree`]
 
 xref:reference:boost/redis/resp3/flat_tree.adoc[`flat_tree`]
 
