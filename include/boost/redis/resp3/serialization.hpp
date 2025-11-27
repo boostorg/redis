@@ -32,6 +32,10 @@ namespace boost::redis::resp3 {
  *  }
  *  @endcode
  *
+ *  The function must add exactly one bulk string RESP3 node.
+ *  If you're using `boost_redis_to_bulk` with a string argument,
+ *  you're safe.
+ *
  *  @param payload Storage on which data will be copied into.
  *  @param data Data that will be serialized and stored in `payload`.
  */
