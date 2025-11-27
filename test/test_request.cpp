@@ -14,8 +14,6 @@
 
 using boost::redis::request;
 
-// TODO: Serialization.
-
 namespace {
 
 void test_push_no_args()
