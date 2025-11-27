@@ -63,7 +63,7 @@ local tests =
     test_sentinel_resolve_fsm
     test_run_fsm
     test_connect_fsm
-    test_setup_request_utils
+    test_compose_setup_request
     test_setup_adapter
     test_multiplexer
     test_parse_sentinel_response
