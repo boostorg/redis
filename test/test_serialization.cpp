@@ -8,6 +8,8 @@
 
 #include <boost/core/lightweight_test.hpp>
 
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -64,6 +66,24 @@ void test_unsigned_ints()
       "*6\r\n$3\r\nGET\r\n$2\r\n20\r\n$2\r\n42\r\n$2\r\n50\r\n$2\r\n80\r\n$3\r\n200\r\n");
 }
 
+// We don't overflow for big ints
+void test_signed_ints_minmax()
+{
+   using lims = std::numeric_limits<std::int64_t>;
+   request req;
+   req.push("GET", (lims::min)(), (lims::max)());
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*3\r\n$3\r\nGET\r\n$20\r\n-9223372036854775808\r\n$19\r\n9223372036854775807\r\n");
+}
+
+void test_unsigned_ints_max()
+{
+   request req;
+   req.push("GET", (std::numeric_limits<std::uint64_t>::max)());
+   BOOST_TEST_EQ(req.payload(), "*2\r\n$3\r\nGET\r\n$20\r\n18446744073709551615\r\n");
+}
+
 }  // namespace
 
 int main()
@@ -74,6 +94,8 @@ int main()
 
    test_signed_ints();
    test_unsigned_ints();
+   test_signed_ints_minmax();
+   test_unsigned_ints_max();
 
    return boost::report_errors();
 }
