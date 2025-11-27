@@ -12,6 +12,8 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 using boost::redis::request;
 
@@ -84,6 +86,28 @@ void test_unsigned_ints_max()
    BOOST_TEST_EQ(req.payload(), "*2\r\n$3\r\nGET\r\n$20\r\n18446744073709551615\r\n");
 }
 
+// --- Pairs and tuples (only supported in the range versions) ---
+// Nested structures are not supported (compile time error)
+void test_pair()
+{
+   std::vector<std::pair<std::string_view, int>> vec{
+      {"k1", 42}
+   };
+   request req;
+   req.push_range("GET", vec);
+   BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n");
+}
+
+void test_tuple()
+{
+   std::vector<std::tuple<std::string_view, int, unsigned char>> vec{
+      {"k1", 42, 1}
+   };
+   request req;
+   req.push_range("GET", vec);
+   BOOST_TEST_EQ(req.payload(), "*4\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n$1\r\n1\r\n");
+}
+
 }  // namespace
 
 int main()
@@ -96,6 +120,9 @@ int main()
    test_unsigned_ints();
    test_signed_ints_minmax();
    test_unsigned_ints_max();
+
+   test_pair();
+   test_tuple();
 
    return boost::report_errors();
 }

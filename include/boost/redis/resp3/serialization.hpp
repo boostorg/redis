@@ -16,9 +16,6 @@
 #include <string>
 #include <tuple>
 
-// NOTE: Consider detecting tuples in the type in the parameter pack
-// to calculate the header size correctly.
-
 namespace boost::redis::resp3 {
 
 /** @brief Adds a bulk to the request.
@@ -98,6 +95,11 @@ struct bulk_counter {
 template <class T, class U>
 struct bulk_counter<std::pair<T, U>> {
    static constexpr auto size = 2U;
+};
+
+template <class... T>
+struct bulk_counter<std::tuple<T...>> {
+   static constexpr auto size = sizeof...(T);
 };
 
 void add_blob(std::string& payload, std::string_view blob);
