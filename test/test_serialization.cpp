@@ -57,6 +57,13 @@ void test_c_string()
    BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\nk2\r\n");
 }
 
+void test_string_empty()
+{
+   request req;
+   req.push("GET", std::string_view{});
+   BOOST_TEST_EQ(req.payload(), "*2\r\n$3\r\nGET\r\n$0\r\n\r\n");
+}
+
 // --- Integers ---
 void test_signed_ints()
 {
@@ -120,6 +127,16 @@ void test_pair()
    BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n");
 }
 
+void test_pair_custom()
+{
+   std::vector<std::pair<std::string_view, other::my_struct>> vec{
+      {"k1", {42}}
+   };
+   request req;
+   req.push_range("GET", vec);
+   BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n");
+}
+
 void test_tuple()
 {
    std::vector<std::tuple<std::string_view, int, unsigned char>> vec{
@@ -128,6 +145,16 @@ void test_tuple()
    request req;
    req.push_range("GET", vec);
    BOOST_TEST_EQ(req.payload(), "*4\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n$1\r\n1\r\n");
+}
+
+void test_tuple_custom()
+{
+   std::vector<std::tuple<std::string_view, other::my_struct>> vec{
+      {"k1", {42}}
+   };
+   request req;
+   req.push_range("GET", vec);
+   BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n");
 }
 
 void test_tuple_empty()
@@ -145,6 +172,7 @@ int main()
    test_string_view();
    test_string();
    test_c_string();
+   test_string_empty();
 
    test_signed_ints();
    test_unsigned_ints();
@@ -154,7 +182,9 @@ int main()
    test_custom();
 
    test_pair();
+   test_pair_custom();
    test_tuple();
+   test_tuple_custom();
    test_tuple_empty();
 
    return boost::report_errors();
