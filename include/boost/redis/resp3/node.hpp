@@ -43,7 +43,7 @@ struct basic_node {
  *  @param b Right hand side node object.
  */
 template <class String>
-auto operator==(basic_node<String> const& a, basic_node<String> const& b)
+bool operator==(basic_node<String> const& a, basic_node<String> const& b)
 {
    // clang-format off
    return a.aggregate_size == b.aggregate_size
@@ -53,9 +53,14 @@ auto operator==(basic_node<String> const& a, basic_node<String> const& b)
    // clang-format on
 };
 
-/// Inequality operator for RESP3 nodes
+/** @brief Inequality operator for RESP3 nodes.
+ *  @relates basic_node
+ *
+ *  @param a Left hand side node object.
+ *  @param b Right hand side node object.
+ */
 template <class String>
-auto operator!=(basic_node<String> const& a, basic_node<String> const& b)
+bool operator!=(basic_node<String> const& a, basic_node<String> const& b)
 {
    return !(a == b);
 };
