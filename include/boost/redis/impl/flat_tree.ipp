@@ -159,7 +159,7 @@ void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
    view_tree_.reserve(nodes);
 }
 
-void flat_tree::clear()
+void flat_tree::clear() noexcept
 {
    data_.size = 0u;
    view_tree_.clear();
@@ -185,7 +185,5 @@ bool operator==(flat_tree const& a, flat_tree const& b)
    // data is already taken into account by comparing the nodes.
    return a.view_tree_ == b.view_tree_ && a.total_msgs_ == b.total_msgs_;
 }
-
-bool operator!=(flat_tree const& a, flat_tree const& b) { return !(a == b); }
 
 }  // namespace boost::redis::resp3
