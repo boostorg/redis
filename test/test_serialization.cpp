@@ -39,6 +39,31 @@ void test_c_string()
    BOOST_TEST_EQ(req.payload(), "*3\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\nk2\r\n");
 }
 
+// --- Integers ---
+void test_signed_ints()
+{
+   request req;
+   req.push("GET", static_cast<signed char>(20), static_cast<short>(-42), -1, 80l, 200ll);
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*6\r\n$3\r\nGET\r\n$2\r\n20\r\n$3\r\n-42\r\n$2\r\n-1\r\n$2\r\n80\r\n$3\r\n200\r\n");
+}
+
+void test_unsigned_ints()
+{
+   request req;
+   req.push(
+      "GET",
+      static_cast<unsigned char>(20),
+      static_cast<unsigned short>(42),
+      50u,
+      80ul,
+      200ull);
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*6\r\n$3\r\nGET\r\n$2\r\n20\r\n$2\r\n42\r\n$2\r\n50\r\n$2\r\n80\r\n$3\r\n200\r\n");
+}
+
 }  // namespace
 
 int main()
@@ -46,6 +71,9 @@ int main()
    test_string_view();
    test_string();
    test_c_string();
+
+   test_signed_ints();
+   test_unsigned_ints();
 
    return boost::report_errors();
 }
