@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/serialization.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -16,6 +17,19 @@
 #include <vector>
 
 using boost::redis::request;
+
+namespace other {
+
+struct my_struct {
+   int value;
+};
+
+void boost_redis_to_bulk(std::string& to, my_struct value)
+{
+   boost::redis::resp3::boost_redis_to_bulk(to, value.value);
+}
+
+}  // namespace other
 
 namespace {
 
@@ -86,6 +100,14 @@ void test_unsigned_ints_max()
    BOOST_TEST_EQ(req.payload(), "*2\r\n$3\r\nGET\r\n$20\r\n18446744073709551615\r\n");
 }
 
+// Custom type
+void test_custom()
+{
+   request req;
+   req.push("GET", other::my_struct{42});
+   BOOST_TEST_EQ(req.payload(), "*2\r\n$3\r\nGET\r\n$2\r\n42\r\n");
+}
+
 // --- Pairs and tuples (only supported in the range versions) ---
 // Nested structures are not supported (compile time error)
 void test_pair()
@@ -108,6 +130,14 @@ void test_tuple()
    BOOST_TEST_EQ(req.payload(), "*4\r\n$3\r\nGET\r\n$2\r\nk1\r\n$2\r\n42\r\n$1\r\n1\r\n");
 }
 
+void test_tuple_empty()
+{
+   std::vector<std::tuple<>> vec{{}};
+   request req;
+   req.push_range("GET", vec);
+   BOOST_TEST_EQ(req.payload(), "*1\r\n$3\r\nGET\r\n");
+}
+
 }  // namespace
 
 int main()
@@ -121,8 +151,11 @@ int main()
    test_signed_ints_minmax();
    test_unsigned_ints_max();
 
+   test_custom();
+
    test_pair();
    test_tuple();
+   test_tuple_empty();
 
    return boost::report_errors();
 }
