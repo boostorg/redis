@@ -51,6 +51,7 @@ make_test(test_setup_adapter)
 make_test(test_multiplexer)
 make_test(test_parse_sentinel_response)
 make_test(test_update_sentinel_list)
+make_test(test_flat_tree)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)

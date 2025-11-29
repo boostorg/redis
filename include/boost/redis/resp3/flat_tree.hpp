@@ -12,119 +12,241 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
-#include <vector>
+#include <cstddef>
+#include <memory>
 
 namespace boost::redis {
 
 namespace adapter::detail {
-   template <class> class general_aggregate;
-}
+template <class> class general_aggregate;
+}  // namespace adapter::detail
 
 namespace resp3 {
 
-/** @brief A generic-response that stores data contiguously
+namespace detail {
+
+struct flat_buffer {
+   std::unique_ptr<char[]> data;
+   std::size_t size = 0u;
+   std::size_t capacity = 0u;
+   std::size_t reallocs = 0u;
+};
+
+}  // namespace detail
+
+/** @brief A generic response that stores data contiguously.
  *
- * Similar to the @ref boost::redis::resp3::tree but data is
- * stored contiguously.
+ * Implements a container of RESP3 nodes. It's similar to @ref boost::redis::resp3::tree,
+ * but node data is stored contiguously. This allows for amortized no allocations
+ * when re-using `flat_tree` objects. Like `tree`, it can contain the response
+ * to several Redis commands or several server pushes. Use @ref get_total_msgs
+ * to obtain how many responses this object contains.
+ *
+ * Objects are typically created by the user and passed to @ref connection::async_exec
+ * to be used as response containers. Call @ref get_view to access the actual RESP3 nodes.
+ * Once populated, `flat_tree` can't be modified, except for @ref clear and assignment.
+ *
+ * A `flat_tree` is conceptually similar to a pair of `std::vector` objects, one holding
+ * @ref resp3::node_view objects, and another owning the the string data that these views
+ * point to. The node capacity and the data capacity are the capacities of these two vectors.
  */
-struct flat_tree {
+class flat_tree {
 public:
-   /// Default constructor
+   /**
+    * @brief Default constructor.
+    *
+    * Constructs an empty tree, with no nodes, zero node capacity and zero data capacity.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
    flat_tree() = default;
 
-   /// Move constructor
-   flat_tree(flat_tree&&) noexcept = default;
+   /**
+    * @brief Move constructor.
+    *
+    * Constructs a tree by taking ownership of the nodes in `other`.
+    *
+    * @par Object lifetimes
+    * References to the nodes and strings in `other` remain valid.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
+   flat_tree(flat_tree&& other) noexcept = default;
 
-   /// Copy constructor
+   /**
+    * @brief Copy constructor.
+    *
+    * Constructs a tree by copying the nodes in `other`. After the copy,
+    * `*this` and `other` have independent lifetimes (usual copy semantics).
+    *
+    * @par Exception safety
+    * Strong guarantee. Memory allocations might throw.
+    */
    flat_tree(flat_tree const& other);
 
-   /// Copy assignment
-   flat_tree& operator=(flat_tree other);
-
-   friend void swap(flat_tree&, flat_tree&);
-
-   friend
-   bool operator==(flat_tree const&, flat_tree const&);
-
-   friend
-   bool operator!=(flat_tree const&, flat_tree const&);
-
-   /** @brief Reserve capacity
+   /**
+    * @brief Move assignment.
     *
-    *  Reserve memory for incoming data.
+    * Replaces the nodes in `*this` by taking ownership of the nodes in `other`.
+    * `other` is left in a valid but unspecified state.
     *
-    *  @param bytes Number of bytes to reserve for data.
-    *  @param nodes Number of nodes to reserve.
+    * @par Object lifetimes
+    * References to the nodes and strings in `other` remain valid.
+    * References to the nodes and strings in `*this` are invalidated.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
+   flat_tree& operator=(flat_tree&& other) = default;
+
+   /**
+    * @brief Copy assignment.
+    *
+    * Replaces the nodes in `*this` by copying the nodes in `other`.
+    * After the copy, `*this` and `other` have independent lifetimes (usual copy semantics).
+    *
+    * @par Object lifetimes
+    * References to the nodes and strings in `*this` are invalidated.
+    *
+    * @par Exception safety
+    * Basic guarantee. Memory allocations might throw.
+    */
+   flat_tree& operator=(const flat_tree& other);
+
+   friend bool operator==(flat_tree const&, flat_tree const&);
+
+   friend bool operator!=(flat_tree const&, flat_tree const&);
+
+   /** @brief Reserves capacity for incoming data.
+    *
+    * Adding nodes (e.g. by passing the tree to `async_exec`)
+    * won't cause reallocations until the data or node capacities
+    * are exceeded, following the usual vector semantics.
+    * The implementation might reserve more capacity than the one requested.
+    * 
+    * @par Object lifetimes
+    * References to the nodes and strings in `*this` are invalidated.
+    *
+    * @par Exception safety
+    * Basic guarantee. Memory allocations might throw.
+    *
+    * @param bytes Number of bytes to reserve for data.
+    * @param nodes Number of nodes to reserve.
     */
    void reserve(std::size_t bytes, std::size_t nodes);
 
-   /** @brief Clear both the data and the node buffers
-    *  
-    *  @Note: A `boost::redis:.flat_tree` can contain the
-    *  response to multiple Redis commands and server pushes. Calling
-    *  this function will erase everything contained in it.
-    */
-   void clear();
-
-   /// Returns the size of the data buffer
-   auto data_size() const noexcept -> std::size_t
-      { return data_.size(); }
-
-   /// Returns the RESP3 response
-   auto get_view() const -> view_tree const&
-      { return view_tree_; }
-
-   /** @brief Returns the number of times reallocation took place
+   /** @brief Clears the tree so it contains no nodes.
+    * 
+    * Calling this function removes every node, making
+    * @ref get_view return empty and @ref get_total_msgs
+    * return zero. It does not modify the object's capacity.
+    * 
+    * To re-use a `flat_tree` for several requests,
+    * use `clear()` before each `async_exec` call.
     *
-    *  This function returns how many reallocations were performed and
-    *  can be useful to determine how much memory to reserve upfront.
+    * @par Object lifetimes
+    * References to the nodes and strings in `*this` are invalidated.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
     */
-   auto get_reallocs() const noexcept -> std::size_t
-      { return reallocs_; }
+   void clear() noexcept;
 
-   /// Returns the number of complete RESP3 messages contained in this object.
-   std::size_t get_total_msgs() const noexcept
-      { return total_msgs_; }
+   /** @brief Returns the size of the data buffer, in bytes.
+    * 
+    * You may use this function to calculate how much capacity
+    * should be reserved for data when calling @ref reserve.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of bytes in use in the data buffer.
+    */
+   auto data_size() const noexcept -> std::size_t { return data_.size; }
+
+   /** @brief Returns the capacity of the data buffer, in bytes.
+    *
+    * Note that the actual capacity of the data buffer may be bigger
+    * than the one requested by @ref reserve.
+    *
+    * @par Exception safety
+    * No-throw guarantee. 
+    *
+    * @returns The capacity of the data buffer, in bytes.
+    */
+   auto data_capacity() const noexcept -> std::size_t { return data_.capacity; }
+
+   /** @brief Returns a vector with the nodes in the tree.
+    *
+    * This is the main way to access the contents of the tree.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The nodes in the tree.
+    */
+   auto get_view() const noexcept -> view_tree const& { return view_tree_; }
+
+   /** @brief Returns the number of memory reallocations that took place in the data buffer.
+    *
+    * This function returns how many reallocations in the data buffer were performed and
+    * can be useful to determine how much memory to reserve upfront.
+    * 
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of times that the data buffer reallocated its memory.
+    */
+   auto get_reallocs() const noexcept -> std::size_t { return data_.reallocs; }
+
+   /** @brief Returns the number of complete RESP3 messages contained in this object.
+    *
+    * This value is equal to the number of nodes in the tree with a depth of zero.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of complete RESP3 messages contained in this object.
+    */
+   std::size_t get_total_msgs() const noexcept { return total_msgs_; }
 
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
-   // Notify the object that all nodes were pushed.
-   void notify_done();
+   void notify_done() { ++total_msgs_; }
 
    // Push a new node to the response
    void push(node_view const& node);
 
-   void add_node_impl(node_view const& node);
-
-   void set_views();
-
-   // Range into the data buffer.
-   struct range {
-      std::size_t offset;
-      std::size_t size;
-   };
-
-   friend bool operator==(range const&, range const&);
-
-   std::vector<char> data_;
+   detail::flat_buffer data_;
    view_tree view_tree_;
-   std::vector<range> ranges_;
-   std::size_t pos_ = 0u;
-   std::size_t reallocs_ = 0u;
    std::size_t total_msgs_ = 0u;
 };
 
-/// Swaps two responses
-void swap(flat_tree&, flat_tree&);
-
-/// Equality operator
+/**
+ * @brief Equality operator.
+ * @relates flat_tree
+ *
+ * Two trees are equal if they contain the same nodes in the same order.
+ * Capacities are not taken into account.
+ *
+ * @par Exception safety
+ * No-throw guarantee.
+ */
 bool operator==(flat_tree const&, flat_tree const&);
 
-/// Inequality operator
-bool operator!=(flat_tree const&, flat_tree const&);
+/**
+ * @brief Inequality operator.
+ * @relates flat_tree
+ *
+ * @par Exception safety
+ * No-throw guarantee.
+ */
+inline bool operator!=(flat_tree const& lhs, flat_tree const& rhs) { return !(lhs == rhs); }
 
-} // resp3
-} // namespace boost::redis
+}  // namespace resp3
+}  // namespace boost::redis
 
 #endif  // BOOST_REDIS_RESP3_FLAT_TREE_HPP

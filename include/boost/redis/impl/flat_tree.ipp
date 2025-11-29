@@ -7,119 +7,183 @@
 //
 
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/tree.hpp>
+
 #include <boost/assert.hpp>
+
+#include <algorithm>
+#include <cstddef>
+#include <cstring>
+#include <string_view>
 
 namespace boost::redis::resp3 {
 
-flat_tree::flat_tree(flat_tree const& other)
-: data_{other.data_}
-, view_tree_{other.view_tree_}
-, ranges_{other.ranges_}
-, pos_{0u}
-, reallocs_{0u}
-, total_msgs_{other.total_msgs_}
+namespace detail {
+
+// Updates string views by performing pointer arithmetic
+inline void rebase_strings(view_tree& nodes, const char* old_base, const char* new_base)
 {
-   view_tree_.resize(ranges_.size());
-   set_views();
+   for (auto& nd : nodes) {
+      if (!nd.value.empty()) {
+         const auto offset = nd.value.data() - old_base;
+         BOOST_ASSERT(offset >= 0);
+         nd.value = {new_base + offset, nd.value.size()};
+      }
+   }
 }
 
-flat_tree&
-flat_tree::operator=(flat_tree other)
+// --- Operations in flat_buffer ---
+
+// Compute the new capacity upon reallocation. We always use powers of 2,
+// starting in 512, to prevent many small allocations
+inline std::size_t compute_capacity(std::size_t current, std::size_t requested)
 {
-    swap(*this, other);
-    return *this;
+   std::size_t res = (std::max)(current, static_cast<std::size_t>(512u));
+   while (res < requested)
+      res *= 2u;
+   return res;
+}
+
+// Copy construction
+inline flat_buffer copy_construct(const flat_buffer& other)
+{
+   flat_buffer res{{}, other.size, 0u, 0u};
+
+   if (other.size > 0u) {
+      const std::size_t capacity = compute_capacity(0u, other.size);
+      res.data.reset(new char[capacity]);
+      res.capacity = capacity;
+      res.reallocs = 1u;
+      std::copy(other.data.get(), other.data.get() + other.size, res.data.get());
+   }
+
+   return res;
+}
+
+// Copy assignment
+inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
+{
+   // Make space if required
+   if (buff.capacity < other.size) {
+      const std::size_t capacity = compute_capacity(buff.capacity, other.size);
+      buff.data.reset(new char[capacity]);
+      buff.capacity = capacity;
+      ++buff.reallocs;
+   }
+
+   // Copy the contents
+   std::copy(other.data.get(), other.data.get() + other.size, buff.data.get());
+   buff.size = other.size;
+}
+
+// Grows the buffer until reaching a target size.
+// Might rebase the strings in nodes
+inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
+{
+   if (new_capacity <= buff.capacity)
+      return;
+
+   // Compute the actual capacity that we will be using
+   new_capacity = compute_capacity(buff.capacity, new_capacity);
+
+   // Allocate space
+   std::unique_ptr<char[]> new_buffer{new char[new_capacity]};
+
+   // Copy any data into the newly allocated space
+   const char* data_before = buff.data.get();
+   char* data_after = new_buffer.get();
+   std::copy(data_before, data_before + buff.size, data_after);
+
+   // Update the string views so they don't dangle
+   rebase_strings(nodes, data_before, data_after);
+
+   // Replace the buffer. Note that size hasn't changed here
+   buff.data = std::move(new_buffer);
+   buff.capacity = new_capacity;
+   ++buff.reallocs;
+}
+
+// Appends a string to the buffer.
+// Might rebase the string in nodes, but doesn't append any new node.
+inline std::string_view append(flat_buffer& buff, std::string_view value, view_tree& nodes)
+{
+   // If there is nothing to copy, do nothing
+   if (value.empty())
+      return value;
+
+   // Make space for the new string
+   const std::size_t new_size = buff.size + value.size();
+   grow(buff, new_size, nodes);
+
+   // Copy the new value
+   const std::size_t offset = buff.size;
+   std::copy(value.data(), value.data() + value.size(), buff.data.get() + offset);
+   buff.size = new_size;
+   return {buff.data.get() + offset, value.size()};
+}
+
+}  // namespace detail
+
+flat_tree::flat_tree(flat_tree const& other)
+: data_{detail::copy_construct(other.data_)}
+, view_tree_{other.view_tree_}
+, total_msgs_{other.total_msgs_}
+{
+   detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
+}
+
+flat_tree& flat_tree::operator=(const flat_tree& other)
+{
+   if (this != &other) {
+      // Copy the data
+      detail::copy_assign(data_, other.data_);
+
+      // Copy the nodes
+      view_tree_ = other.view_tree_;
+      detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
+
+      // Copy the other fields
+      total_msgs_ = other.total_msgs_;
+   }
+
+   return *this;
 }
 
 void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
 {
-   data_.reserve(bytes);
+   // Space for the strings
+   detail::grow(data_, bytes, view_tree_);
+
+   // Space for the nodes
    view_tree_.reserve(nodes);
-   ranges_.reserve(nodes);
 }
 
-void flat_tree::clear()
+void flat_tree::clear() noexcept
 {
-   pos_ = 0u;
-   total_msgs_ = 0u;
-   reallocs_ = 0u;
-   data_.clear();
+   data_.size = 0u;
    view_tree_.clear();
-   ranges_.clear();
+   total_msgs_ = 0u;
 }
 
-void flat_tree::set_views()
+void flat_tree::push(node_view const& nd)
 {
-   BOOST_ASSERT_MSG(pos_ < view_tree_.size(), "notify_done called but no nodes added.");
-   BOOST_ASSERT_MSG(view_tree_.size() == ranges_.size(), "Incompatible sizes.");
+   // Add the string
+   const std::string_view str = detail::append(data_, nd.value, view_tree_);
 
-   for (; pos_ < view_tree_.size(); ++pos_) {
-      auto const& r = ranges_.at(pos_);
-      view_tree_.at(pos_).value = std::string_view{data_.data() + r.offset, r.size};
-   }
-}
-
-void flat_tree::notify_done()
-{
-   total_msgs_ += 1;
-   set_views();
-}
-
-void flat_tree::push(node_view const& node)
-{
-   auto data_before = data_.data();
-   add_node_impl(node);
-   auto data_after = data_.data();
-
-   if (data_after != data_before) {
-      pos_ = 0;
-      reallocs_ += 1;
-   }
-}
-
-void flat_tree::add_node_impl(node_view const& node)
-{
-   ranges_.push_back({data_.size(), node.value.size()});
-
-   // This must come after setting the offset above.
-   data_.insert(data_.end(), node.value.begin(), node.value.end());
-
-   view_tree_.push_back(node);
-}
-
-void swap(flat_tree& a, flat_tree& b)
-{
-   using std::swap;
-
-   swap(a.data_, b.data_);
-   swap(a.view_tree_, b.view_tree_);
-   swap(a.ranges_, b.ranges_);
-   swap(a.pos_, b.pos_);
-   swap(a.reallocs_, b.reallocs_);
-   swap(a.total_msgs_, b.total_msgs_);
-}
-
-bool
-operator==(
-   flat_tree::range const& a,
-   flat_tree::range const& b)
-{
-   return a.offset == b.offset && a.size == b.size;
+   // Add the node
+   view_tree_.push_back({
+      nd.data_type,
+      nd.aggregate_size,
+      nd.depth,
+      str,
+   });
 }
 
 bool operator==(flat_tree const& a, flat_tree const& b)
 {
-   return
-      a.data_       == b.data_ &&
-      a.view_tree_  == b.view_tree_ &&
-      a.ranges_     == b.ranges_ &&
-      a.pos_        == b.pos_ &&
-      //a.reallocs_   == b.reallocs_ &&
-      a.total_msgs_ == b.total_msgs_;
+   // data is already taken into account by comparing the nodes.
+   return a.view_tree_ == b.view_tree_ && a.total_msgs_ == b.total_msgs_;
 }
 
-bool operator!=(flat_tree const& a, flat_tree const& b)
-{
-   return !(a == b);
-}
-
-}  // namespace boost::redis
+}  // namespace boost::redis::resp3
