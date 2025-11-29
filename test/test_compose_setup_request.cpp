@@ -23,11 +23,9 @@ namespace redis = boost::redis;
 using redis::detail::compose_setup_request;
 using boost::system::error_code;
 
-// TODO: rename the file
-
 namespace {
 
-void test_compose_setup()
+void test_hello()
 {
    redis::config cfg;
    cfg.clientname = "";
@@ -41,7 +39,7 @@ void test_compose_setup()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_select()
+void test_select()
 {
    redis::config cfg;
    cfg.clientname = "";
@@ -58,7 +56,7 @@ void test_compose_setup_select()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_clientname()
+void test_clientname()
 {
    redis::config cfg;
 
@@ -72,7 +70,7 @@ void test_compose_setup_clientname()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_auth()
+void test_auth()
 {
    redis::config cfg;
    cfg.clientname = "";
@@ -89,7 +87,7 @@ void test_compose_setup_auth()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_auth_empty_password()
+void test_auth_empty_password()
 {
    redis::config cfg;
    cfg.clientname = "";
@@ -105,7 +103,7 @@ void test_compose_setup_auth_empty_password()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_auth_setname()
+void test_auth_setname()
 {
    redis::config cfg;
    cfg.clientname = "mytest";
@@ -123,7 +121,7 @@ void test_compose_setup_auth_setname()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_use_setup()
+void test_use_setup()
 {
    redis::config cfg;
    cfg.clientname = "mytest";
@@ -145,7 +143,7 @@ void test_compose_setup_use_setup()
 }
 
 // Regression check: we set the priority flag
-void test_compose_setup_use_setup_no_hello()
+void test_use_setup_no_hello()
 {
    redis::config cfg;
    cfg.use_setup = true;
@@ -162,7 +160,7 @@ void test_compose_setup_use_setup_no_hello()
 }
 
 // Regression check: we set the relevant cancellation flags in the request
-void test_compose_setup_use_setup_flags()
+void test_use_setup_flags()
 {
    redis::config cfg;
    cfg.use_setup = true;
@@ -182,7 +180,7 @@ void test_compose_setup_use_setup_flags()
 
 // When using Sentinel, a ROLE command is added. This works
 // both with the old HELLO and new setup strategies.
-void test_compose_setup_sentinel_auth()
+void test_sentinel_auth()
 {
    redis::config cfg;
    cfg.sentinel.addresses = {
@@ -203,7 +201,7 @@ void test_compose_setup_sentinel_auth()
    BOOST_TEST(cfg.setup.get_config().cancel_on_connection_lost);
 }
 
-void test_compose_setup_sentinel_use_setup()
+void test_sentinel_use_setup()
 {
    redis::config cfg;
    cfg.sentinel.addresses = {
@@ -228,17 +226,17 @@ void test_compose_setup_sentinel_use_setup()
 
 int main()
 {
-   test_compose_setup();
-   test_compose_setup_select();
-   test_compose_setup_clientname();
-   test_compose_setup_auth();
-   test_compose_setup_auth_empty_password();
-   test_compose_setup_auth_setname();
-   test_compose_setup_use_setup();
-   test_compose_setup_use_setup_no_hello();
-   test_compose_setup_use_setup_flags();
-   test_compose_setup_sentinel_auth();
-   test_compose_setup_sentinel_use_setup();
+   test_hello();
+   test_select();
+   test_clientname();
+   test_auth();
+   test_auth_empty_password();
+   test_auth_setname();
+   test_use_setup();
+   test_use_setup_no_hello();
+   test_use_setup_flags();
+   test_sentinel_auth();
+   test_sentinel_use_setup();
 
    return boost::report_errors();
 }
