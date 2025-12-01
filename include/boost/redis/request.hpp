@@ -10,7 +10,6 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
-#include <algorithm>
 #include <string>
 #include <tuple>
 
