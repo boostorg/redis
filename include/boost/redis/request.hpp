@@ -162,7 +162,7 @@ public:
     *  See cpp20_serialization.cpp
     *
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
-    *  @param args Command arguments.
+    *  @param args Command arguments. `args` is allowed to be empty.
     *  @tparam Ts Types of the command arguments.
     *
     */
@@ -198,6 +198,9 @@ public:
     *  @code
     *  HSET key key1 value1 key2 value2 key3 value3
     *  @endcode
+    *
+    *  *If the passed range is empty, no command is added* and this
+    *  function becomes a no-op.
     *
     *  The value type of the passed range should satisfy one of the following:
     *
@@ -267,6 +270,9 @@ public:
     *  SUBSCRIBE channel1 channel2 channel3
     *  @endcode
     *
+    *  *If the passed range is empty, no command is added* and this
+    *  function becomes a no-op.
+    *
     *  The value type of the passed range should satisfy one of the following:
     *
     *    @li The type is convertible to `std::string_view`. One argument is added
@@ -318,6 +324,9 @@ public:
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
     *
+    *  *If the passed range is empty, no command is added* and this
+    *  function becomes a no-op.
+    *
     *  The value type of the passed range should satisfy one of the following:
     *
     *    @li The type is convertible to `std::string_view`. One argument is added
@@ -356,6 +365,9 @@ public:
     *
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
+    *
+    *  *If the passed range is empty, no command is added* and this
+    *  function becomes a no-op.
     *
     *  The value type of the passed range should satisfy one of the following:
     *
