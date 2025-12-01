@@ -34,11 +34,9 @@ struct request_access;
  *
  *  @code
  *  request r;
- *  r.push("HELLO", 3);
- *  r.push("FLUSHALL");
- *  r.push("PING");
- *  r.push("PING", "key");
- *  r.push("QUIT");
+ *  r.push("SET", "k1", "some_value");
+ *  r.push("SET", "k2", "other_value");
+ *  r.push("GET", "k3");
  *  @endcode
  *
  *  Uses a `std::string` for internal storage.
@@ -146,14 +144,14 @@ public:
     *
     *  @code
     *  request req;
-    *  req.push("SET", "key", "some string", "EX", "2");
+    *  req.push("SET", "key", "some string", "EX", 2);
     *  @endcode
     *
     *  This will add a `SET` command with value `"some string"` and an
     *  expiration of 2 seconds.
     *
-    *  Command arguments should either be convertible to `std::string_view`
-    *  or support the `boost_redis_to_bulk` function.
+    *  Command arguments should either be convertible to `std::string_view`,
+    *  integral types, or support the `boost_redis_to_bulk` function.
     *  This function is a customization point that must be made available
     *  using ADL and must have the following signature:
     *
@@ -165,7 +163,7 @@ public:
     *  See cpp20_serialization.cpp
     *
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
-    *  @param args Command arguments. Non-string types will be converted to string by calling `boost_redis_to_bulk` on each argument.
+    *  @param args Command arguments.
     *  @tparam Ts Types of the command arguments.
     *
     */
@@ -196,21 +194,33 @@ public:
     *  req.push_range("HSET", "key", map.cbegin(), map.cend());
     *  @endcode
     *
-    *  Command arguments should either be convertible to `std::string_view`
-    *  or support the `boost_redis_to_bulk` function.
-    *  This function is a customization point that must be made available
-    *  using ADL and must have the following signature:
+    *  This will generate the following command:
     *
     *  @code
-    *  void boost_redis_to_bulk(std::string& to, T const& t);
+    *  HSET key key1 value1 key2 value2 key3 value3
     *  @endcode
-    *  
+    *
+    *  The value type of the passed range should satisfy one of the following:
+    *
+    *    @li The type is convertible to `std::string_view`. One argument is added
+    *        per element in the range.
+    *    @li The type is an integral type. One argument is added
+    *        per element in the range.
+    *    @li The type supports the `boost_redis_to_bulk` function. One argument is added
+    *        per element in the range. This function is a customization point that must be made available
+    *        using ADL and must have the signature `void boost_redis_to_bulk(std::string& to, T const& t);`.
+    *    @li The type is a `std::pair` instantiation, with both arguments supporting one of
+    *        the points above. Two arguments are added per element in the range.
+    *        Nested pairs are not allowed.
+    *    @li The type is a `std::tuple` instantiation, with every argument supporting
+    *        one of the points above. N arguments are added per element in the range,
+    *        with N being the tuple size. Nested tuples are not allowed. 
+    *        
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
     *  @param key The command key. It will be added as the first argument to the command.
     *  @param begin Iterator to the begin of the range.
     *  @param end Iterator to the end of the range.
-    *  @tparam ForwardIterator A forward iterator with an element type that is convertible to `std::string_view`
-    *          or supports `boost_redis_to_bulk`.
+    *  @tparam ForwardIterator A forward iterator with an element type that supports one of the points above.
     *
     *  See cpp20_serialization.cpp
     */
@@ -249,23 +259,35 @@ public:
     *     { "channel1" , "channel2" , "channel3" };
     *
     *  request req;
-    *  req.push("SUBSCRIBE", std::cbegin(channels), std::cend(channels));
+    *  req.push("SUBSCRIBE", channels.cbegin(), channels.cend());
     *  @endcode
     *
-    *  Command arguments should either be convertible to `std::string_view`
-    *  or support the `boost_redis_to_bulk` function.
-    *  This function is a customization point that must be made available
-    *  using ADL and must have the following signature:
+    *  This will generate the following command:
     *
     *  @code
-    *  void boost_redis_to_bulk(std::string& to, T const& t);
+    *  SUBSCRIBE channel1 channel2 channel3
     *  @endcode
+    *
+    *  The value type of the passed range should satisfy one of the following:
+    *
+    *    @li The type is convertible to `std::string_view`. One argument is added
+    *        per element in the range.
+    *    @li The type is an integral type. One argument is added
+    *        per element in the range.
+    *    @li The type supports the `boost_redis_to_bulk` function. One argument is added
+    *        per element in the range. This function is a customization point that must be made available
+    *        using ADL and must have the signature `void boost_redis_to_bulk(std::string& to, T const& t);`.
+    *    @li The type is a `std::pair` instantiation, with both arguments supporting one of
+    *        the points above. Two arguments are added per element in the range.
+    *        Nested pairs are not allowed.
+    *    @li The type is a `std::tuple` instantiation, with every argument supporting
+    *        one of the points above. N arguments are added per element in the range,
+    *        with N being the tuple size. Nested tuples are not allowed.
     *  
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
     *  @param begin Iterator to the begin of the range.
     *  @param end Iterator to the end of the range.
-    *  @tparam ForwardIterator A forward iterator with an element type that is convertible to `std::string_view`
-    *          or supports `boost_redis_to_bulk`.
+    *  @tparam ForwardIterator A forward iterator with an element type that supports one of the points above.
     *
     *  See cpp20_serialization.cpp
     */
@@ -296,13 +318,28 @@ public:
     *  
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
+    *
+    *  The value type of the passed range should satisfy one of the following:
+    *
+    *    @li The type is convertible to `std::string_view`. One argument is added
+    *        per element in the range.
+    *    @li The type is an integral type. One argument is added
+    *        per element in the range.
+    *    @li The type supports the `boost_redis_to_bulk` function. One argument is added
+    *        per element in the range. This function is a customization point that must be made available
+    *        using ADL and must have the signature `void boost_redis_to_bulk(std::string& to, T const& t);`.
+    *    @li The type is a `std::pair` instantiation, with both arguments supporting one of
+    *        the points above. Two arguments are added per element in the range.
+    *        Nested pairs are not allowed.
+    *    @li The type is a `std::tuple` instantiation, with every argument supporting
+    *        one of the points above. N arguments are added per element in the range,
+    *        with N being the tuple size. Nested tuples are not allowed.
     *  
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
     *  @param key The command key. It will be added as the first argument to the command.
     *  @param range Range containing the command arguments.
     *  @tparam Range A type that can be passed to `std::begin()` and `std::end()` to obtain
-    *          iterators. The range elements should be convertible to `std::string_view`
-    *          or support `boost_redis_to_bulk`.
+    *          iterators.
     */
    template <class Range>
    void push_range(
@@ -320,12 +357,27 @@ public:
     *
     *  Equivalent to the overload taking a range of begin and end
     *  iterators.
+    *
+    *  The value type of the passed range should satisfy one of the following:
+    *
+    *    @li The type is convertible to `std::string_view`. One argument is added
+    *        per element in the range.
+    *    @li The type is an integral type. One argument is added
+    *        per element in the range.
+    *    @li The type supports the `boost_redis_to_bulk` function. One argument is added
+    *        per element in the range. This function is a customization point that must be made available
+    *        using ADL and must have the signature `void boost_redis_to_bulk(std::string& to, T const& t);`.
+    *    @li The type is a `std::pair` instantiation, with both arguments supporting one of
+    *        the points above. Two arguments are added per element in the range.
+    *        Nested pairs are not allowed.
+    *    @li The type is a `std::tuple` instantiation, with every argument supporting
+    *        one of the points above. N arguments are added per element in the range,
+    *        with N being the tuple size. Nested tuples are not allowed.
     *  
     *  @param cmd The command to execute. It should be a redis or sentinel command, like `"SET"`.
     *  @param range Range containing the command arguments.
     *  @tparam Range A type that can be passed to `std::begin()` and `std::end()` to obtain
-    *          iterators. The range elements should be convertible to `std::string_view`
-    *          or support `boost_redis_to_bulk`.
+    *          iterators.
     */
    template <class Range>
    void push_range(
