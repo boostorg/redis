@@ -9,6 +9,8 @@
 
 #include <boost/redis/resp3/type.hpp>
 
+#include <cstddef>
+#include <string>
 #include <string_view>
 
 namespace boost::redis::resp3 {
