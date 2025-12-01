@@ -9,6 +9,7 @@
 
 #include <boost/assert.hpp>
 
+#include <cstddef>
 #include <iosfwd>
 
 namespace boost::redis::resp3 {
