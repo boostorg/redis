@@ -178,6 +178,16 @@ void test_success()
          { type::big_number, 1u, 0u, "0" },
       } },
 
+      // Bulk errors
+      { "bulk_error", "!21\r\nSYNTAX invalid syntax\r\n", {
+         { type::blob_error, 1u, 0u, "SYNTAX invalid syntax" },
+      } },
+      { "bulk_error_newlines", "!23\r\nSYNTAX\r\ninvalid\r\nsyntax\r\n", {
+         { type::blob_error, 1u, 0u, "SYNTAX\r\ninvalid\r\nsyntax" },
+      } },
+      { "bulk_error_empty", "!0\r\n\r\n", {
+         { type::blob_error, 1u, 0u, "" },
+      } },
 
       // Arrays
       { "array_1elm", "*1\r\n:11\r\n", {
