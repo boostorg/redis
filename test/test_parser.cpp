@@ -50,12 +50,6 @@ namespace {
 #define S04h "*0\r\n"
 #define S04i "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n"
 
-#define S05a ":-3\r\n"
-#define S05b ":11\r\n"
-#define s05c ":3\r\n"
-#define S05d ":adf\r\n"
-#define S05e ":\r\n"
-
 #define S06a "_\r\n"
 
 #define S07a ">4\r\n+pubsub\r\n+message\r\n+some-channel\r\n+some message\r\n"
@@ -113,6 +107,28 @@ void test_success()
       } },
       { "simple_error_empty", "-\r\n", {
          { type::simple_error, 1u, 0u, "" },
+      } },
+
+      // Integer
+      { "integer", ":11\r\n", {
+         { type::number, 1u, 0u, "11" },
+      } },
+      { "integer_negative", ":-3\r\n", {
+         { type::number, 1u, 0u, "-3" },
+      } },
+      { "integer_zero", ":0\r\n", {
+         { type::number, 1u, 0u, "0" },
+      } },
+
+      // Bulk strings
+      { "bulk_string", "$2\r\nhh\r\n", {
+         { type::blob_string, 1u, 0u, "hh" },
+      } },
+      { "bulk_string_newlines", "$26\r\nhhaa\aaaa\raaaaa\r\naaaaaaaaaa\r\n", {
+         { type::blob_string, 1u, 0u, "hhaa\aaaa\raaaaa\r\naaaaaaaaaa" },
+      } },
+      { "bulk_string_empty", "$0\r\n\r\n", {
+         { type::blob_string, 1u, 0u, "" },
       } },
 
       // Boolean
