@@ -139,6 +139,12 @@ void test_success()
          { type::boolean, 1u, 0u, "t" },
       } },
 
+      // Null
+      { "null", "_\r\n", {
+         { type::null, 1u, 0u, "" },
+      } },
+
+
       // Arrays
       { "array_1elm", "*1\r\n:11\r\n", {
          { type::array, 1u, 0u, "" },
