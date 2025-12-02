@@ -70,6 +70,7 @@ local tests =
     test_parse_sentinel_response
     test_update_sentinel_list
     test_flat_tree
+    test_read_buffer
 ;
 
 # Build and run the tests
