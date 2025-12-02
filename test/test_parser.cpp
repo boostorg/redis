@@ -28,11 +28,6 @@ using resp3::type;
 
 namespace {
 
-#define S01a "#11\r\n"
-#define S01b "#f\r\n"
-#define S01c "#t\r\n"
-#define S01d "#\r\n"
-
 #define S02a "$?\r\n;0\r\n"
 #define S02b "$?\r\n;4\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
 #define S02c "$?\r\n;b\r\nHell\r\n;5\r\no wor\r\n;1\r\nd\r\n;0\r\n"
@@ -92,9 +87,6 @@ namespace {
 #define S14a "(3492890328409238509324850943850943825024385\r\n"
 #define S14b "(\r\n"
 
-#define S15a "+OK\r\n"
-#define S15b "+\r\n"
-
 #define S16a "s11\r\n"
 
 #define S17a "$l\r\nhh\r\n"
@@ -110,12 +102,20 @@ void test_success()
       std::vector<resp3::node_view> expected;
    } test_cases[] = {
       // clang-format off
+      { "simple_string", "+OK\r\n", {
+         { type::simple_string, 1u, 0u, "OK" },
+      } },
+      { "simple_string_empty", "+\r\n", {
+         { type::simple_string, 1u, 0u, "" },
+      } },
+
       { "boolean_false", "#f\r\n", {
          { type::boolean, 1u, 0u, "f" },
       } },
       { "boolean_true", "#t\r\n", {
          { type::boolean, 1u, 0u, "t" },
       } },
+
       // clang-format on
    };
 
