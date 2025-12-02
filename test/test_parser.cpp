@@ -67,9 +67,6 @@ namespace {
 #define S09a "~6\r\n+orange\r\n+apple\r\n+one\r\n+two\r\n+three\r\n+orange\r\n"
 #define S09b "~0\r\n"
 
-#define S10a "-Error\r\n"
-#define S10b "-\r\n"
-
 #define S11a ",1.23\r\n"
 #define S11b ",inf\r\n"
 #define S11c ",-inf\r\n"
@@ -102,6 +99,7 @@ void test_success()
       std::vector<resp3::node_view> expected;
    } test_cases[] = {
       // clang-format off
+      // Simple string
       { "simple_string", "+OK\r\n", {
          { type::simple_string, 1u, 0u, "OK" },
       } },
@@ -109,6 +107,15 @@ void test_success()
          { type::simple_string, 1u, 0u, "" },
       } },
 
+      // Simple error
+      { "simple_error", "-Error\r\n", {
+         { type::simple_error, 1u, 0u, "Error" },
+      } },
+      { "simple_error_empty", "-\r\n", {
+         { type::simple_error, 1u, 0u, "" },
+      } },
+
+      // Boolean
       { "boolean_false", "#f\r\n", {
          { type::boolean, 1u, 0u, "f" },
       } },
