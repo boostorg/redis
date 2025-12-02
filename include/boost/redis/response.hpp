@@ -8,15 +8,13 @@
 #define BOOST_REDIS_RESPONSE_HPP
 
 #include <boost/redis/adapter/result.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
-#include <boost/redis/resp3/flat_tree.hpp>
 
 #include <boost/system/error_code.hpp>
 
-#include <string>
 #include <tuple>
-#include <vector>
 
 namespace boost::redis {
 
@@ -75,7 +73,7 @@ using generic_flat_response = adapter::result<resp3::flat_tree>;
  * @param r The response to modify.
  * @param ec Will be populated in case of error.
  */
-//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
+BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r, system::error_code& ec);
 
 /**
@@ -83,7 +81,7 @@ void consume_one(generic_response& r, system::error_code& ec);
  *
  * @param r The response to modify.
  */
-//BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
+BOOST_DEPRECATED("This function is not needed anymore to consume server pushes.")
 void consume_one(generic_response& r);
 
 }  // namespace boost::redis
