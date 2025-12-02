@@ -109,7 +109,7 @@ void test_success()
          { type::simple_error, 1u, 0u, "" },
       } },
 
-      // Integer
+      // Integer. Not parsed at this point
       { "integer", ":11\r\n", {
          { type::number, 1u, 0u, "11" },
       } },
@@ -144,6 +144,31 @@ void test_success()
          { type::null, 1u, 0u, "" },
       } },
 
+      // Double. Not parsed at this point
+      { "double", ",10.5\r\n", {
+         { type::doublean, 1u, 0u, "10.5" },
+      } },
+      { "double_negative", ",-10.5\r\n", {
+         { type::doublean, 1u, 0u, "-10.5" },
+      } },
+      { "double_exp", ",1.5e42\r\n", {
+         { type::doublean, 1u, 0u, "1.5e42" },
+      } },
+      { "double_exp_capital", ",1.5E42\r\n", {
+         { type::doublean, 1u, 0u, "1.5E42" },
+      } },
+      { "double_exp_negative", ",1.5e-42\r\n", {
+         { type::doublean, 1u, 0u, "1.5e-42" },
+      } },
+      { "double_inf", ",inf\r\n", {
+         { type::doublean, 1u, 0u, "inf" },
+      } },
+      { "double_inf_negative", ",-inf\r\n", {
+         { type::doublean, 1u, 0u, "-inf" },
+      } },
+      { "double_nan", ",nan\r\n", {
+         { type::doublean, 1u, 0u, "nan" },
+      } },
 
       // Arrays
       { "array_1elm", "*1\r\n:11\r\n", {
