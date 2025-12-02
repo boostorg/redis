@@ -139,6 +139,61 @@ void test_success()
          { type::boolean, 1u, 0u, "t" },
       } },
 
+      // Arrays
+      { "array_1elm", "*1\r\n:11\r\n", {
+         { type::array, 1u, 0u, "" },
+         { type::number, 1u, 1u, "11" },
+      } },
+      { "array_3elm", "*3\r\n$2\r\n11\r\n$2\r\n22\r\n$1\r\n3\r\n", {
+         { type::array, 3u, 0u, "" },
+         { type::blob_string, 1u, 1u, "11" },
+         { type::blob_string, 1u, 1u, "22" },
+         { type::blob_string, 1u, 1u, "3" },
+      } },
+      { "array_empty", "*0\r\n", {
+         { type::array, 0u, 0u, "" },
+      } },
+      { "array_nested", "*1\r\n*1\r\n$2\r\nab\r\n", {
+         { type::array, 1u, 0u, "" },
+         { type::array, 1u, 1u, "" },
+         { type::blob_string, 1u, 2u, "ab" },
+      } },
+      { "array_nested_different_types_sizes", "*2\r\n+hello\r\n*3\r\n-ERR\r\n%1\r\n+name\r\n+OK\r\n*2\r\n+good\r\n_\r\n", {
+         { type::array, 2u, 0u, "" },
+         { type::simple_string, 1u, 1u, "hello" },
+         { type::array, 3u, 1u, "" },
+         { type::simple_error, 1u, 2u, "ERR" },
+         { type::map, 1u, 2u, "" },
+         { type::simple_string, 1u, 3u, "name" },
+         { type::simple_string, 1u, 3u, "OK" },
+         { type::array, 2u, 2u, "" },
+         { type::simple_string, 1u, 3u, "good" },
+         { type::null, 1u, 3u, "" },
+      } },
+      { "array_nested_max", "*1\r\n*1\r\n*1\r\n*1\r\n*1\r\n+OK\r\n", {
+         { type::array, 1u, 0u, "" },
+         { type::array, 1u, 1u, "" },
+         { type::array, 1u, 2u, "" },
+         { type::array, 1u, 3u, "" },
+         { type::array, 1u, 4u, "" },
+         { type::simple_string, 1u, 5u, "OK" },
+      } },
+      { "array_nested_map", "*1\r\n%2\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n", {
+         { type::array, 1u, 0u, "" },
+         { type::map, 2u, 1u, "" },
+         { type::blob_string, 1u, 2u, "key1" },
+         { type::blob_string, 1u, 2u, "value1" },
+         { type::blob_string, 1u, 2u, "key2" },
+         { type::blob_string, 1u, 2u, "value2" },
+      } },
+      { "array_nested_set", "*1\r\n~3\r\n+orange\r\n+apple\r\n+orange\r\n", {
+         { type::array, 1u, 0u, "" },
+         { type::set, 3u, 1u, "" },
+         { type::simple_string, 1u, 2u, "orange" },
+         { type::simple_string, 1u, 2u, "apple" },
+         { type::simple_string, 1u, 2u, "orange" },
+      } },
+
       // clang-format on
    };
 
