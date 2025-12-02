@@ -189,6 +189,20 @@ void test_success()
          { type::blob_error, 1u, 0u, "" },
       } },
 
+      // Verbatim strings
+      { "verbatim_string", "=15\r\ntxt:Some string\r\n", {
+         { type::verbatim_string, 1u, 0u, "txt:Some string" },
+      } },
+      { "verbatim_string_newlines", "=16\r\nt\r\n:Some\r\nstring\r\n", {
+         { type::verbatim_string, 1u, 0u, "t\r\n:Some\r\nstring" },
+      } },
+      { "verbatim_string_only_encoding", "=4\r\ntxt:\r\n", {
+         { type::verbatim_string, 1u, 0u, "txt:" },
+      } },
+      { "verbatim_string_empty", "=0\r\n\r\n", {
+         { type::verbatim_string, 1u, 0u, "" },
+      } },
+
       // Arrays
       { "array_1elm", "*1\r\n:11\r\n", {
          { type::array, 1u, 0u, "" },
