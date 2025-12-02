@@ -170,6 +170,15 @@ void test_success()
          { type::doublean, 1u, 0u, "nan" },
       } },
 
+      // Big numbers
+      { "big_number", "(3492890328409238509324850943850943825024385\r\n", {
+         { type::big_number, 1u, 0u, "3492890328409238509324850943850943825024385" },
+      } },
+      { "big_number_zero", "(0\r\n", {
+         { type::big_number, 1u, 0u, "0" },
+      } },
+
+
       // Arrays
       { "array_1elm", "*1\r\n:11\r\n", {
          { type::array, 1u, 0u, "" },
