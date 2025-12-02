@@ -5,6 +5,8 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/pubsub_response.hpp>
+#include <boost/redis/resp3/node.hpp>
 
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -13,8 +15,12 @@
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/describe/class.hpp>
+#include <boost/json/parse.hpp>
+#include <boost/json/value_to.hpp>
 
 #include <iostream>
+#include <vector>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
@@ -25,6 +31,7 @@ using boost::redis::generic_flat_response;
 using boost::redis::config;
 using boost::system::error_code;
 using boost::redis::connection;
+using boost::redis::pubsub_message;
 using asio::signal_set;
 
 /* This example will subscribe and read pushes indefinitely.
@@ -43,13 +50,31 @@ using asio::signal_set;
  * > CLIENT kill TYPE pubsub
  */
 
+// Struct that will be stored in Redis using json serialization.
+struct user {
+   std::string name;
+   std::string age;
+   std::string country;
+};
+
+// The type must be described for serialization to work.
+BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
+
+void boost_redis_from_bulk(
+   user& u,
+   boost::redis::resp3::node_view const& node,
+   boost::system::error_code&)
+{
+   u = boost::json::value_to<user>(boost::json::parse(node.value));
+}
+
 // Receives server pushes.
 auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 {
    request req;
    req.push("SUBSCRIBE", "channel");
 
-   generic_flat_response resp;
+   std::vector<pubsub_message<user>> resp;
    conn->set_receive_response(resp);
 
    // Loop while reconnection is enabled
@@ -66,12 +91,13 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
          // The response must be consumed without suspending the
          // coroutine i.e. without the use of async operations.
-         for (auto const& elem: resp.value().get_view())
-            std::cout << elem.value << "\n";
+         for (auto const& elem : resp)
+            std::cout << elem.channel << ": age=" << elem.payload.age
+                      << ", name=" << elem.payload.name << "\n";
 
          std::cout << std::endl;
 
-         resp.value().clear();
+         resp.clear();
       }
    }
 }

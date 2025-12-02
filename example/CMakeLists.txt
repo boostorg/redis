@@ -10,9 +10,10 @@ macro(make_example EXAMPLE_NAME STANDARD)
   if (${STANDARD} STREQUAL "20")
     target_link_libraries(${EXAMPLE_NAME} PRIVATE examples_main)
   endif()
-  if (${EXAMPLE_NAME} STREQUAL "cpp20_json")
+  # TODO: this
+  # if (${EXAMPLE_NAME} STREQUAL "cpp20_json")
     target_link_libraries(${EXAMPLE_NAME} PRIVATE Boost::json Boost::container_hash)
-  endif()
+  # endif()
 endmacro()
 
 macro(make_testable_example EXAMPLE_NAME STANDARD)
