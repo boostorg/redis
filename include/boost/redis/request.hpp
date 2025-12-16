@@ -10,8 +10,10 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
+#include <cstddef>
 #include <string>
 #include <tuple>
+#include <vector>
 
 // NOTE: For some commands like hset it would be a good idea to assert
 // the value type is a pair.
@@ -19,8 +21,24 @@
 namespace boost::redis {
 
 namespace detail {
+
 auto has_response(std::string_view cmd) -> bool;
 struct request_access;
+
+enum class pubsub_change_type
+{
+   subscribe,
+   unsubscribe,
+   psubscribe,
+   punsubscribe,
+};
+
+struct pubsub_change {
+   pubsub_change_type type;
+   std::size_t channel_offset;
+   std::size_t channel_size;
+};
+
 }  // namespace detail
 
 /** @brief Represents a Redis request.
@@ -89,13 +107,16 @@ public:
        * This field will be removed in subsequent releases.
        */
       bool hello_with_priority = true;
+
+      // TODO: document
+      bool pubsub_state_restoration = false;
    };
 
    /** @brief Constructor
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, false, true, true})
+   explicit request(config cfg = config{false, false, true, true, false})
    : cfg_{cfg}
    { }
 
@@ -429,6 +450,7 @@ private:
    std::size_t commands_ = 0;
    std::size_t expected_responses_ = 0;
    bool has_hello_priority_ = false;
+   std::vector<detail::pubsub_change> pubsub_changes_{};
 
    friend struct detail::request_access;
 };
@@ -438,6 +460,10 @@ namespace detail {
 struct request_access {
    inline static void set_priority(request& r, bool value) { r.has_hello_priority_ = value; }
    inline static bool has_priority(const request& r) { return r.has_hello_priority_; }
+   inline static const std::vector<detail::pubsub_change>& pubsub_changes(const request& r)
+   {
+      return r.pubsub_changes_;
+   }
 };
 
 // Creates a HELLO 3 request

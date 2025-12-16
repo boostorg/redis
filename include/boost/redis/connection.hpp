@@ -1059,7 +1059,6 @@ private:
       void operator()(Handler&& handler, config const* cfg)
       {
          self->st_.cfg = *cfg;
-         self->st_.mpx.set_config(*cfg);
 
          // If the token's slot has cancellation enabled, it should just emit
          // the cancellation signal in our connection. This lets us unify the cancel()

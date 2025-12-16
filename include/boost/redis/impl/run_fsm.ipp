@@ -101,10 +101,11 @@ run_action run_fsm::resume(
          return stored_ec_;
       }
 
-      // Compose the setup request. This only depends on the config, so it can be done just once
-      compose_setup_request(st.cfg);
+      // Setup the multiplexer
+      st.mpx.set_config(st.cfg);
+      st.mpx.clear_pubsub_state();
 
-      // Compose the PING request. Same as above
+      // Compose the PING request. This only depends on the config, so it can be done just once
       compose_ping_request(st.cfg, st.ping_req);
 
       if (use_sentinel(st.cfg)) {
@@ -159,10 +160,11 @@ run_action run_fsm::resume(
          // Initialization
          st.mpx.reset();
          st.diagnostic.clear();
+         compose_setup_request(st.cfg, st.mpx.get_pubsub_state(), st.setup_req);
 
          // Add the setup request to the multiplexer
-         if (st.cfg.setup.get_commands() != 0u) {
-            auto elm = make_elem(st.cfg.setup, make_any_adapter_impl(setup_adapter{st}));
+         if (st.setup_req.get_commands() != 0u) {
+            auto elm = make_elem(st.setup_req, make_any_adapter_impl(setup_adapter{st}));
             elm->set_done_callback([&elem_ref = *elm, &st] {
                on_setup_done(elem_ref, st);
             });

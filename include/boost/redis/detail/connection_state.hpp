@@ -47,6 +47,7 @@ struct connection_state {
    config cfg{};
    multiplexer mpx{};
    std::string diagnostic{};  // Used by the setup request and Sentinel
+   request setup_req{};
    request ping_req{};
 
    // Sentinel stuff
