@@ -9,6 +9,8 @@
 #ifndef BOOST_REDIS_PUBSUB_STATE_HPP
 #define BOOST_REDIS_PUBSUB_STATE_HPP
 
+#include <set>
+#include <string>
 #include <string_view>
 
 namespace boost::redis {
@@ -20,6 +22,9 @@ namespace detail {
 enum class pubsub_change_type;
 
 class pubsub_state {
+   std::set<std::string> channels_;
+   std::set<std::string> pchannels_;
+
 public:
    pubsub_state() = default;
    void clear();
