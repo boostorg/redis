@@ -38,6 +38,10 @@ request make_hello_request()
 void boost::redis::request::append(const request& other)
 {
    payload_ += other.payload_;
+   pubsub_changes_.insert(
+      pubsub_changes_.end(),
+      other.pubsub_changes_.begin(),
+      other.pubsub_changes_.end());
    commands_ += other.commands_;
    expected_responses_ += other.expected_responses_;
 }

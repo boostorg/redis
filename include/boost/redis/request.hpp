@@ -131,6 +131,7 @@ public:
    void clear()
    {
       payload_.clear();
+      pubsub_changes_.clear();
       commands_ = 0;
       expected_responses_ = 0;
       has_hello_priority_ = false;
