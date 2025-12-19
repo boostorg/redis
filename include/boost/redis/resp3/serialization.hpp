@@ -37,6 +37,8 @@ struct pubsub_change {
    std::size_t channel_size;
 };
 
+struct command_context_access;
+
 }  // namespace boost::redis::detail
 
 namespace boost::redis {
@@ -45,6 +47,8 @@ class command_context {
    detail::pubsub_change_type cmd_change_;
    std::vector<detail::pubsub_change>* changes_;
    std::string* payload_;
+
+   friend struct detail::command_context_access;
 
 public:
    // TODO: hide
@@ -100,7 +104,13 @@ void boost_redis_to_bulk(std::string& payload, T n)
    boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
 }
 
-namespace detail {
+void add_header(std::string& payload, type t, std::size_t size);
+void add_blob(std::string& payload, std::string_view blob);
+void add_separator(std::string& payload);
+
+}  // namespace boost::redis::resp3
+
+namespace boost::redis::detail {
 
 template <class T, class = void>
 struct has_to_bulk_v1 : std::false_type { };
@@ -129,8 +139,6 @@ void add_scalar_argument(command_context ctx, T const& value)
    }
 }
 
-}  // namespace detail
-
 template <class T>
 void add_argument(command_context ctx, T const& data)
 {
@@ -154,8 +162,6 @@ void add_argument(command_context ctx, std::pair<U, V> const& from)
    detail::add_scalar_argument(ctx, from.second);
 }
 
-void add_header(std::string& payload, type t, std::size_t size);
-
 template <class>
 struct bulk_counter;
 
@@ -174,10 +180,10 @@ struct bulk_counter<std::tuple<T...>> {
    static constexpr auto size = sizeof...(T);
 };
 
-void add_blob(std::string& payload, std::string_view blob);
-void add_separator(std::string& payload);
+}  // namespace boost::redis::detail
 
-namespace detail {
+// TODO: this belongs to tests
+namespace boost::redis::resp3::detail {
 
 template <class Adapter>
 void deserialize(std::string_view const& data, Adapter adapter, system::error_code& ec)
@@ -212,8 +218,6 @@ void deserialize(std::string_view const& data, Adapter adapter)
       BOOST_THROW_EXCEPTION(system::system_error{ec});
 }
 
-}  // namespace detail
-
-}  // namespace boost::redis::resp3
+}  // namespace boost::redis::resp3::detail
 
 #endif  // BOOST_REDIS_RESP3_SERIALIZATION_HPP

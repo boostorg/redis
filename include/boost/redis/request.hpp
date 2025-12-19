@@ -180,7 +180,7 @@ public:
    {
       auto constexpr pack_size = sizeof...(Ts);
       auto ctx = start_command(cmd, pack_size);
-      resp3::add_argument(ctx, std::tie(std::forward<Ts const&>(args)...));
+      detail::add_argument(ctx, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
    }
@@ -247,13 +247,13 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = resp3::bulk_counter<value_type>::size;
+      auto constexpr size = detail::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       auto ctx = start_command(cmd, 1 + size * distance);
-      resp3::add_argument(ctx, key);
+      detail::add_argument(ctx, key);
 
       for (; begin != end; ++begin)
-         resp3::add_argument(ctx, *begin);
+         detail::add_argument(ctx, *begin);
 
       check_cmd(cmd);
    }
@@ -315,12 +315,12 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = resp3::bulk_counter<value_type>::size;
+      auto constexpr size = detail::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
       auto ctx = start_command(cmd, size * distance);
 
       for (; begin != end; ++begin)
-         resp3::add_argument(ctx, *begin);
+         detail::add_argument(ctx, *begin);
 
       check_cmd(cmd);
    }
