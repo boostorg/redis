@@ -69,7 +69,7 @@ public:
 
 namespace boost::redis::resp3 {
 
-/** @brief Adds a bulk to the request.
+/** @brief (Deprecated: use the new extension point, instead) Adds a bulk to the request.
  *  @relates boost::redis::request
  *
  *  This function is useful in serialization of your own data
@@ -89,6 +89,7 @@ namespace boost::redis::resp3 {
  *
  *  @param payload Storage on which data will be copied into.
  *  @param data Data that will be serialized and stored in `payload`.
+ * TODO: mark this as deprecated
  */
 void boost_redis_to_bulk(std::string& payload, std::string_view data);
 
@@ -97,6 +98,12 @@ void boost_redis_to_bulk(std::string& payload, T n)
 {
    auto const s = std::to_string(n);
    boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
+}
+
+// Use this new extension point, instead
+inline void boost_redis_to_bulk(command_context ctx, std::string_view data)
+{
+   ctx.add_argument(data);
 }
 
 void add_header(std::string& payload, type t, std::size_t size);
