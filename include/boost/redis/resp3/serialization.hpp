@@ -61,6 +61,9 @@ public:
 
    // TODO: hide
    std::string& payload() { return *payload_; }
+
+   // TODO: hide
+   void parse_last_argument(std::size_t offset);
 };
 
 /** @brief Adds a bulk to the request.
@@ -113,7 +116,9 @@ void add_scalar_argument(command_context ctx, T const& value)
       ctx.add_argument(std::to_string(value));
    } else if constexpr (detail::has_to_bulk_v1<T>::value) {
       using namespace boost::redis::resp3;
-      boost_redis_to_bulk(ctx.payload(), value);  // TODO: this bypasses things
+      auto offset = ctx.payload().size();
+      boost_redis_to_bulk(ctx.payload(), value);
+      ctx.parse_last_argument(offset);
    } else {
       using namespace boost::redis::resp3;
       boost_redis_to_bulk(ctx, value);
