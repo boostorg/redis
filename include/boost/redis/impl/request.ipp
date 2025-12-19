@@ -53,16 +53,14 @@ boost::redis::command_context boost::redis::request::start_command(
    // Determine the pubsub change type that this command is performing
    // TODO: this has overlap with has_response
    auto change_type = detail::pubsub_change_type::none;
-   if (cfg_.pubsub_state_restoration) {
-      if (cmd == "SUBSCRIBE")
-         change_type = detail::pubsub_change_type::subscribe;
-      if (cmd == "PSUBSCRIBE")
-         change_type = detail::pubsub_change_type::psubscribe;
-      if (cmd == "UNSUBSCRIBE")
-         change_type = detail::pubsub_change_type::unsubscribe;
-      if (cmd == "PUNSUBSCRIBE")
-         change_type = detail::pubsub_change_type::punsubscribe;
-   }
+   if (cmd == "SUBSCRIBE")
+      change_type = detail::pubsub_change_type::subscribe;
+   if (cmd == "PSUBSCRIBE")
+      change_type = detail::pubsub_change_type::psubscribe;
+   if (cmd == "UNSUBSCRIBE")
+      change_type = detail::pubsub_change_type::unsubscribe;
+   if (cmd == "PUNSUBSCRIBE")
+      change_type = detail::pubsub_change_type::punsubscribe;
 
    // Add the header
    resp3::add_header(

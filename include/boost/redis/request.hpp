@@ -94,16 +94,13 @@ public:
        * This field will be removed in subsequent releases.
        */
       bool hello_with_priority = true;
-
-      // TODO: document
-      bool pubsub_state_restoration = false;
    };
 
    /** @brief Constructor
     *  
     *  @param cfg Configuration options.
     */
-   explicit request(config cfg = config{false, false, true, true, false})
+   explicit request(config cfg = config{false, false, true, true})
    : cfg_{cfg}
    { }
 

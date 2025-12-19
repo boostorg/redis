@@ -32,7 +32,6 @@ inline void compose_setup_request(const config& cfg, const pubsub_state& pubsub_
    request_access::set_priority(req, true);
    req.get_config().cancel_if_unresponded = true;
    req.get_config().cancel_on_connection_lost = true;
-   req.get_config().pubsub_state_restoration = false;
 
    if (cfg.use_setup) {
       // We should use the provided request as-is

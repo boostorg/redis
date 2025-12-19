@@ -29,6 +29,7 @@ public:
    pubsub_state() = default;
    void clear();
    void commit_change(pubsub_change_type type, std::string_view channel);
+   void commit_changes(const request& req);
    void compose_subscribe_request(request& to) const;
 };
 
