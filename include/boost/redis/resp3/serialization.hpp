@@ -50,8 +50,6 @@ class command_context {
 
    friend struct detail::command_context_access;
 
-public:
-   // TODO: hide
    command_context(
       detail::pubsub_change_type t,
       std::vector<detail::pubsub_change>& changes,
@@ -61,6 +59,7 @@ public:
    , payload_(&payload)
    { }
 
+public:
    void add_argument(std::string_view value);
 
    // TODO: hide
@@ -111,6 +110,16 @@ void add_separator(std::string& payload);
 }  // namespace boost::redis::resp3
 
 namespace boost::redis::detail {
+
+struct command_context_access {
+   static command_context construct(
+      detail::pubsub_change_type t,
+      std::vector<detail::pubsub_change>& changes,
+      std::string& payload)
+   {
+      return {t, changes, payload};
+   }
+};
 
 template <class T, class = void>
 struct has_to_bulk_v1 : std::false_type { };

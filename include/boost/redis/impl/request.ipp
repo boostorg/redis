@@ -74,5 +74,5 @@ boost::redis::command_context boost::redis::request::start_command(
    resp3::boost_redis_to_bulk(payload_, cmd);
 
    // Compose the command context
-   return {change_type, pubsub_changes_, payload_};
+   return detail::command_context_access::construct(change_type, pubsub_changes_, payload_);
 }
