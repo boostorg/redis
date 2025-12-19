@@ -69,7 +69,7 @@ boost::redis::command_context boost::redis::request::start_command(
       num_args + 1u);  // the command string is also an array member
 
    // Serialize the command string
-   resp3::boost_redis_to_bulk(payload_, cmd);
+   resp3::add_bulk(payload_, cmd);
 
    // Compose the command context
    return detail::command_context_access::construct(change_type, pubsub_changes_, payload_);

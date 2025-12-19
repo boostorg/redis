@@ -69,6 +69,11 @@ public:
 
 namespace boost::redis::resp3 {
 
+void add_header(std::string& payload, type t, std::size_t size);
+void add_bulk(std::string& payload, std::string_view value);
+void add_blob(std::string& payload, std::string_view blob);
+void add_separator(std::string& payload);
+
 /** @brief (Deprecated: use the new extension point, instead) Adds a bulk to the request.
  *  @relates boost::redis::request
  *
@@ -91,13 +96,15 @@ namespace boost::redis::resp3 {
  *  @param data Data that will be serialized and stored in `payload`.
  * TODO: mark this as deprecated
  */
-void boost_redis_to_bulk(std::string& payload, std::string_view data);
+inline void boost_redis_to_bulk(std::string& payload, std::string_view data)
+{
+   add_bulk(payload, data);
+}
 
 template <class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
 void boost_redis_to_bulk(std::string& payload, T n)
 {
-   auto const s = std::to_string(n);
-   boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
+   add_bulk(payload, std::to_string(n));
 }
 
 // Use this new extension point, instead
@@ -105,10 +112,6 @@ inline void boost_redis_to_bulk(command_context ctx, std::string_view data)
 {
    ctx.add_argument(data);
 }
-
-void add_header(std::string& payload, type t, std::size_t size);
-void add_blob(std::string& payload, std::string_view blob);
-void add_separator(std::string& payload);
 
 }  // namespace boost::redis::resp3
 
@@ -124,7 +127,7 @@ struct command_context_access {
    }
 
    template <class T>
-   static void add_custom_argument(command_context ctx, const T& value)
+   static void add_v1_bulk(command_context ctx, const T& value)
    {
       using namespace boost::redis::resp3;
       auto offset = ctx.payload_->size();
@@ -150,7 +153,7 @@ void add_scalar_argument(command_context ctx, T const& value)
    } else if constexpr (std::is_integral_v<T>) {
       ctx.add_argument(std::to_string(value));
    } else if constexpr (detail::has_to_bulk_v1<T>::value) {
-      detail::command_context_access::add_custom_argument(ctx, value);
+      detail::command_context_access::add_v1_bulk(ctx, value);
    } else {
       using namespace boost::redis::resp3;
       boost_redis_to_bulk(ctx, value);

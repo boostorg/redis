@@ -16,8 +16,8 @@ namespace boost::redis {
 
 void command_context::add_argument(std::string_view value)
 {
-   // TODO: this is duplicated from boost_redis_to_bulk
-   // Add the value to the payload
+   // Add the value to the payload. We can't use
+   // add_bulk directly because we need the value offset
    *payload_ += to_code(resp3::type::blob_string);
    *payload_ += std::to_string(value.size());
    *payload_ += resp3::parser::sep;
@@ -57,7 +57,7 @@ void command_context::parse_last_argument(std::size_t offset)
 
 namespace boost::redis::resp3 {
 
-void boost_redis_to_bulk(std::string& payload, std::string_view data)
+void add_bulk(std::string& payload, std::string_view data)
 {
    auto const str = std::to_string(data.size());
 
