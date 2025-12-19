@@ -59,14 +59,10 @@ class command_context {
    , payload_(&payload)
    { }
 
+   void parse_last_argument(std::size_t offset);
+
 public:
    void add_argument(std::string_view value);
-
-   // TODO: hide
-   std::string& payload() { return *payload_; }
-
-   // TODO: hide
-   void parse_last_argument(std::size_t offset);
 };
 
 }  // namespace boost::redis
@@ -119,6 +115,15 @@ struct command_context_access {
    {
       return {t, changes, payload};
    }
+
+   template <class T>
+   static void add_custom_argument(command_context ctx, const T& value)
+   {
+      using namespace boost::redis::resp3;
+      auto offset = ctx.payload_->size();
+      boost_redis_to_bulk(*ctx.payload_, value);
+      ctx.parse_last_argument(offset);
+   }
 };
 
 template <class T, class = void>
@@ -138,10 +143,7 @@ void add_scalar_argument(command_context ctx, T const& value)
    } else if constexpr (std::is_integral_v<T>) {
       ctx.add_argument(std::to_string(value));
    } else if constexpr (detail::has_to_bulk_v1<T>::value) {
-      using namespace boost::redis::resp3;
-      auto offset = ctx.payload().size();
-      boost_redis_to_bulk(ctx.payload(), value);
-      ctx.parse_last_argument(offset);
+      detail::command_context_access::add_custom_argument(ctx, value);
    } else {
       using namespace boost::redis::resp3;
       boost_redis_to_bulk(ctx, value);
