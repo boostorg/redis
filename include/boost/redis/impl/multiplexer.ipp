@@ -153,7 +153,7 @@ consume_result multiplexer::consume_impl(system::error_code& ec)
    reqs_.front()->commit_response(parser_.get_consumed());
    if (reqs_.front()->get_remaining_responses() == 0) {
       // Done with this request.
-      complete_request(*reqs_.front());
+      reqs_.front()->notify_done();
       reqs_.pop_front();
    }
 
@@ -345,8 +345,9 @@ void multiplexer::release_push_requests()
          return !(ptr->is_written() && ptr->get_remaining_responses() == 0u);
       });
 
-   for (auto it = point; it != reqs_.end(); ++it)
-      complete_request(**it);
+   std::for_each(point, std::end(reqs_), [](auto const& ptr) {
+      ptr->notify_done();
+   });
 
    reqs_.erase(point, std::end(reqs_));
 }
@@ -359,16 +360,6 @@ void multiplexer::set_receive_adapter(any_adapter adapter)
 void multiplexer::set_config(config const& cfg)
 {
    read_buffer_.set_config({cfg.read_buffer_append_size, cfg.max_read_size});
-}
-
-void multiplexer::complete_request(elem& elm)
-{
-   for (const auto& change : request_access::pubsub_changes(elm.get_request())) {
-      pubsub_st_.commit_change(
-         change.type,
-         elm.get_request().payload().substr(change.channel_offset, change.channel_size));
-   }
-   elm.notify_done();
 }
 
 auto make_elem(request const& req, any_adapter adapter) -> std::shared_ptr<multiplexer::elem>

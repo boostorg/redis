@@ -10,7 +10,6 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/pubsub_state.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
@@ -207,10 +206,7 @@ public:
       return usage_;
    }
 
-   void clear_pubsub_state() { pubsub_st_.clear(); }
    void set_config(config const& cfg);
-
-   const pubsub_state& get_pubsub_state() const { return pubsub_st_; }
 
 private:
    void commit_usage(bool is_push, read_buffer::consume_result res);
@@ -224,9 +220,6 @@ private:
    [[nodiscard]]
    consume_result consume_impl(system::error_code& ec);
 
-   void complete_request(elem& elm);
-
-   pubsub_state pubsub_st_;
    read_buffer read_buffer_;
    std::string write_buffer_;
    std::size_t write_offset_{};  // how many bytes of the write buffer have been written?
