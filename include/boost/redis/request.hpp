@@ -419,7 +419,7 @@ public:
    void append(const request& other);
 
 private:
-   resp3::command_context start_command(std::string_view cmd, std::size_t num_args);
+   command_context start_command(std::string_view cmd, std::size_t num_args);
 
    void check_cmd(std::string_view cmd)
    {

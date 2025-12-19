@@ -39,7 +39,7 @@ struct pubsub_change {
 
 }  // namespace boost::redis::detail
 
-namespace boost::redis::resp3 {
+namespace boost::redis {
 
 class command_context {
    detail::pubsub_change_type cmd_change_;
@@ -65,6 +65,10 @@ public:
    // TODO: hide
    void parse_last_argument(std::size_t offset);
 };
+
+}  // namespace boost::redis
+
+namespace boost::redis::resp3 {
 
 /** @brief Adds a bulk to the request.
  *  @relates boost::redis::request

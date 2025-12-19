@@ -46,7 +46,7 @@ void boost::redis::request::append(const request& other)
    expected_responses_ += other.expected_responses_;
 }
 
-boost::redis::resp3::command_context boost::redis::request::start_command(
+boost::redis::command_context boost::redis::request::start_command(
    std::string_view cmd,
    std::size_t num_args)
 {

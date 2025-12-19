@@ -8,7 +8,52 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
+#include <boost/assert.hpp>
+
 #include <string_view>
+
+namespace boost::redis {
+
+void command_context::add_argument(std::string_view value)
+{
+   // TODO: this is duplicated from boost_redis_to_bulk
+   // Add the value to the payload
+   *payload_ += to_code(resp3::type::blob_string);
+   *payload_ += std::to_string(value.size());
+   *payload_ += resp3::parser::sep;
+   std::size_t offset = payload_->size();
+   payload_->append(value.cbegin(), value.cend());
+   *payload_ += resp3::parser::sep;
+
+   // Record any pubsub change
+   if (cmd_change_ != detail::pubsub_change_type::none)
+      changes_->push_back({cmd_change_, offset, value.size()});
+}
+
+void command_context::parse_last_argument(std::size_t offset)
+{
+   // No need to analyze arguments if this command is not related to PubSub
+   if (cmd_change_ == detail::pubsub_change_type::none)
+      return;
+
+   // Parse the serialized argument
+   resp3::parser p;
+   system::error_code ec;
+   auto node = p.consume(std::string_view(*payload_).substr(offset), ec);
+   if (ec || !node.has_value())
+      return;  // something went very wrong during serialization
+
+   // Add the change
+   std::string_view node_value = node->value;
+   BOOST_ASSERT(node_value.data() >= payload_->data());
+   changes_->push_back({
+      cmd_change_,
+      static_cast<std::size_t>(node_value.data() - payload_->data()),
+      node_value.size(),
+   });
+}
+
+}  // namespace boost::redis
 
 namespace boost::redis::resp3 {
 
@@ -39,44 +84,5 @@ void add_blob(std::string& payload, std::string_view blob)
 }
 
 void add_separator(std::string& payload) { payload += parser::sep; }
-
-void command_context::add_argument(std::string_view value)
-{
-   // TODO: this is duplicated from boost_redis_to_bulk
-   // Add the value to the payload
-   *payload_ += to_code(resp3::type::blob_string);
-   *payload_ += std::to_string(value.size());
-   *payload_ += resp3::parser::sep;
-   std::size_t offset = payload_->size();
-   payload_->append(value.cbegin(), value.cend());
-   *payload_ += resp3::parser::sep;
-
-   // Record any pubsub change
-   if (cmd_change_ != ::boost::redis::detail::pubsub_change_type::none)
-      changes_->push_back({cmd_change_, offset, value.size()});
-}
-
-void command_context::parse_last_argument(std::size_t offset)
-{
-   // No need to analyze arguments if this command is not related to PubSub
-   if (cmd_change_ == ::boost::redis::detail::pubsub_change_type::none)
-      return;
-
-   // Parse the serialized argument
-   resp3::parser p;
-   system::error_code ec;
-   auto node = p.consume(std::string_view(*payload_).substr(offset), ec);
-   if (ec || !node.has_value())
-      return;  // something went very wrong during serialization
-
-   // Add the change
-   std::string_view node_value = node->value;
-   BOOST_ASSERT(node_value.data() >= payload_->data());
-   changes_->push_back({
-      cmd_change_,
-      static_cast<std::size_t>(node_value.data() - payload_->data()),
-      node_value.size(),
-   });
-}
 
 }  // namespace boost::redis::resp3
