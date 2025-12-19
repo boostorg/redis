@@ -178,9 +178,7 @@ public:
    void push(std::string_view cmd, Ts const&... args)
    {
       auto constexpr pack_size = sizeof...(Ts);
-      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
-      resp3::add_header(payload_, resp3::type::array, 1 + pack_size);
-      resp3::boost_redis_to_bulk(payload_, cmd);
+      auto ctx = start_command(cmd, pack_size);
       resp3::add_argument(ctx, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
@@ -250,9 +248,7 @@ public:
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
-      resp3::add_header(payload_, resp3::type::array, 2 + size * distance);
-      resp3::boost_redis_to_bulk(payload_, cmd);
+      auto ctx = start_command(cmd, 1 + size * distance);
       resp3::add_argument(ctx, key);
 
       for (; begin != end; ++begin)
@@ -320,9 +316,7 @@ public:
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
-      resp3::add_header(payload_, resp3::type::array, 1 + size * distance);
-      resp3::boost_redis_to_bulk(payload_, cmd);
+      auto ctx = start_command(cmd, size * distance);
 
       for (; begin != end; ++begin)
          resp3::add_argument(ctx, *begin);
@@ -424,6 +418,8 @@ public:
    void append(const request& other);
 
 private:
+   resp3::command_context start_command(std::string_view cmd, std::size_t num_args);
+
    void check_cmd(std::string_view cmd)
    {
       ++commands_;

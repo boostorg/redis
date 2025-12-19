@@ -57,12 +57,6 @@ public:
    , payload_(&payload)
    { }
 
-   // TODO
-   command_context(
-      std::string_view cmd,
-      std::vector<detail::pubsub_change>& changes,
-      std::string& payload) noexcept;
-
    void add_argument(std::string_view value);
 
    // TODO: hide
