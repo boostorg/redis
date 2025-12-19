@@ -14,9 +14,60 @@
 #include <boost/throw_exception.hpp>
 
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+namespace boost::redis::detail {
+
+enum class pubsub_change_type
+{
+   none,
+   subscribe,
+   unsubscribe,
+   psubscribe,
+   punsubscribe,
+};
+
+struct pubsub_change {
+   pubsub_change_type type;
+   std::size_t channel_offset;
+   std::size_t channel_size;
+};
+
+}  // namespace boost::redis::detail
 
 namespace boost::redis::resp3 {
+
+class command_context {
+   detail::pubsub_change_type cmd_change_;
+   std::vector<detail::pubsub_change>* changes_;
+   std::string* payload_;
+
+public:
+   // TODO: hide
+   command_context(
+      detail::pubsub_change_type t,
+      std::vector<detail::pubsub_change>& changes,
+      std::string& payload) noexcept
+   : cmd_change_(t)
+   , changes_(&changes)
+   , payload_(&payload)
+   { }
+
+   // TODO
+   command_context(
+      std::string_view cmd,
+      std::vector<detail::pubsub_change>& changes,
+      std::string& payload) noexcept;
+
+   void add_argument(std::string_view value);
+
+   // TODO: hide
+   std::string& payload() { return *payload_; }
+};
 
 /** @brief Adds a bulk to the request.
  *  @relates boost::redis::request
@@ -48,45 +99,59 @@ void boost_redis_to_bulk(std::string& payload, T n)
    boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
 }
 
+namespace detail {
+
+template <class T, class = void>
+struct has_to_bulk_v1 : std::false_type { };
+
 template <class T>
-struct add_bulk_impl {
-   static void add(std::string& payload, T const& from)
-   {
+struct has_to_bulk_v1<
+   T,
+   decltype(boost_redis_to_bulk(std::declval<std::string&>(), std::declval<const T&>()))>
+: std::true_type { };
+
+template <class T>
+void add_scalar_argument(command_context ctx, T const& value)
+{
+   if constexpr (std::is_convertible_v<T, std::string_view>) {
+      ctx.add_argument(value);
+   } else if constexpr (std::is_integral_v<T>) {
+      ctx.add_argument(std::to_string(value));
+   } else if constexpr (detail::has_to_bulk_v1<T>::value) {
       using namespace boost::redis::resp3;
-      boost_redis_to_bulk(payload, from);
+      boost_redis_to_bulk(ctx.payload(), value);  // TODO: this bypasses things
+   } else {
+      using namespace boost::redis::resp3;
+      boost_redis_to_bulk(ctx, value);
    }
-};
+}
+
+}  // namespace detail
+
+template <class T>
+void add_argument(command_context ctx, T const& data)
+{
+   detail::add_scalar_argument(ctx, data);
+}
 
 template <class... Ts>
-struct add_bulk_impl<std::tuple<Ts...>> {
-   static void add(std::string& payload, std::tuple<Ts...> const& t)
-   {
-      auto f = [&](auto const&... vs) {
-         using namespace boost::redis::resp3;
-         (boost_redis_to_bulk(payload, vs), ...);
-      };
+void add_argument(command_context ctx, std::tuple<Ts...> const& t)
+{
+   auto f = [&](auto const&... vs) {
+      (detail::add_scalar_argument(ctx, vs), ...);
+   };
 
-      std::apply(f, t);
-   }
-};
+   std::apply(f, t);
+}
 
 template <class U, class V>
-struct add_bulk_impl<std::pair<U, V>> {
-   static void add(std::string& payload, std::pair<U, V> const& from)
-   {
-      using namespace boost::redis::resp3;
-      boost_redis_to_bulk(payload, from.first);
-      boost_redis_to_bulk(payload, from.second);
-   }
-};
+void add_argument(command_context ctx, std::pair<U, V> const& from)
+{
+   detail::add_scalar_argument(ctx, from.first);
+   detail::add_scalar_argument(ctx, from.second);
+}
 
 void add_header(std::string& payload, type t, std::size_t size);
-
-template <class T>
-void add_bulk(std::string& payload, T const& data)
-{
-   add_bulk_impl<T>::add(payload, data);
-}
 
 template <class>
 struct bulk_counter;

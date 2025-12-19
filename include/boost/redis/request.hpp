@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -24,20 +25,6 @@ namespace detail {
 
 auto has_response(std::string_view cmd) -> bool;
 struct request_access;
-
-enum class pubsub_change_type
-{
-   subscribe,
-   unsubscribe,
-   psubscribe,
-   punsubscribe,
-};
-
-struct pubsub_change {
-   pubsub_change_type type;
-   std::size_t channel_offset;
-   std::size_t channel_size;
-};
 
 }  // namespace detail
 
@@ -191,9 +178,10 @@ public:
    void push(std::string_view cmd, Ts const&... args)
    {
       auto constexpr pack_size = sizeof...(Ts);
+      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
       resp3::add_header(payload_, resp3::type::array, 1 + pack_size);
-      resp3::add_bulk(payload_, cmd);
-      resp3::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
+      resp3::boost_redis_to_bulk(payload_, cmd);
+      resp3::add_argument(ctx, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
    }
@@ -262,12 +250,13 @@ public:
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
+      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
       resp3::add_header(payload_, resp3::type::array, 2 + size * distance);
-      resp3::add_bulk(payload_, cmd);
-      resp3::add_bulk(payload_, key);
+      resp3::boost_redis_to_bulk(payload_, cmd);
+      resp3::add_argument(ctx, key);
 
       for (; begin != end; ++begin)
-         resp3::add_bulk(payload_, *begin);
+         resp3::add_argument(ctx, *begin);
 
       check_cmd(cmd);
    }
@@ -331,11 +320,12 @@ public:
 
       auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
+      resp3::command_context ctx(cmd, pubsub_changes_, payload_);
       resp3::add_header(payload_, resp3::type::array, 1 + size * distance);
-      resp3::add_bulk(payload_, cmd);
+      resp3::boost_redis_to_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
-         resp3::add_bulk(payload_, *begin);
+         resp3::add_argument(ctx, *begin);
 
       check_cmd(cmd);
    }
