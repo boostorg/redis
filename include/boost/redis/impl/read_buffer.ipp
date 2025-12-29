@@ -42,12 +42,13 @@ auto read_buffer::get_prepared() noexcept -> span_type
 
 auto read_buffer::get_commited() const noexcept -> std::string_view
 {
-   return {buffer_.data(), append_buf_begin_};
+   return {buffer_.data() + offset_, append_buf_begin_ - offset_};
 }
 
 void read_buffer::clear()
 {
    buffer_.clear();
+   offset_ = 0;
    append_buf_begin_ = 0;
 }
 
@@ -56,14 +57,22 @@ read_buffer::consume(std::size_t size)
 {
    // For convenience, if the requested size is larger than the
    // committed buffer we cap it to the maximum.
-   if (size > append_buf_begin_)
-      size = append_buf_begin_;
+   auto const consumable = append_buf_begin_ - offset_;
+   if (size > consumable)
+      size = consumable;
 
-   buffer_.erase(buffer_.begin(), buffer_.begin() + size);
-   auto const rotated = size == 0u ? 0u : buffer_.size();
+   offset_ += size;
+   BOOST_ASSERT(offset_ <= append_buf_begin_);
 
-   BOOST_ASSERT(append_buf_begin_ >= size);
-   append_buf_begin_ -= size;
+   auto rotated = 0u;
+   if (offset_ >= 10'000'000 && size > 0u) {
+      buffer_.erase(buffer_.begin(), buffer_.begin() + offset_);
+      rotated = buffer_.size();
+
+      BOOST_ASSERT(offset_ <= append_buf_begin_);
+      append_buf_begin_ -= offset_;
+      offset_ = 0u;
+   }
 
    return {size, rotated};
 }

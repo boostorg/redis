@@ -61,6 +61,7 @@ public:
 private:
    config cfg_ = config{};
    std::vector<char> buffer_;
+   std::size_t offset_ = 0;
    std::size_t append_buf_begin_ = 0;
 };
 
