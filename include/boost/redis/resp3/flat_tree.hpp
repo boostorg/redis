@@ -12,6 +12,8 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
+#include <boost/core/span.hpp>
+
 #include <cstddef>
 #include <memory>
 
@@ -164,7 +166,7 @@ public:
     *
     * @returns The number of bytes in use in the data buffer.
     */
-   auto data_size() const noexcept -> std::size_t { return data_.size; }
+   auto data_size() const noexcept -> std::size_t { return data_tmp_offset_; }
 
    /** @brief Returns the capacity of the data buffer, in bytes.
     *
@@ -187,7 +189,7 @@ public:
     *
     * @returns The nodes in the tree.
     */
-   auto get_view() const noexcept -> view_tree const& { return view_tree_; }
+   span<const node_view> get_view() const noexcept { return {view_tree_.data(), node_tmp_offset_}; }
 
    /** @brief Returns the number of memory reallocations that took place in the data buffer.
     *
@@ -215,7 +217,8 @@ public:
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
-   void notify_done() { ++total_msgs_; }
+   void notify_init();
+   void notify_done();
 
    // Push a new node to the response
    void push(node_view const& node);
@@ -223,6 +226,13 @@ private:
    detail::flat_buffer data_;
    view_tree view_tree_;
    std::size_t total_msgs_ = 0u;
+
+   // flat_tree supports a "temporary working area" for incrementally reading messages.
+   // Nodes in the tmp area are not part of the object representation until they
+   // are committed with notify_done().
+   // These offsets delimit this area.
+   std::size_t node_tmp_offset_ = 0u;
+   std::size_t data_tmp_offset_ = 0u;
 };
 
 /**
