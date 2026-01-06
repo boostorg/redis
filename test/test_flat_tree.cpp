@@ -7,6 +7,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert/source_location.hpp>
@@ -32,6 +33,7 @@ using boost::redis::resp3::type;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
 using boost::redis::resp3::node_view;
+using boost::redis::resp3::parser;
 using boost::redis::resp3::to_string;
 using boost::redis::response;
 using boost::system::error_code;
@@ -49,6 +51,20 @@ void add_nodes(
    deserialize(data, adapt2(to), ec);
    if (!BOOST_TEST_EQ(ec, error_code{}))
       std::cerr << "Called from " << loc << std::endl;
+}
+
+bool parse_checked(
+   flat_tree& to,
+   parser& p,
+   std::string_view data,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   error_code ec;
+   auto adapter = adapt2(to);
+   bool done = boost::redis::resp3::parse(p, data, adapter, ec);
+   if (!BOOST_TEST_EQ(ec, error_code{}))
+      std::cerr << "Called from " << loc << std::endl;
+   return done;
 }
 
 void check_nodes(
@@ -202,6 +218,52 @@ void test_add_nodes_big_node()
    BOOST_TEST_EQ(t.data_capacity(), 2048u);
    BOOST_TEST_EQ(t.get_reallocs(), 1u);
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Flat trees have a temporary area (tmp) where nodes are stored while
+// messages are being parsed. Nodes in the tmp area are not part of the representation
+// until they are committed when the message has been fully parsed
+void test_add_nodes_partial_msg()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message, but not all of it.
+   // These nodes are stored but are not part of the user-facing representation
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Finish the message. Nodes will now show up
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // We can repeat this cycle again
+   p.reset();
+   BOOST_TEST_NOT(parse_checked(t, p, ">2\r\n+good\r\n"));
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   BOOST_TEST(parse_checked(t, p, ">2\r\n+good\r\n+bye\r\n"));
+   expected_nodes.push_back({type::push, 2u, 0u, ""});
+   expected_nodes.push_back({type::simple_string, 1u, 1u, "good"});
+   expected_nodes.push_back({type::simple_string, 1u, 1u, "bye"});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
 }
 
 // --- Reserving space ---
@@ -836,6 +898,7 @@ int main()
    test_add_nodes_copies();
    test_add_nodes_capacity_limit();
    test_add_nodes_big_node();
+   test_add_nodes_partial_msg();
 
    test_reserve();
    test_reserve_not_power_of_2();
