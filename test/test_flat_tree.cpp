@@ -1197,6 +1197,50 @@ void test_comparison_self()
    BOOST_TEST_NOT(tempty != tempty);
 }
 
+// The tmp area is not taken into account when comparing
+void test_comparison_tmp()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+hello\r\n");
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+more data\r\n"));
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+void test_comparison_tmp_different()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+world\r\n");
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+more data\r\n"));
+
+   BOOST_TEST_NOT(t == t2);
+   BOOST_TEST(t != t2);
+}
+
+// Comparing object with only tmp area doesn't cause trouble
+void test_comparison_only_tmp()
+{
+   flat_tree t;
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+more data\r\n"));
+
+   flat_tree t2;
+   parser p2;
+   BOOST_TEST_NOT(parse_checked(t2, p2, "*2\r\n+random\r\n"));
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
 }  // namespace
 
 int main()
@@ -1258,6 +1302,9 @@ int main()
    test_comparison_equal_capacity();
    test_comparison_empty();
    test_comparison_self();
+   test_comparison_tmp();
+   test_comparison_tmp_different();
+   test_comparison_only_tmp();
 
    return boost::report_errors();
 }
