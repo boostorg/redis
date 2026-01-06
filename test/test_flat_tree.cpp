@@ -1058,6 +1058,40 @@ void test_move_assign_both_empty()
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
 }
 
+// Move assignment also propagates the tmp area
+void test_move_assign_tmp()
+{
+   parser p;
+
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+hello\r\n"));
+
+   // When moving, the tmp area is moved, too
+   t = std::move(t2);
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 7u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Finish the message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+}
+
 // --- Comparison ---
 void test_comparison_different()
 {
@@ -1215,6 +1249,7 @@ int main()
    test_move_assign_target_empty();
    test_move_assign_source_empty();
    test_move_assign_both_empty();
+   test_move_assign_tmp();
 
    test_comparison_different();
    test_comparison_different_node_types();
