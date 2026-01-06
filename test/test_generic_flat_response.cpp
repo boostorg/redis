@@ -21,36 +21,30 @@ void test_simple_error()
 {
    generic_flat_response resp;
 
-   char const* wire = "-Error\r\n";
-
    error_code ec;
-   deserialize(wire, adapt2(resp), ec);
+   deserialize("-Error\r\n", adapt2(resp), ec);
    BOOST_TEST_EQ(ec, error_code{});
 
-   BOOST_TEST(!resp.has_value());
    BOOST_TEST(resp.has_error());
    auto const error = resp.error();
 
-   BOOST_TEST_EQ(error.data_type, boost::redis::resp3::type::simple_error);
-   BOOST_TEST_EQ(error.diagnostic, std::string{"Error"});
+   BOOST_TEST_EQ(error.data_type, resp3::type::simple_error);
+   BOOST_TEST_EQ(error.diagnostic, "Error");
 }
 
 void test_blob_error()
 {
    generic_flat_response resp;
 
-   char const* wire = "!5\r\nError\r\n";
-
    error_code ec;
-   deserialize(wire, adapt2(resp), ec);
+   deserialize("!5\r\nError\r\n", adapt2(resp), ec);
    BOOST_TEST_EQ(ec, error_code{});
 
-   BOOST_TEST(!resp.has_value());
    BOOST_TEST(resp.has_error());
    auto const error = resp.error();
 
-   BOOST_TEST_EQ(error.data_type, boost::redis::resp3::type::blob_error);
-   BOOST_TEST_EQ(error.diagnostic, std::string{"Error"});
+   BOOST_TEST_EQ(error.data_type, resp3::type::blob_error);
+   BOOST_TEST_EQ(error.diagnostic, "Error");
 }
 
 int main()
