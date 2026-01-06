@@ -266,6 +266,41 @@ void test_add_nodes_partial_msg()
    BOOST_TEST_EQ(t.get_total_msgs(), 2u);
 }
 
+// If there was an unfinished message when another message is started,
+// the former is discarded
+void test_add_nodes_existing_partial_msg()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, ">3\r\n+some message\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // This message is abandoned, and another one is started
+   p.reset();
+   BOOST_TEST_NOT(parse_checked(t, p, "%66\r\n+abandoned\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // This happens again, but this time a complete message is added
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // --- Reserving space ---
 // The usual case, calling it before using it
 void test_reserve()
@@ -899,6 +934,7 @@ int main()
    test_add_nodes_capacity_limit();
    test_add_nodes_big_node();
    test_add_nodes_partial_msg();
+   test_add_nodes_existing_partial_msg();
 
    test_reserve();
    test_reserve_not_power_of_2();
