@@ -758,6 +758,37 @@ void test_move_ctor_with_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
 }
 
+// Moving an object also moves its tmp area
+void test_move_ctor_tmp()
+{
+   // Setup
+   flat_tree t;
+   parser p;
+   add_nodes(t, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+
+   // Move. The new object has the same tmp area
+   flat_tree t2{std::move(t)};
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 7u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+
+   // Finishing the message in the copy works
+   BOOST_TEST(parse_checked(t2, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 17u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 2u);
+}
+
 // --- Copy assignment ---
 void test_copy_assign()
 {
@@ -1134,6 +1165,7 @@ int main()
    test_move_ctor();
    test_move_ctor_empty();
    test_move_ctor_with_capacity();
+   test_move_ctor_tmp();
 
    test_move_assign();
    test_move_assign_target_empty();
