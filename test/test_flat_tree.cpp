@@ -413,6 +413,32 @@ void test_reserve_with_data()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// Reserve also handles the tmp area
+void test_reserve_with_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add a partial message, and then reserve
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   t.reserve(1000u, 10u);
+
+   // Finish the current message so nodes in the tmp area show up
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+
+   // Check
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // --- Clear ---
 void test_clear()
 {
@@ -970,6 +996,7 @@ int main()
    test_reserve_not_power_of_2();
    test_reserve_below_current_capacity();
    test_reserve_with_data();
+   test_reserve_with_tmp();
 
    test_clear();
    test_clear_empty();
