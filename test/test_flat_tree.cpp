@@ -503,6 +503,93 @@ void test_clear_reuse()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// Clear doesn't remove the tmp area
+void test_clear_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add a full message and part of another
+   add_nodes(t, ">2\r\n+orange\r\n+apple\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::push,          2u, 0u, ""      },
+      {type::simple_string, 1u, 1u, "orange"},
+      {type::simple_string, 1u, 1u, "apple" },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Clearing removes the user-facing representation
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Clearing having only tmp area is safe
+void test_clear_only_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Clearing here does nothing
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Clearing having tmp nodes but no data is also safe
+void test_clear_only_tmp_nodes()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Clearing here does nothing
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
 // --- Default ctor ---
 void test_default_constructor()
 {
@@ -1001,6 +1088,9 @@ int main()
    test_clear();
    test_clear_empty();
    test_clear_reuse();
+   test_clear_tmp();
+   test_clear_only_tmp();
+   test_clear_only_tmp_nodes();
 
    test_default_constructor();
 
