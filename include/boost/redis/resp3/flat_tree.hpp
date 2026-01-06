@@ -168,6 +168,15 @@ public:
     */
    auto data_size() const noexcept -> std::size_t { return data_tmp_offset_; }
 
+   /** @brief Returns the capacity of the node container.
+    *
+    * @par Exception safety
+    * No-throw guarantee. 
+    *
+    * @returns The capacity of the object, in number of nodes.
+    */
+   auto capacity() const noexcept -> std::size_t { return view_tree_.capacity(); }
+
    /** @brief Returns the capacity of the data buffer, in bytes.
     *
     * Note that the actual capacity of the data buffer may be bigger
