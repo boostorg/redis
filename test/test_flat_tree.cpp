@@ -38,8 +38,6 @@ using boost::redis::resp3::to_string;
 using boost::redis::response;
 using boost::system::error_code;
 
-// TODO: test capacity
-
 namespace {
 
 void add_nodes(
@@ -1241,6 +1239,23 @@ void test_comparison_only_tmp()
    BOOST_TEST_NOT(t != t2);
 }
 
+// --- Capacity ---
+// Delegates to the underlying vector function
+void test_capacity()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.capacity(), 0u);
+
+   // Inserting a node increases capacity.
+   // It is not specified how capacity grows, though.
+   add_nodes(t, "+hello\r\n");
+   BOOST_TEST_GE(t.capacity(), 1u);
+
+   // Reserve also affects capacity
+   t.reserve(1000u, 8u);
+   BOOST_TEST_GE(t.capacity(), 8u);
+}
+
 }  // namespace
 
 int main()
@@ -1305,6 +1320,8 @@ int main()
    test_comparison_tmp();
    test_comparison_tmp_different();
    test_comparison_only_tmp();
+
+   test_capacity();
 
    return boost::report_errors();
 }
