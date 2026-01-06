@@ -678,6 +678,37 @@ void test_copy_ctor_adjust_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
 }
 
+// Copying an object also copies its tmp area
+void test_copy_ctor_tmp()
+{
+   // Setup
+   flat_tree t;
+   parser p;
+   add_nodes(t, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+
+   // Copy. The copy has the tmp nodes but they're hidden in its tmp area
+   flat_tree t2{t};
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 7u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+
+   // Finishing the message in the copy works
+   BOOST_TEST(parse_checked(t2, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 17u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 2u);
+}
+
 // --- Move ctor ---
 void test_move_ctor()
 {
@@ -1098,6 +1129,7 @@ int main()
    test_copy_ctor_empty();
    test_copy_ctor_empty_with_capacity();
    test_copy_ctor_adjust_capacity();
+   test_copy_ctor_tmp();
 
    test_move_ctor();
    test_move_ctor_empty();
