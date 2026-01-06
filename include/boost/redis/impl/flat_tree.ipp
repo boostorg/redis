@@ -215,8 +215,8 @@ void flat_tree::push(node_view const& nd)
 void flat_tree::notify_init()
 {
    // Discard any data in the tmp area, as it belongs to an operation that never finished
-   BOOST_ASSERT(node_tmp_offset_ >= view_tree_.size());
-   BOOST_ASSERT(data_tmp_offset_ >= data_.size);
+   BOOST_ASSERT(node_tmp_offset_ <= view_tree_.size());
+   BOOST_ASSERT(data_tmp_offset_ <= data_.size);
    view_tree_.resize(node_tmp_offset_);
    data_.size = data_tmp_offset_;
 }
