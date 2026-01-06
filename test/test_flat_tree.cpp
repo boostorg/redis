@@ -948,6 +948,40 @@ void test_copy_assign_self()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// Copy assignment also assigns the tmp area
+void test_copy_assign_tmp()
+{
+   parser p;
+
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+hello\r\n"));
+
+   // Assigning also copies where the tmp area starts
+   t = t2;
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 7u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // The tmp area was also copied
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+}
+
 // --- Move assignment ---
 void test_move_assign()
 {
@@ -1167,11 +1201,6 @@ int main()
    test_move_ctor_with_capacity();
    test_move_ctor_tmp();
 
-   test_move_assign();
-   test_move_assign_target_empty();
-   test_move_assign_source_empty();
-   test_move_assign_both_empty();
-
    test_copy_assign();
    test_copy_assign_target_empty();
    test_copy_assign_target_not_enough_capacity();
@@ -1180,6 +1209,12 @@ int main()
    test_copy_assign_source_with_extra_capacity();
    test_copy_assign_both_empty();
    test_copy_assign_self();
+   test_copy_assign_tmp();
+
+   test_move_assign();
+   test_move_assign_target_empty();
+   test_move_assign_source_empty();
+   test_move_assign_both_empty();
 
    test_comparison_different();
    test_comparison_different_node_types();
