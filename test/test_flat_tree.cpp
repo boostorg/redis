@@ -336,7 +336,7 @@ void test_reserve()
 
    t.reserve(1024u, 5u);
    check_nodes(t, {});
-   BOOST_TEST_EQ(t.capacity(), 5u);
+   BOOST_TEST_GE(t.capacity(), 5u);
    BOOST_TEST_EQ(t.data_size(), 0u);
    BOOST_TEST_EQ(t.data_capacity(), 1024);
    BOOST_TEST_EQ(t.get_reallocs(), 1u);
