@@ -1177,10 +1177,7 @@ public:
     * @param field The field name.
     * @param increment The floating-point amount to increment by.
     */
-   void push_hincrbyfloat(std::string_view key, std::string_view field, double increment)
-   {
-      push("HINCRBYFLOAT", key, field, increment);
-   }
+   void push_hincrbyfloat(std::string_view key, std::string_view field, double increment);
 
    /**
     * @brief Appends an HSCAN command to the end of the request.
@@ -1974,10 +1971,7 @@ public:
     * @param score The score for the member.
     * @param member The member to add.
     */
-   void push_zadd(std::string_view key, double score, std::string_view member)
-   {
-      push("ZADD", key, score, member);
-   }
+   void push_zadd(std::string_view key, double score, std::string_view member);
 
    /**
     * @brief Appends a ZADD command to the end of the request.
@@ -2059,7 +2053,7 @@ public:
     * @param min The minimum score (inclusive).
     * @param max The maximum score (inclusive).
     */
-   void push_zcount(std::string_view key, double min, double max) { push("ZCOUNT", key, min, max); }
+   void push_zcount(std::string_view key, double min, double max);
 
    /**
     * @brief Appends a ZSCORE command to the end of the request.
@@ -2178,10 +2172,7 @@ public:
     * @param min The minimum score.
     * @param max The maximum score.
     */
-   void push_zrangebyscore(std::string_view key, double min, double max)
-   {
-      push("ZRANGEBYSCORE", key, min, max);
-   }
+   void push_zrangebyscore(std::string_view key, double min, double max);
 
    /**
     * @brief Appends a ZREVRANGEBYSCORE command to the end of the request.
@@ -2192,10 +2183,7 @@ public:
     * @param max The maximum score.
     * @param min The minimum score.
     */
-   void push_zrevrangebyscore(std::string_view key, double max, double min)
-   {
-      push("ZREVRANGEBYSCORE", key, max, min);
-   }
+   void push_zrevrangebyscore(std::string_view key, double max, double min);
 
    /**
     * @brief Appends a ZINCRBY command to the end of the request.
@@ -2206,10 +2194,7 @@ public:
     * @param increment The amount to increment the score by.
     * @param member The member whose score to increment.
     */
-   void push_zincrby(std::string_view key, double increment, std::string_view member)
-   {
-      push("ZINCRBY", key, increment, member);
-   }
+   void push_zincrby(std::string_view key, double increment, std::string_view member);
 
    /**
     * @brief Appends a ZPOPMAX command to the end of the request.
@@ -2849,10 +2834,7 @@ public:
       std::string_view key,
       double longitude,
       double latitude,
-      std::string_view member)
-   {
-      push("GEOADD", key, longitude, latitude, member);
-   }
+      std::string_view member);
 
    /**
     * @brief Appends a GEOADD command to the end of the request.
@@ -2984,10 +2966,7 @@ public:
       double longitude,
       double latitude,
       double radius,
-      std::string_view unit)
-   {
-      push("GEOSEARCH", key, "FROMLONLAT", longitude, latitude, "BYRADIUS", radius, unit);
-   }
+      std::string_view unit);
 
    // ===== STREAM COMMANDS =====
 
