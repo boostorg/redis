@@ -184,7 +184,7 @@ must **NOT** be included in the response tuple. For example, the following reque
 ----
 request req;
 req.push("PING");
-req.push("SUBSCRIBE", "channel");
+req.subscribe({"channel"});
 req.push("QUIT");
 ----
 

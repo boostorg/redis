@@ -93,32 +93,39 @@ The coroutine below shows how to use it
 
 
 ```cpp
-auto
-receiver(std::shared_ptr<connection> conn) -> net::awaitable<void>
+auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 {
-   request req;
-   req.push("SUBSCRIBE", "channel");
-
-   flat_tree resp;
+   generic_flat_response resp;
    conn->set_receive_response(resp);
 
-   // Loop while reconnection is enabled
-   while (conn->will_reconnect()) {
+   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
+   request req;
+   req.subscribe({"mychannel"});
+   co_await conn->async_exec(req);
 
-      // Reconnect to channels.
-      co_await conn->async_exec(req);
+   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
+   // in resp. If the connection encounters a network error and reconnects to the server,
+   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
 
-      // Loop reading Redis pushes.
-      for (error_code ec;;) {
-         co_await conn->async_receive2(resp, redirect_error(ec));
-         if (ec)
-            break; // Connection lost, break so we can reconnect to channels.
+   // Loop to read Redis push messages.
+   for (error_code ec;;) {
+      // Wait for pushes
+      co_await conn->async_receive2(asio::redirect_error(ec));
 
-         // Use the response resp in some way and then clear it.
-         ...
-
-         resp.clear();
+      // Check for errors and cancellations
+      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
+         std::cerr << "Error during receive2: " << ec << std::endl;
+         break;
       }
+
+      // The response must be consumed without suspending the
+      // coroutine i.e. without the use of async operations.
+      for (auto const& elem : resp.value().get_view())
+         std::cout << elem.value << "\n";
+
+      std::cout << std::endl;
+
+      resp.value().clear();
    }
 }
 ```
