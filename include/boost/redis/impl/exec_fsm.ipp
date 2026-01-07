@@ -67,7 +67,7 @@ exec_action exec_fsm::resume(
          if (elem_->is_done()) {
             // If the request completed successfully and we were configured to do so,
             // record the changes applied to the pubsub state
-            if (st.cfg.restore_pubsub_state && !elem_->get_error())
+            if (!elem_->get_error())
                st.pubsub_st.commit_changes(elem_->get_request());
 
             // Deallocate memory before finalizing
