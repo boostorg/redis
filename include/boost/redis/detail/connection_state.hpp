@@ -11,7 +11,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/detail/pubsub_state.hpp>
+#include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
@@ -50,7 +50,7 @@ struct connection_state {
    std::string diagnostic{};  // Used by the setup request and Sentinel
    request setup_req{};
    request ping_req{};
-   pubsub_state pubsub_st{};
+   subscription_tracker pubsub_st{};
 
    // Sentinel stuff
    lazy_random_engine eng{};

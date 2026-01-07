@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/detail/pubsub_state.hpp>
+#include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/assert.hpp>
@@ -15,13 +15,13 @@
 
 namespace boost::redis::detail {
 
-void pubsub_state::clear()
+void subscription_tracker::clear()
 {
    channels_.clear();
    pchannels_.clear();
 }
 
-void pubsub_state::commit_change(pubsub_change_type type, std::string_view channel)
+void subscription_tracker::commit_change(pubsub_change_type type, std::string_view channel)
 {
    std::string owning_channel{channel};
    switch (type) {
@@ -33,13 +33,13 @@ void pubsub_state::commit_change(pubsub_change_type type, std::string_view chann
    }
 }
 
-void pubsub_state::commit_changes(const request& req)
+void subscription_tracker::commit_changes(const request& req)
 {
    for (const auto& ch : request_access::pubsub_changes(req))
       commit_change(ch.type, req.payload().substr(ch.channel_offset, ch.channel_size));
 }
 
-void pubsub_state::compose_subscribe_request(request& to) const
+void subscription_tracker::compose_subscribe_request(request& to) const
 {
    to.push_range("SUBSCRIBE", channels_);
    to.push_range("PBSUBSCRIBE", pchannels_);

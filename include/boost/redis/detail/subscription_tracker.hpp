@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef BOOST_REDIS_PUBSUB_STATE_HPP
-#define BOOST_REDIS_PUBSUB_STATE_HPP
+#ifndef BOOST_REDIS_SUBSCRIPTION_TRACKER_HPP
+#define BOOST_REDIS_SUBSCRIPTION_TRACKER_HPP
 
 #include <set>
 #include <string>
@@ -21,12 +21,12 @@ namespace detail {
 
 enum class pubsub_change_type;
 
-class pubsub_state {
+class subscription_tracker {
    std::set<std::string> channels_;
    std::set<std::string> pchannels_;
 
 public:
-   pubsub_state() = default;
+   subscription_tracker() = default;
    void clear();
    void commit_change(pubsub_change_type type, std::string_view channel);
    void commit_changes(const request& req);

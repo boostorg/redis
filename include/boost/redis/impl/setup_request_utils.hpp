@@ -9,7 +9,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connection_state.hpp>
-#include <boost/redis/detail/pubsub_state.hpp>
+#include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>  // use_sentinel
 #include <boost/redis/request.hpp>
@@ -23,7 +23,10 @@ namespace boost::redis::detail {
 
 // Modifies config::setup to make a request suitable to be sent
 // to the server using async_exec
-inline void compose_setup_request(const config& cfg, const pubsub_state& pubsub_st, request& req)
+inline void compose_setup_request(
+   const config& cfg,
+   const subscription_tracker& pubsub_st,
+   request& req)
 {
    // Clear any previous contents
    req.clear();
