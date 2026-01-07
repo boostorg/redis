@@ -32,7 +32,6 @@ using boost::redis::ignore_t;
 using boost::redis::config;
 using boost::redis::connection;
 using boost::redis::resp3::node_view;
-using boost::redis::command_context;
 
 // Struct that will be stored in Redis using json serialization.
 struct user {
@@ -45,9 +44,9 @@ struct user {
 BOOST_DESCRIBE_STRUCT(user, (), (name, age, country))
 
 // Boost.Redis customization points (example/json.hpp)
-void boost_redis_to_bulk(command_context ctx, user const& u)
+void boost_redis_to_bulk(std::string& to, user const& u)
 {
-   ctx.add_argument(boost::json::serialize(boost::json::value_from(u)));
+   resp3::boost_redis_to_bulk(to, boost::json::serialize(boost::json::value_from(u)));
 }
 
 void boost_redis_from_bulk(user& u, node_view const& node, boost::system::error_code&)

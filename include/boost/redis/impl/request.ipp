@@ -5,10 +5,7 @@
  */
 
 #include <boost/redis/request.hpp>
-#include <boost/redis/resp3/serialization.hpp>
-#include <boost/redis/resp3/type.hpp>
 
-#include <cstddef>
 #include <string_view>
 
 namespace boost::redis::detail {
@@ -38,39 +35,6 @@ request make_hello_request()
 void boost::redis::request::append(const request& other)
 {
    payload_ += other.payload_;
-   pubsub_changes_.insert(
-      pubsub_changes_.end(),
-      other.pubsub_changes_.begin(),
-      other.pubsub_changes_.end());
    commands_ += other.commands_;
    expected_responses_ += other.expected_responses_;
-}
-
-boost::redis::command_context boost::redis::request::start_command(
-   std::string_view cmd,
-   std::size_t num_args)
-{
-   // Determine the pubsub change type that this command is performing
-   // TODO: this has overlap with has_response
-   auto change_type = detail::pubsub_change_type::none;
-   if (cmd == "SUBSCRIBE")
-      change_type = detail::pubsub_change_type::subscribe;
-   if (cmd == "PSUBSCRIBE")
-      change_type = detail::pubsub_change_type::psubscribe;
-   if (cmd == "UNSUBSCRIBE")
-      change_type = detail::pubsub_change_type::unsubscribe;
-   if (cmd == "PUNSUBSCRIBE")
-      change_type = detail::pubsub_change_type::punsubscribe;
-
-   // Add the header
-   resp3::add_header(
-      payload_,
-      resp3::type::array,
-      num_args + 1u);  // the command string is also an array member
-
-   // Serialize the command string
-   resp3::add_bulk(payload_, cmd);
-
-   // Compose the command context
-   return detail::command_context_access::construct(change_type, pubsub_changes_, payload_);
 }

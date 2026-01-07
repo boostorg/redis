@@ -10,9 +10,7 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
-#include <cstddef>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -22,9 +20,23 @@
 namespace boost::redis {
 
 namespace detail {
-
 auto has_response(std::string_view cmd) -> bool;
 struct request_access;
+
+enum class pubsub_change_type
+{
+   none,
+   subscribe,
+   unsubscribe,
+   psubscribe,
+   punsubscribe,
+};
+
+struct pubsub_change {
+   pubsub_change_type type;
+   std::size_t channel_offset;
+   std::size_t channel_size;
+};
 
 }  // namespace detail
 
@@ -176,8 +188,9 @@ public:
    void push(std::string_view cmd, Ts const&... args)
    {
       auto constexpr pack_size = sizeof...(Ts);
-      auto ctx = start_command(cmd, pack_size);
-      detail::add_argument(ctx, std::tie(std::forward<Ts const&>(args)...));
+      resp3::add_header(payload_, resp3::type::array, 1 + pack_size);
+      resp3::add_bulk(payload_, cmd);
+      resp3::add_bulk(payload_, std::tie(std::forward<Ts const&>(args)...));
 
       check_cmd(cmd);
    }
@@ -244,13 +257,14 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::bulk_counter<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      auto ctx = start_command(cmd, 1 + size * distance);
-      detail::add_argument(ctx, key);
+      resp3::add_header(payload_, resp3::type::array, 2 + size * distance);
+      resp3::add_bulk(payload_, cmd);
+      resp3::add_bulk(payload_, key);
 
       for (; begin != end; ++begin)
-         detail::add_argument(ctx, *begin);
+         resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -312,12 +326,13 @@ public:
       if (begin == end)
          return;
 
-      auto constexpr size = detail::bulk_counter<value_type>::size;
+      auto constexpr size = resp3::bulk_counter<value_type>::size;
       auto const distance = std::distance(begin, end);
-      auto ctx = start_command(cmd, size * distance);
+      resp3::add_header(payload_, resp3::type::array, 1 + size * distance);
+      resp3::add_bulk(payload_, cmd);
 
       for (; begin != end; ++begin)
-         detail::add_argument(ctx, *begin);
+         resp3::add_bulk(payload_, *begin);
 
       check_cmd(cmd);
    }
@@ -416,8 +431,6 @@ public:
    void append(const request& other);
 
 private:
-   command_context start_command(std::string_view cmd, std::size_t num_args);
-
    void check_cmd(std::string_view cmd)
    {
       ++commands_;

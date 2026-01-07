@@ -14,67 +14,11 @@
 #include <boost/throw_exception.hpp>
 
 #include <string>
-#include <string_view>
 #include <tuple>
-#include <type_traits>
-#include <utility>
-#include <vector>
-
-namespace boost::redis::detail {
-
-enum class pubsub_change_type
-{
-   none,
-   subscribe,
-   unsubscribe,
-   psubscribe,
-   punsubscribe,
-};
-
-struct pubsub_change {
-   pubsub_change_type type;
-   std::size_t channel_offset;
-   std::size_t channel_size;
-};
-
-struct command_context_access;
-
-}  // namespace boost::redis::detail
-
-namespace boost::redis {
-
-class command_context {
-   detail::pubsub_change_type cmd_change_;
-   std::vector<detail::pubsub_change>* changes_;
-   std::string* payload_;
-
-   friend struct detail::command_context_access;
-
-   command_context(
-      detail::pubsub_change_type t,
-      std::vector<detail::pubsub_change>& changes,
-      std::string& payload) noexcept
-   : cmd_change_(t)
-   , changes_(&changes)
-   , payload_(&payload)
-   { }
-
-   void parse_last_argument(std::size_t offset);
-
-public:
-   void add_argument(std::string_view value);
-};
-
-}  // namespace boost::redis
 
 namespace boost::redis::resp3 {
 
-void add_header(std::string& payload, type t, std::size_t size);
-void add_bulk(std::string& payload, std::string_view value);
-void add_blob(std::string& payload, std::string_view blob);
-void add_separator(std::string& payload);
-
-/** @brief (Deprecated: use the new extension point, instead) Adds a bulk to the request.
+/** @brief Adds a bulk to the request.
  *  @relates boost::redis::request
  *
  *  This function is useful in serialization of your own data
@@ -94,93 +38,54 @@ void add_separator(std::string& payload);
  *
  *  @param payload Storage on which data will be copied into.
  *  @param data Data that will be serialized and stored in `payload`.
- * TODO: mark this as deprecated
  */
-inline void boost_redis_to_bulk(std::string& payload, std::string_view data)
-{
-   add_bulk(payload, data);
-}
+void boost_redis_to_bulk(std::string& payload, std::string_view data);
 
 template <class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
 void boost_redis_to_bulk(std::string& payload, T n)
 {
-   add_bulk(payload, std::to_string(n));
+   auto const s = std::to_string(n);
+   boost::redis::resp3::boost_redis_to_bulk(payload, std::string_view{s});
 }
 
-// Use this new extension point, instead
-inline void boost_redis_to_bulk(command_context ctx, std::string_view data)
-{
-   ctx.add_argument(data);
-}
-
-}  // namespace boost::redis::resp3
-
-namespace boost::redis::detail {
-
-struct command_context_access {
-   static command_context construct(
-      detail::pubsub_change_type t,
-      std::vector<detail::pubsub_change>& changes,
-      std::string& payload)
-   {
-      return {t, changes, payload};
-   }
-
-   template <class T>
-   static void add_v1_bulk(command_context ctx, const T& value)
+template <class T>
+struct add_bulk_impl {
+   static void add(std::string& payload, T const& from)
    {
       using namespace boost::redis::resp3;
-      auto offset = ctx.payload_->size();
-      boost_redis_to_bulk(*ctx.payload_, value);
-      ctx.parse_last_argument(offset);
+      boost_redis_to_bulk(payload, from);
    }
 };
 
-template <class T, class = void>
-struct has_to_bulk_v1 : std::false_type { };
-
-template <class T>
-struct has_to_bulk_v1<
-   T,
-   decltype(boost_redis_to_bulk(std::declval<std::string&>(), std::declval<const T&>()))>
-: std::true_type { };
-
-template <class T>
-void add_scalar_argument(command_context ctx, T const& value)
-{
-   if constexpr (std::is_convertible_v<T, std::string_view>) {
-      ctx.add_argument(value);
-   } else if constexpr (std::is_integral_v<T>) {
-      ctx.add_argument(std::to_string(value));
-   } else if constexpr (detail::has_to_bulk_v1<T>::value) {
-      detail::command_context_access::add_v1_bulk(ctx, value);
-   } else {
-      using namespace boost::redis::resp3;
-      boost_redis_to_bulk(ctx, value);
-   }
-}
-
-template <class T>
-void add_argument(command_context ctx, T const& data)
-{
-   detail::add_scalar_argument(ctx, data);
-}
-
 template <class... Ts>
-void add_argument(command_context ctx, std::tuple<Ts...> const& t)
-{
-   auto f = [&](auto const&... vs) {
-      (detail::add_scalar_argument(ctx, vs), ...);
-   };
+struct add_bulk_impl<std::tuple<Ts...>> {
+   static void add(std::string& payload, std::tuple<Ts...> const& t)
+   {
+      auto f = [&](auto const&... vs) {
+         using namespace boost::redis::resp3;
+         (boost_redis_to_bulk(payload, vs), ...);
+      };
 
-   std::apply(f, t);
-}
+      std::apply(f, t);
+   }
+};
 
 template <class U, class V>
-void add_argument(command_context ctx, std::pair<U, V> const& from)
+struct add_bulk_impl<std::pair<U, V>> {
+   static void add(std::string& payload, std::pair<U, V> const& from)
+   {
+      using namespace boost::redis::resp3;
+      boost_redis_to_bulk(payload, from.first);
+      boost_redis_to_bulk(payload, from.second);
+   }
+};
+
+void add_header(std::string& payload, type t, std::size_t size);
+
+template <class T>
+void add_bulk(std::string& payload, T const& data)
 {
-   detail::add_scalar_argument(ctx, from.first);
-   detail::add_scalar_argument(ctx, from.second);
+   add_bulk_impl<T>::add(payload, data);
 }
 
 template <class>
@@ -201,10 +106,10 @@ struct bulk_counter<std::tuple<T...>> {
    static constexpr auto size = sizeof...(T);
 };
 
-}  // namespace boost::redis::detail
+void add_blob(std::string& payload, std::string_view blob);
+void add_separator(std::string& payload);
 
-// TODO: this belongs to tests
-namespace boost::redis::resp3::detail {
+namespace detail {
 
 template <class Adapter>
 void deserialize(std::string_view const& data, Adapter adapter, system::error_code& ec)
@@ -239,6 +144,8 @@ void deserialize(std::string_view const& data, Adapter adapter)
       BOOST_THROW_EXCEPTION(system::system_error{ec});
 }
 
-}  // namespace boost::redis::resp3::detail
+}  // namespace detail
+
+}  // namespace boost::redis::resp3
 
 #endif  // BOOST_REDIS_RESP3_SERIALIZATION_HPP
