@@ -42,7 +42,7 @@ void subscription_tracker::commit_changes(const request& req)
 void subscription_tracker::compose_subscribe_request(request& to) const
 {
    to.push_range("SUBSCRIBE", channels_);
-   to.push_range("PBSUBSCRIBE", pchannels_);
+   to.push_range("PSUBSCRIBE", pchannels_);
 }
 
 }  // namespace boost::redis::detail
