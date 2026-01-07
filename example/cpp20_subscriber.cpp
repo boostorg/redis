@@ -33,7 +33,7 @@ using asio::signal_set;
  * To test send messages with redis-cli
  *
  *    $ redis-cli -3
- *    127.0.0.1:6379> PUBLISH channel some-message
+ *    127.0.0.1:6379> PUBLISH mychannel some-message
  *    (integer) 3
  *    127.0.0.1:6379>
  *
@@ -50,10 +50,14 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    generic_flat_response resp;
    conn->set_receive_response(resp);
 
-   // Connect to the channels
+   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
    request req;
-   req.push("SUBSCRIBE", "channel");
+   req.subscribe({"mychannel"});
    co_await conn->async_exec(req);
+
+   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
+   // in resp. If the connection encounters a network error and reconnects to the server,
+   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
 
    // Loop to read Redis push messages.
    for (error_code ec;;) {
