@@ -61,6 +61,16 @@ struct set_args {
    set_expiry expiry{};
 };
 
+class getex_args {
+public:
+   getex_args();
+   static getex_args ex(std::chrono::seconds duration);
+   static getex_args px(std::chrono::milliseconds duration);
+   static getex_args exat(std::chrono::system_clock::time_point tp);
+   static getex_args pxat(std::chrono::system_clock::time_point tp);
+   static getex_args persist();
+};
+
 /** @brief Represents a Redis request.
  *  
  *  A request is composed of one or more Redis commands and is
@@ -745,24 +755,13 @@ public:
 
    void push_getdel(std::string_view key) { push("GETDEL", key); }
 
-   void push_getex(std::string_view key, std::chrono::seconds ex)
-   {
-      push("GETEX", key, "EX", ex.count());
-   }
-
-   void push_getex(std::string_view key, std::chrono::milliseconds px)
-   {
-      push("GETEX", key, "PX", px.count());
-   }
+   void push_getex(std::string_view key, getex_args args);
 
    void push_incr(std::string_view key) { push("INCR", key); }
 
    void push_incrby(std::string_view key, int64_t increment) { push("INCRBY", key, increment); }
 
-   void push_incrbyfloat(std::string_view key, double increment)
-   {
-      push("INCRBYFLOAT", key, increment);
-   }
+   void push_incrbyfloat(std::string_view key, double increment);
 
    void push_decr(std::string_view key) { push("DECR", key); }
 
@@ -806,6 +805,17 @@ public:
    void push_msetnx(ForwardIt pairs_begin, ForwardIt pairs_end)
    {
       push_range("MSETNX", pairs_begin, pairs_end);
+   }
+
+   template <class Range>
+   void push_msetnx(Range&& pairs, decltype(std::cbegin(pairs))* = nullptr)
+   {
+      push_msetnx(std::cbegin(pairs), std::cend(pairs));
+   }
+
+   void push_msetnx(std::initializer_list<std::pair<std::string_view, std::string_view>> pairs)
+   {
+      push_msetnx(pairs.begin(), pairs.end());
    }
 
    // ===== HASH COMMANDS =====
