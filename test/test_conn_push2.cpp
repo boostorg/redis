@@ -7,6 +7,7 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/experimental/channel_error.hpp>
@@ -388,5 +389,120 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
    BOOST_TEST(ping_finished);
    BOOST_TEST(run_finished);
 }
+
+class test_pubsub_state_restoration_ {
+   net::io_context ioc;
+   connection conn{ioc};
+   request req;
+   response<std::string> resp_str;
+   flat_tree resp_push;
+   bool exec_finished = false;
+
+   void sub1()
+   {
+      // Subscribe to some channels and patterns
+      req.clear();
+      req.subscribe({"ch1", "ch2", "ch3"});              // active: 1, 2, 3
+      req.psubscribe({"ch1*", "ch2*", "ch3*", "ch4*"});  // active: 1, 2, 3, 4
+      conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST(ec == error_code());
+         unsub();
+      });
+   }
+
+   void unsub()
+   {
+      // Unsubscribe from some channels and patterns.
+      // Unsubscribing from a channel/pattern that we weren't subscribed to is OK.
+      req.clear();
+      req.unsubscribe({"ch2", "ch1", "ch5"});      // active: 3
+      req.punsubscribe({"ch2*", "ch4*", "ch9*"});  // active: 1, 3
+      conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST(ec == error_code());
+         sub2();
+      });
+   }
+
+   void sub2()
+   {
+      // Subscribe to other channels/patterns.
+      // Re-subscribing to channels/patterns we unsubscribed from is OK.
+      // Subscribing to the same channel/pattern twice is OK.
+      req.clear();
+      req.subscribe({"ch1", "ch3", "ch5"});      // active: 1, 3, 5
+      req.psubscribe({"ch3*", "ch4*", "ch8*"});  // active: 1, 3, 4, 8
+
+      // Subscriptions created by push() don't survive reconnection
+      req.push("SUBSCRIBE", "ch10");    // active: 1, 3, 5, 10
+      req.push("PSUBSCRIBE", "ch10*");  // active: 1, 3, 4, 8, 10
+
+      // Validate that we're subscribed to what we expect
+      req.push("CLIENT", "INFO");
+
+      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
+         BOOST_TEST(ec == error_code());
+         BOOST_TEST(std::get<0>(resp_str).has_value());
+         BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "sub") == "4");
+         BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "psub") == "5");
+
+         resp_push.clear();
+
+         quit();
+      });
+   }
+
+   void quit()
+   {
+      req.clear();
+      req.push("QUIT");
+
+      conn.async_exec(req, ignore, [this](error_code, std::size_t) {
+         // we don't know if this request will complete successfully or not
+         check_pubsub_restoration();
+      });
+   }
+
+   void check_pubsub_restoration()
+   {
+      req.clear();
+      req.push("CLIENT", "INFO");
+      req.get_config().cancel_if_unresponded = false;
+
+      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
+         BOOST_TEST(ec == error_code());
+         BOOST_TEST(std::get<0>(resp_str).has_value());
+         BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "sub") == "3");
+         BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "psub") == "4");
+         exec_finished = true;
+         conn.cancel();
+
+         // TODO: verify the push response
+      });
+   }
+
+public:
+   void run()
+   {
+      conn.set_receive_response(resp_push);
+
+      // Start the request chain
+      sub1();
+
+      // Start running
+      bool run_finished = false;
+      conn.async_run(make_test_config(), [&run_finished](error_code ec) {
+         BOOST_TEST(ec == net::error::operation_aborted);
+         run_finished = true;
+      });
+
+      ioc.run_for(test_timeout);
+
+      // Done
+      BOOST_TEST(exec_finished);
+      BOOST_TEST(run_finished);
+   }
+};
+
+BOOST_AUTO_TEST_CASE(test_pubsub_state_restoration) { test_pubsub_state_restoration_().run(); }
 
 }  // namespace
