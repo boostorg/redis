@@ -345,9 +345,6 @@ struct config {
     *        @ref sentinel_config::addresses is not empty.
     */
    sentinel_config sentinel{};
-
-   // (TODO: document properly) Do we want to re-subscribe to channels on reconnection?
-   bool restore_pubsub_state = false;
 };
 
 }  // namespace boost::redis

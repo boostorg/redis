@@ -79,7 +79,6 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
 auto co_main(config cfg) -> asio::awaitable<void>
 {
-   cfg.restore_pubsub_state = true;
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(ex);
    asio::co_spawn(ex, receiver(conn), asio::detached);
