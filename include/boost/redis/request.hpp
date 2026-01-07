@@ -10,6 +10,7 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
+#include <chrono>
 #include <initializer_list>
 #include <iterator>
 #include <string>
@@ -25,6 +26,40 @@ namespace detail {
 auto has_response(std::string_view cmd) -> bool;
 struct request_access;
 }  // namespace detail
+
+class set_condition {
+public:
+   set_condition();  // no condition
+   static set_condition nx();
+   static set_condition xx();
+   static set_condition ifeq(std::string_view value);
+   static set_condition ifne(std::string_view value);
+   static set_condition ifdeq(std::string_view digest);
+   static set_condition ifdne(std::string_view digest);
+
+private:
+   union {
+      std::chrono::milliseconds ms;
+      std::chrono::seconds s;
+      std::string_view sv;
+   } data_;
+};
+
+class set_expiry {
+public:
+   set_expiry();  // no expiry
+   static set_expiry ex(std::chrono::seconds duration);
+   static set_expiry px(std::chrono::milliseconds duration);
+   static set_expiry exat(std::chrono::system_clock::time_point tp);
+   static set_expiry pxat(std::chrono::system_clock::time_point tp);
+   static set_expiry keepttl();
+};
+
+struct set_args {
+   set_condition condition{};
+   bool get{false};
+   set_expiry expiry{};
+};
 
 /** @brief Represents a Redis request.
  *  
@@ -681,6 +716,11 @@ public:
    {
       push_range("PUNSUBSCRIBE", patterns_begin, patterns_end);
    }
+
+   void push_get(std::string_view key) { push("GET", key); }
+
+   template <class T>
+   void push_set(std::string_view key, const T& value, const set_args& args = {});
 
 private:
    void check_cmd(std::string_view cmd)
