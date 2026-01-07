@@ -9,10 +9,10 @@
 
 #include <boost/redis/adapter/result.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/assert.hpp>
@@ -216,7 +216,12 @@ public:
    : tree_(c)
    { }
 
-   void on_init() { }
+   void on_init()
+   {
+      if (tree_->has_value()) {
+         tree_->value().notify_init();
+      }
+   }
    void on_done()
    {
       BOOST_ASSERT_MSG(!!tree_, "Unexpected null pointer");
@@ -255,11 +260,8 @@ public:
    : tree_(c)
    { }
 
-   void on_init() { }
-   void on_done()
-   {
-      tree_->notify_done();
-   }
+   void on_init() { tree_->notify_init(); }
+   void on_done() { tree_->notify_done(); }
 
    template <class String>
    void on_node(resp3::basic_node<String> const& nd, system::error_code&)

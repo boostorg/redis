@@ -53,6 +53,7 @@ make_test(test_multiplexer)
 make_test(test_parse_sentinel_response)
 make_test(test_update_sentinel_list)
 make_test(test_flat_tree)
+make_test(test_generic_flat_response)
 make_test(test_read_buffer)
 
 # Tests that require a real Redis server

@@ -23,7 +23,6 @@ using boost::redis::request;
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
 using boost::redis::resp3::tree;
-using boost::redis::resp3::flat_tree;
 using boost::redis::generic_flat_response;
 using boost::redis::ignore_t;
 using boost::redis::resp3::detail::deserialize;
@@ -252,40 +251,4 @@ BOOST_AUTO_TEST_CASE(check_counter_adapter)
    BOOST_CHECK_EQUAL(init, 1);
    BOOST_CHECK_EQUAL(node, 7);
    BOOST_CHECK_EQUAL(done, 1);
-}
-
-BOOST_AUTO_TEST_CASE(generic_flat_response_simple_error)
-{
-   generic_flat_response resp;
-
-   char const* wire = "-Error\r\n";
-
-   error_code ec;
-   deserialize(wire, adapt2(resp), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
-
-   BOOST_TEST(!resp.has_value());
-   BOOST_TEST(resp.has_error());
-   auto const error = resp.error();
-
-   BOOST_CHECK_EQUAL(error.data_type, boost::redis::resp3::type::simple_error);
-   BOOST_CHECK_EQUAL(error.diagnostic, std::string{"Error"});
-}
-
-BOOST_AUTO_TEST_CASE(generic_flat_response_blob_error)
-{
-   generic_flat_response resp;
-
-   char const* wire = "!5\r\nError\r\n";
-
-   error_code ec;
-   deserialize(wire, adapt2(resp), ec);
-   BOOST_CHECK_EQUAL(ec, error_code{});
-
-   BOOST_TEST(!resp.has_value());
-   BOOST_TEST(resp.has_error());
-   auto const error = resp.error();
-
-   BOOST_CHECK_EQUAL(error.data_type, boost::redis::resp3::type::blob_error);
-   BOOST_CHECK_EQUAL(error.diagnostic, std::string{"Error"});
 }

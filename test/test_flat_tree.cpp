@@ -7,6 +7,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert/source_location.hpp>
@@ -32,6 +33,7 @@ using boost::redis::resp3::type;
 using boost::redis::resp3::detail::deserialize;
 using boost::redis::resp3::node;
 using boost::redis::resp3::node_view;
+using boost::redis::resp3::parser;
 using boost::redis::resp3::to_string;
 using boost::redis::response;
 using boost::system::error_code;
@@ -47,6 +49,20 @@ void add_nodes(
    deserialize(data, adapt2(to), ec);
    if (!BOOST_TEST_EQ(ec, error_code{}))
       std::cerr << "Called from " << loc << std::endl;
+}
+
+bool parse_checked(
+   flat_tree& to,
+   parser& p,
+   std::string_view data,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   error_code ec;
+   auto adapter = adapt2(to);
+   bool done = boost::redis::resp3::parse(p, data, adapter, ec);
+   if (!BOOST_TEST_EQ(ec, error_code{}))
+      std::cerr << "Called from " << loc << std::endl;
+   return done;
 }
 
 void check_nodes(
@@ -202,6 +218,116 @@ void test_add_nodes_big_node()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// Flat trees have a temporary area (tmp) where nodes are stored while
+// messages are being parsed. Nodes in the tmp area are not part of the representation
+// until they are committed when the message has been fully parsed
+void test_add_nodes_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message, but not all of it.
+   // These nodes are stored but are not part of the user-facing representation
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Finish the message. Nodes will now show up
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // We can repeat this cycle again
+   p.reset();
+   BOOST_TEST_NOT(parse_checked(t, p, ">2\r\n+good\r\n"));
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   BOOST_TEST(parse_checked(t, p, ">2\r\n+good\r\n+bye\r\n"));
+   expected_nodes.push_back({type::push, 2u, 0u, ""});
+   expected_nodes.push_back({type::simple_string, 1u, 1u, "good"});
+   expected_nodes.push_back({type::simple_string, 1u, 1u, "bye"});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.data_capacity(), 512u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+}
+
+// If there was an unfinished message when another message is started,
+// the former is discarded
+void test_add_nodes_existing_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, ">3\r\n+some message\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // This message is abandoned, and another one is started
+   p.reset();
+   BOOST_TEST_NOT(parse_checked(t, p, "%66\r\n+abandoned\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // This happens again, but this time a complete message is added
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// The same works even if there is existing committed data
+void test_add_nodes_existing_data_and_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add a full message
+   add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Add part of a message
+   p.reset();
+   BOOST_TEST_NOT(parse_checked(t, p, "%66\r\n+abandoned\r\n"));
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // This message is abandoned, and replaced by a full one
+   add_nodes(t, "+complete message\r\n");
+   expected_nodes.push_back({type::simple_string, 1u, 0u, "complete message"});
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 26u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+}
+
 // --- Reserving space ---
 // The usual case, calling it before using it
 void test_reserve()
@@ -210,7 +336,7 @@ void test_reserve()
 
    t.reserve(1024u, 5u);
    check_nodes(t, {});
-   BOOST_TEST_EQ(t.get_view().capacity(), 5u);
+   BOOST_TEST_GE(t.capacity(), 5u);
    BOOST_TEST_EQ(t.data_size(), 0u);
    BOOST_TEST_EQ(t.data_capacity(), 1024);
    BOOST_TEST_EQ(t.get_reallocs(), 1u);
@@ -271,6 +397,32 @@ void test_reserve_with_data()
    // Add a bunch of nodes, and then reserve
    add_nodes(t, "*2\r\n+hello\r\n+world\r\n");
    t.reserve(1000u, 10u);
+
+   // Check
+   std::vector<node_view> expected_nodes{
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+   BOOST_TEST_EQ(t.data_capacity(), 1024u);
+   BOOST_TEST_EQ(t.get_reallocs(), 2u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Reserve also handles the tmp area
+void test_reserve_with_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add a partial message, and then reserve
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   t.reserve(1000u, 10u);
+
+   // Finish the current message so nodes in the tmp area show up
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
 
    // Check
    std::vector<node_view> expected_nodes{
@@ -346,6 +498,93 @@ void test_clear_reuse()
    };
    check_nodes(t, expected_nodes);
    BOOST_TEST_EQ(t.get_reallocs(), 1u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Clear doesn't remove the tmp area
+void test_clear_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add a full message and part of another
+   add_nodes(t, ">2\r\n+orange\r\n+apple\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::push,          2u, 0u, ""      },
+      {type::simple_string, 1u, 1u, "orange"},
+      {type::simple_string, 1u, 1u, "apple" },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Clearing removes the user-facing representation
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Clearing having only tmp area is safe
+void test_clear_only_tmp()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Clearing here does nothing
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+}
+
+// Clearing having tmp nodes but no data is also safe
+void test_clear_only_tmp_nodes()
+{
+   flat_tree t;
+   parser p;
+
+   // Add part of a message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n"));
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Clearing here does nothing
+   t.clear();
+   check_nodes(t, {});
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // The nodes in the tmp area are still alive. Adding the remaining yields the full message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   std::vector<node_view> expected_nodes = {
+      {type::array,         2u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "hello"},
+      {type::simple_string, 1u, 1u, "world"},
+   };
+   check_nodes(t, expected_nodes);
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
@@ -437,6 +676,37 @@ void test_copy_ctor_adjust_capacity()
    BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
 }
 
+// Copying an object also copies its tmp area
+void test_copy_ctor_tmp()
+{
+   // Setup
+   flat_tree t;
+   parser p;
+   add_nodes(t, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+
+   // Copy. The copy has the tmp nodes but they're hidden in its tmp area
+   flat_tree t2{t};
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 7u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+
+   // Finishing the message in the copy works
+   BOOST_TEST(parse_checked(t2, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 17u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 2u);
+}
+
 // --- Move ctor ---
 void test_move_ctor()
 {
@@ -484,6 +754,37 @@ void test_move_ctor_with_capacity()
    BOOST_TEST_EQ(t2.data_capacity(), 1024u);
    BOOST_TEST_EQ(t2.get_reallocs(), 1u);
    BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+}
+
+// Moving an object also moves its tmp area
+void test_move_ctor_tmp()
+{
+   // Setup
+   flat_tree t;
+   parser p;
+   add_nodes(t, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+
+   // Move. The new object has the same tmp area
+   flat_tree t2{std::move(t)};
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 7u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+
+   // Finishing the message in the copy works
+   BOOST_TEST(parse_checked(t2, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t2, expected_nodes);
+   BOOST_TEST_EQ(t2.data_size(), 17u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 2u);
 }
 
 // --- Copy assignment ---
@@ -645,6 +946,40 @@ void test_copy_assign_self()
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
 }
 
+// Copy assignment also assigns the tmp area
+void test_copy_assign_tmp()
+{
+   parser p;
+
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+hello\r\n"));
+
+   // Assigning also copies where the tmp area starts
+   t = t2;
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 7u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // The tmp area was also copied
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
+}
+
 // --- Move assignment ---
 void test_move_assign()
 {
@@ -719,6 +1054,40 @@ void test_move_assign_both_empty()
    BOOST_TEST_EQ(t.data_capacity(), 0u);
    BOOST_TEST_EQ(t.get_reallocs(), 0u);
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+}
+
+// Move assignment also propagates the tmp area
+void test_move_assign_tmp()
+{
+   parser p;
+
+   flat_tree t;
+   add_nodes(t, "+some_data\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+message\r\n");
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+hello\r\n"));
+
+   // When moving, the tmp area is moved, too
+   t = std::move(t2);
+   std::vector<node_view> expected_nodes{
+      {type::simple_string, 1u, 0u, "message"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 7u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // Finish the message
+   BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "message"},
+      {type::array,         2u, 0u, ""       },
+      {type::simple_string, 1u, 1u, "hello"  },
+      {type::simple_string, 1u, 1u, "world"  },
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 17u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 2u);
 }
 
 // --- Comparison ---
@@ -826,6 +1195,67 @@ void test_comparison_self()
    BOOST_TEST_NOT(tempty != tempty);
 }
 
+// The tmp area is not taken into account when comparing
+void test_comparison_tmp()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+hello\r\n");
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+more data\r\n"));
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+void test_comparison_tmp_different()
+{
+   flat_tree t;
+   add_nodes(t, "+hello\r\n");
+
+   flat_tree t2;
+   add_nodes(t2, "+world\r\n");
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t2, p, "*2\r\n+more data\r\n"));
+
+   BOOST_TEST_NOT(t == t2);
+   BOOST_TEST(t != t2);
+}
+
+// Comparing object with only tmp area doesn't cause trouble
+void test_comparison_only_tmp()
+{
+   flat_tree t;
+   parser p;
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+more data\r\n"));
+
+   flat_tree t2;
+   parser p2;
+   BOOST_TEST_NOT(parse_checked(t2, p2, "*2\r\n+random\r\n"));
+
+   BOOST_TEST(t == t2);
+   BOOST_TEST_NOT(t != t2);
+}
+
+// --- Capacity ---
+// Delegates to the underlying vector function
+void test_capacity()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.capacity(), 0u);
+
+   // Inserting a node increases capacity.
+   // It is not specified how capacity grows, though.
+   add_nodes(t, "+hello\r\n");
+   BOOST_TEST_GE(t.capacity(), 1u);
+
+   // Reserve also affects capacity
+   t.reserve(1000u, 8u);
+   BOOST_TEST_GE(t.capacity(), 8u);
+}
+
 }  // namespace
 
 int main()
@@ -834,15 +1264,22 @@ int main()
    test_add_nodes_copies();
    test_add_nodes_capacity_limit();
    test_add_nodes_big_node();
+   test_add_nodes_tmp();
+   test_add_nodes_existing_tmp();
+   test_add_nodes_existing_data_and_tmp();
 
    test_reserve();
    test_reserve_not_power_of_2();
    test_reserve_below_current_capacity();
    test_reserve_with_data();
+   test_reserve_with_tmp();
 
    test_clear();
    test_clear_empty();
    test_clear_reuse();
+   test_clear_tmp();
+   test_clear_only_tmp();
+   test_clear_only_tmp_nodes();
 
    test_default_constructor();
 
@@ -850,15 +1287,12 @@ int main()
    test_copy_ctor_empty();
    test_copy_ctor_empty_with_capacity();
    test_copy_ctor_adjust_capacity();
+   test_copy_ctor_tmp();
 
    test_move_ctor();
    test_move_ctor_empty();
    test_move_ctor_with_capacity();
-
-   test_move_assign();
-   test_move_assign_target_empty();
-   test_move_assign_source_empty();
-   test_move_assign_both_empty();
+   test_move_ctor_tmp();
 
    test_copy_assign();
    test_copy_assign_target_empty();
@@ -868,6 +1302,13 @@ int main()
    test_copy_assign_source_with_extra_capacity();
    test_copy_assign_both_empty();
    test_copy_assign_self();
+   test_copy_assign_tmp();
+
+   test_move_assign();
+   test_move_assign_target_empty();
+   test_move_assign_source_empty();
+   test_move_assign_both_empty();
+   test_move_assign_tmp();
 
    test_comparison_different();
    test_comparison_different_node_types();
@@ -876,6 +1317,11 @@ int main()
    test_comparison_equal_capacity();
    test_comparison_empty();
    test_comparison_self();
+   test_comparison_tmp();
+   test_comparison_tmp_different();
+   test_comparison_only_tmp();
+
+   test_capacity();
 
    return boost::report_errors();
 }
