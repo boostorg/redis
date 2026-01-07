@@ -5,7 +5,9 @@
  */
 
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/serialization.hpp>
 
+#include <cstddef>
 #include <string_view>
 
 namespace boost::redis::detail {
@@ -37,4 +39,15 @@ void boost::redis::request::append(const request& other)
    payload_ += other.payload_;
    commands_ += other.commands_;
    expected_responses_ += other.expected_responses_;
+}
+
+void boost::redis::request::add_pubsub_arg(detail::pubsub_change_type type, std::string_view value)
+{
+   // Add the argument
+   resp3::add_bulk(payload_, value);
+
+   // Track the change.
+   // The final \r\n adds 2 bytes
+   std::size_t offset = payload_.size() - value.size() - 2u;
+   pubsub_changes_.push_back({type, offset, value.size()});
 }

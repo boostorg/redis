@@ -11,6 +11,7 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -496,7 +497,7 @@ public:
    template <class ForwardIt>
    void subscribe(ForwardIt channels_begin, ForwardIt channels_end)
    {
-      push_range("SUBSCRIBE", channels_begin, channels_end);
+      push_pubsub("SUBSCRIBE", detail::pubsub_change_type::subscribe, channels_begin, channels_end);
    }
 
    /**
@@ -560,7 +561,11 @@ public:
    template <class ForwardIt>
    void unsubscribe(ForwardIt channels_begin, ForwardIt channels_end)
    {
-      push_range("UNSUBSCRIBE", channels_begin, channels_end);
+      push_pubsub(
+         "UNSUBSCRIBE",
+         detail::pubsub_change_type::unsubscribe,
+         channels_begin,
+         channels_end);
    }
 
    /**
@@ -630,7 +635,11 @@ public:
    template <class ForwardIt>
    void psubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
    {
-      push_range("PSUBSCRIBE", patterns_begin, patterns_end);
+      push_pubsub(
+         "PSUBSCRIBE",
+         detail::pubsub_change_type::psubscribe,
+         patterns_begin,
+         patterns_end);
    }
 
    /**
@@ -694,7 +703,11 @@ public:
    template <class ForwardIt>
    void punsubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
    {
-      push_range("PUNSUBSCRIBE", patterns_begin, patterns_end);
+      push_pubsub(
+         "PUNSUBSCRIBE",
+         detail::pubsub_change_type::punsubscribe,
+         patterns_begin,
+         patterns_end);
    }
 
 private:
@@ -715,6 +728,28 @@ private:
    std::size_t expected_responses_ = 0;
    bool has_hello_priority_ = false;
    std::vector<detail::pubsub_change> pubsub_changes_{};
+
+   void add_pubsub_arg(detail::pubsub_change_type type, std::string_view value);
+
+   template <class ForwardIt>
+   void push_pubsub(
+      std::string_view cmd,
+      detail::pubsub_change_type type,
+      ForwardIt channels_begin,
+      ForwardIt channels_end)
+   {
+      if (channels_begin == channels_end)
+         return;
+
+      auto const distance = std::distance(channels_begin, channels_end);
+      resp3::add_header(payload_, resp3::type::array, 1 + distance);
+      resp3::add_bulk(payload_, cmd);
+
+      for (; channels_begin != channels_end; ++channels_begin)
+         add_pubsub_arg(type, *channels_begin);
+
+      ++commands_;  // these commands don't have a response
+   }
 
    friend struct detail::request_access;
 };
