@@ -35,7 +35,7 @@ void pubsub_state::commit_change(pubsub_change_type type, std::string_view chann
 
 void pubsub_state::commit_changes(const request& req)
 {
-   for (const auto& ch : detail::request_access::pubsub_changes(req))
+   for (const auto& ch : request_access::pubsub_changes(req))
       commit_change(ch.type, req.payload().substr(ch.channel_offset, ch.channel_size));
 }
 
