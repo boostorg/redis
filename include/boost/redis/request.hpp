@@ -430,6 +430,273 @@ public:
     */
    void append(const request& other);
 
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `{"ch1", "ch2"}`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using `subscribe`.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   void subscribe(std::initializer_list<std::string_view> channels)
+   {
+      subscribe(channels.begin(), channels.end());
+   }
+
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `["ch1", "ch2"]`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class Range>
+   void subscribe(Range&& channels, decltype(std::cbegin(channels))* = nullptr)
+   {
+      subscribe(std::cbegin(channels), std::cend(channels));
+   }
+
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * [`channels_begin`, `channels_end`) should point to a valid
+    * range of elements convertible to `std::string_view`.
+    * If the range contains `["ch1", "ch2"]`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class ForwardIt>
+   void subscribe(ForwardIt channels_begin, ForwardIt channels_end)
+   {
+      push_range("SUBSCRIBE", channels_begin, channels_end);
+   }
+
+   /**
+    * @brief Appends an UNSUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `{"ch1", "ch2"}`, the resulting command
+    * is `UNSUBSCRIBE ch1 ch2`.
+    *
+    * UNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   void unsubscribe(std::initializer_list<std::string_view> channels)
+   {
+      unsubscribe(channels.begin(), channels.end());
+   }
+
+   /**
+    * @brief Appends an UNSUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `["ch1", "ch2"]`, the resulting command
+    * is `UNSUBSCRIBE ch1 ch2`.
+    *
+    * UNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class Range>
+   void unsubscribe(Range&& channels, decltype(std::cbegin(channels))* = nullptr)
+   {
+      unsubscribe(std::cbegin(channels), std::cend(channels));
+   }
+
+   /**
+    * @brief Appends an UNSUBSCRIBE command to the end of the request.
+    *
+    * [`channels_begin`, `channels_end`) should point to a valid
+    * range of elements convertible to `std::string_view`.
+    * If the range contains `["ch1", "ch2"]`, the resulting command
+    * is `UNSUBSCRIBE ch1 ch2`.
+    *
+    * UNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class ForwardIt>
+   void unsubscribe(ForwardIt channels_begin, ForwardIt channels_end)
+   {
+      push_range("UNSUBSCRIBE", channels_begin, channels_end);
+   }
+
+   /**
+    * @brief Appends a PSUBSCRIBE command to the end of the request.
+    *
+    * If `patterns` contains `{"news.*", "events.*"}`, the resulting command
+    * is `PSUBSCRIBE news.* events.*`.
+    *
+    * PSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   void psubscribe(std::initializer_list<std::string_view> patterns)
+   {
+      psubscribe(patterns.begin(), patterns.end());
+   }
+
+   /**
+    * @brief Appends a PSUBSCRIBE command to the end of the request.
+    *
+    * If `patterns` contains `["news.*", "events.*"]`, the resulting command
+    * is `PSUBSCRIBE news.* events.*`.
+    *
+    * PSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class Range>
+   void psubscribe(Range&& patterns, decltype(std::cbegin(patterns))* = nullptr)
+   {
+      psubscribe(std::cbegin(patterns), std::cend(patterns));
+   }
+
+   /**
+    * @brief Appends a PSUBSCRIBE command to the end of the request.
+    *
+    * [`patterns_begin`, `patterns_end`) should point to a valid
+    * range of elements convertible to `std::string_view`.
+    * If the range contains `["news.*", "events.*"]`, the resulting command
+    * is `PSUBSCRIBE news.* events.*`.
+    *
+    * PSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class ForwardIt>
+   void psubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
+   {
+      push_range("PSUBSCRIBE", patterns_begin, patterns_end);
+   }
+
+   /**
+    * @brief Appends a PUNSUBSCRIBE command to the end of the request.
+    *
+    * If `patterns` contains `{"news.*", "events.*"}`, the resulting command
+    * is `PUNSUBSCRIBE news.* events.*`.
+    *
+    * PUNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   void punsubscribe(std::initializer_list<std::string_view> patterns)
+   {
+      punsubscribe(patterns.begin(), patterns.end());
+   }
+
+   /**
+    * @brief Appends a PUNSUBSCRIBE command to the end of the request.
+    *
+    * If `patterns` contains `["news.*", "events.*"]`, the resulting command
+    * is `PUNSUBSCRIBE news.* events.*`.
+    *
+    * PUNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class Range>
+   void punsubscribe(Range&& patterns, decltype(std::cbegin(patterns))* = nullptr)
+   {
+      punsubscribe(std::cbegin(patterns), std::cend(patterns));
+   }
+
+   /**
+    * @brief Appends a PUNSUBSCRIBE command to the end of the request.
+    *
+    * [`patterns_begin`, `patterns_end`) should point to a valid
+    * range of elements convertible to `std::string_view`.
+    * If the range contains `["news.*", "events.*"]`, the resulting command
+    * is `PUNSUBSCRIBE news.* events.*`.
+    *
+    * PUNSUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed patterns tracked by the
+    * connection is updated.
+    * 
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class ForwardIt>
+   void punsubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
+   {
+      push_range("PUNSUBSCRIBE", patterns_begin, patterns_end);
+   }
+
 private:
    void check_cmd(std::string_view cmd)
    {
