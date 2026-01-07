@@ -104,6 +104,27 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
    ++buff.reallocs;
 }
 
+// Erases the first num_bytes bytes from the buffer by moving
+// the remaining bytes forward. Rebases the strings in nodes as required.
+inline void erase_first(flat_buffer& buff, std::size_t num_bytes, view_tree& nodes)
+{
+   BOOST_ASSERT(num_bytes <= buff.size);
+   if (num_bytes > 0u) {
+      // If we have any data to move, we should always have a buffer
+      BOOST_ASSERT(buff.data.get() != nullptr);
+
+      // Record the old base
+      const char* old_base = buff.data.get() + num_bytes;
+
+      // Move all that we're gonna keep to the start of the buffer
+      auto bytes_left = buff.size - num_bytes;
+      std::memmove(buff.data.get(), old_base, bytes_left);
+
+      // Rebase strings
+      rebase_strings(nodes, old_base, buff.data.get());
+   }
+}
+
 // Appends a string to the buffer.
 // Might rebase the string in nodes, but doesn't append any new node.
 inline std::string_view append(flat_buffer& buff, std::string_view value, view_tree& nodes)
@@ -129,6 +150,8 @@ flat_tree::flat_tree(flat_tree const& other)
 : data_{detail::copy_construct(other.data_)}
 , view_tree_{other.view_tree_}
 , total_msgs_{other.total_msgs_}
+, node_tmp_offset_{other.node_tmp_offset_}
+, data_tmp_offset_{other.data_tmp_offset_}
 {
    detail::rebase_strings(view_tree_, other.data_.data.get(), data_.data.get());
 }
@@ -145,6 +168,8 @@ flat_tree& flat_tree::operator=(const flat_tree& other)
 
       // Copy the other fields
       total_msgs_ = other.total_msgs_;
+      node_tmp_offset_ = other.node_tmp_offset_;
+      data_tmp_offset_ = other.data_tmp_offset_;
    }
 
    return *this;
@@ -161,8 +186,15 @@ void flat_tree::reserve(std::size_t bytes, std::size_t nodes)
 
 void flat_tree::clear() noexcept
 {
-   data_.size = 0u;
-   view_tree_.clear();
+   // Discard everything except for the tmp area
+   view_tree_.erase(view_tree_.begin(), view_tree_.begin() + node_tmp_offset_);
+   node_tmp_offset_ = 0u;
+
+   // Do the same for the data area
+   detail::erase_first(data_, data_tmp_offset_, view_tree_);
+   data_tmp_offset_ = 0u;
+
+   // We now have no messages
    total_msgs_ = 0u;
 }
 
@@ -180,10 +212,31 @@ void flat_tree::push(node_view const& nd)
    });
 }
 
+void flat_tree::notify_init()
+{
+   // Discard any data in the tmp area, as it belongs to an operation that never finished
+   BOOST_ASSERT(node_tmp_offset_ <= view_tree_.size());
+   BOOST_ASSERT(data_tmp_offset_ <= data_.size);
+   view_tree_.resize(node_tmp_offset_);
+   data_.size = data_tmp_offset_;
+}
+
+void flat_tree::notify_done()
+{
+   ++total_msgs_;
+   node_tmp_offset_ = view_tree_.size();
+   data_tmp_offset_ = data_.size;
+}
+
 bool operator==(flat_tree const& a, flat_tree const& b)
 {
    // data is already taken into account by comparing the nodes.
-   return a.view_tree_ == b.view_tree_ && a.total_msgs_ == b.total_msgs_;
+   // Only committed nodes should be taken into account.
+   auto a_nodes = a.get_view();
+   auto b_nodes = b.get_view();
+   return a_nodes.size() == b_nodes.size() &&
+          std::equal(a_nodes.begin(), a_nodes.end(), b_nodes.begin()) &&
+          a.total_msgs_ == b.total_msgs_;
 }
 
 }  // namespace boost::redis::resp3
