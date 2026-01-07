@@ -10,7 +10,10 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
+#include <initializer_list>
+#include <iterator>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 // NOTE: For some commands like hset it would be a good idea to assert
@@ -411,6 +414,73 @@ public:
     *  @param other The request containing the commands to append.
     */
    void append(const request& other);
+
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `{"ch1", "ch2"}`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using `push_subscribe`.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   void push_subscribe(std::initializer_list<std::string_view> channels)
+   {
+      push_subscribe(channels.begin(), channels.end());
+   }
+
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * If `channels` contains `["ch1", "ch2"]`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using `push_subscribe`.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class Range>
+   void push_subscribe(Range&& channels, decltype(std::cbegin(channels))* = nullptr)
+   {
+      push_subscribe(std::cbegin(channels), std::cend(channels));
+   }
+
+   /**
+    * @brief Appends a SUBSCRIBE command to the end of the request.
+    *
+    * [`channels_begin`, `channels_end`) should point to a valid
+    * range of elements convertible to `std::string_view`.
+    * If the range contains `["ch1", "ch2"]`, the resulting command
+    * is `SUBSCRIBE ch1 ch2`.
+    *
+    * SUBSCRIBE commands created using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the list of subscribed channels is stored
+    * in the connection. Every time a reconnection happens,
+    * a suitable `SUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    * 
+    * PubSub store restoration only happens when using `push_subscribe`.
+    * Use @ref push or @ref push_range to disable it.
+    */
+   template <class ForwardIt>
+   void push_subscribe(ForwardIt channels_begin, ForwardIt channels_end)
+   {
+      push_range("SUBSCRIBE", channels_begin, channels_end);
+   }
 
 private:
    void check_cmd(std::string_view cmd)
