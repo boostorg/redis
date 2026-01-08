@@ -99,10 +99,17 @@ void test_push_pubsub()
    req.push("PSUBSCRIBE", "ch3*");
    req.push("PUNSUBSCRIBE", "ch4*");
 
+   char const* res =
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n"
+      "*2\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch2\r\n"
+      "*2\r\n$10\r\nPSUBSCRIBE\r\n$4\r\nch3*\r\n"
+      "*2\r\n$12\r\nPUNSUBSCRIBE\r\n$4\r\nch4*\r\n";
+   BOOST_TEST_EQ(req.payload(), res);
    BOOST_TEST_EQ(req.get_expected_responses(), 0u);
    check_pubsub_changes(req, {});
 }
 
+// --- push_range ---
 void test_push_range()
 {
    std::map<std::string, std::string> in{
@@ -121,6 +128,27 @@ void test_push_range()
    request req2;
    req2.push_range("HSET", "key", std::cbegin(in), std::cend(in));
    BOOST_TEST_EQ(req2.payload(), expected);
+}
+
+// Subscription commands added with push_range are not tracked
+void test_push_range_pubsub()
+{
+   const std::vector<std::string_view> channels1{"ch1", "ch2"}, channels2{"ch3"}, patterns1{"ch3*"},
+      patterns2{"ch4*"};
+   request req;
+   req.push_range("SUBSCRIBE", channels1);
+   req.push_range("UNSUBSCRIBE", channels2);
+   req.push_range("PSUBSCRIBE", patterns1);
+   req.push_range("PUNSUBSCRIBE", patterns2);
+
+   char const* res =
+      "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n"
+      "*2\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch3\r\n"
+      "*2\r\n$10\r\nPSUBSCRIBE\r\n$4\r\nch3*\r\n"
+      "*2\r\n$12\r\nPUNSUBSCRIBE\r\n$4\r\nch4*\r\n";
+   BOOST_TEST_EQ(req.payload(), res);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
 }
 
 // --- append ---
@@ -244,6 +272,7 @@ int main()
    test_push_pubsub();
 
    test_push_range();
+   test_push_range_pubsub();
 
    test_append();
    test_append_no_response();
