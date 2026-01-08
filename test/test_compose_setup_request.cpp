@@ -6,18 +6,19 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/adapter/result.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
-#include <boost/redis/response.hpp>
 
 #include <boost/asio/error.hpp>
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/result.hpp>
+
+#include <iostream>
+#include <string_view>
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -27,223 +28,155 @@ using boost::system::error_code;
 
 namespace {
 
-void test_hello()
-{
+struct fixture {
    subscription_tracker tracker;
    request out;
    config cfg;
-   cfg.clientname = "";
 
-   compose_setup_request(cfg, tracker, out);
+   void run(std::string_view expected_payload, boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      compose_setup_request(cfg, tracker, out);
 
-   std::string_view const expected = "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      if (!BOOST_TEST_EQ(out.payload(), expected_payload))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST(out.has_hello_priority()))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST(out.get_config().cancel_if_unresponded))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST(out.get_config().cancel_on_connection_lost))
+         std::cerr << "Called from " << loc << std::endl;
+   }
+};
+
+void test_hello()
+{
+   fixture fix;
+   fix.cfg.clientname = "";
+
+   fix.run("*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n");
 }
 
 void test_select()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.clientname = "";
-   cfg.database_index = 10;
+   fixture fix;
+   fix.cfg.clientname = "";
+   fix.cfg.database_index = 10;
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected =
+   fix.run(
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
-      "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      "*2\r\n$6\r\nSELECT\r\n$2\r\n10\r\n");
 }
 
 void test_clientname()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
+   fixture fix;
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const
-      expected = "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+   fix.run("*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$11\r\nBoost.Redis\r\n");
 }
 
 void test_auth()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.clientname = "";
-   cfg.username = "foo";
-   cfg.password = "bar";
+   fixture fix;
+   fix.cfg.clientname = "";
+   fix.cfg.username = "foo";
+   fix.cfg.password = "bar";
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const
-      expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+   fix.run("*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
 }
 
 void test_auth_empty_password()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.clientname = "";
-   cfg.username = "foo";
+   fixture fix;
+   fix.cfg.clientname = "";
+   fix.cfg.username = "foo";
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const
-      expected = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+   fix.run("*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$0\r\n\r\n");
 }
 
 void test_auth_setname()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.clientname = "mytest";
-   cfg.username = "foo";
-   cfg.password = "bar";
+   fixture fix;
+   fix.cfg.clientname = "mytest";
+   fix.cfg.username = "foo";
+   fix.cfg.password = "bar";
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected =
+   fix.run(
       "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$7\r\nSETNAME\r\n$"
-      "6\r\nmytest\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      "6\r\nmytest\r\n");
 }
 
 void test_use_setup()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.clientname = "mytest";
-   cfg.username = "foo";
-   cfg.password = "bar";
-   cfg.database_index = 4;
-   cfg.use_setup = true;
-   cfg.setup.push("SELECT", 8);
+   fixture fix;
+   fix.cfg.clientname = "mytest";
+   fix.cfg.username = "foo";
+   fix.cfg.password = "bar";
+   fix.cfg.database_index = 4;
+   fix.cfg.use_setup = true;
+   fix.cfg.setup.push("SELECT", 8);
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected =
+   fix.run(
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
-      "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n");
 }
 
 // Regression check: we set the priority flag
 void test_use_setup_no_hello()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.use_setup = true;
-   cfg.setup.clear();
-   cfg.setup.push("SELECT", 8);
+   fixture fix;
+   fix.cfg.use_setup = true;
+   fix.cfg.setup.clear();
+   fix.cfg.setup.push("SELECT", 8);
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+   fix.run("*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n");
 }
 
 // Regression check: we set the relevant cancellation flags in the request
 void test_use_setup_flags()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.use_setup = true;
-   cfg.setup.clear();
-   cfg.setup.push("SELECT", 8);
-   cfg.setup.get_config().cancel_if_unresponded = false;
-   cfg.setup.get_config().cancel_on_connection_lost = false;
+   fixture fix;
+   fix.cfg.use_setup = true;
+   fix.cfg.setup.clear();
+   fix.cfg.setup.push("SELECT", 8);
+   fix.cfg.setup.get_config().cancel_if_unresponded = false;
+   fix.cfg.setup.get_config().cancel_on_connection_lost = false;
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected = "*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+   fix.run("*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n");
 }
 
 // When using Sentinel, a ROLE command is added. This works
 // both with the old HELLO and new setup strategies.
 void test_sentinel_auth()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.sentinel.addresses = {
+   fixture fix;
+   fix.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   cfg.clientname = "";
-   cfg.username = "foo";
-   cfg.password = "bar";
+   fix.cfg.clientname = "";
+   fix.cfg.username = "foo";
+   fix.cfg.password = "bar";
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected =
+   fix.run(
       "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n"
-      "*1\r\n$4\r\nROLE\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      "*1\r\n$4\r\nROLE\r\n");
 }
 
 void test_sentinel_use_setup()
 {
-   subscription_tracker tracker;
-   request out;
-   config cfg;
-   cfg.sentinel.addresses = {
+   fixture fix;
+   fix.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   cfg.use_setup = true;
-   cfg.setup.push("SELECT", 42);
+   fix.cfg.use_setup = true;
+   fix.cfg.setup.push("SELECT", 42);
 
-   compose_setup_request(cfg, tracker, out);
-
-   std::string_view const expected =
+   fix.run(
       "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
       "*2\r\n$6\r\nSELECT\r\n$2\r\n42\r\n"
-      "*1\r\n$4\r\nROLE\r\n";
-   BOOST_TEST_EQ(out.payload(), expected);
-   BOOST_TEST(out.has_hello_priority());
-   BOOST_TEST(out.get_config().cancel_if_unresponded);
-   BOOST_TEST(out.get_config().cancel_on_connection_lost);
+      "*1\r\n$4\r\nROLE\r\n");
 }
 
 }  // namespace
