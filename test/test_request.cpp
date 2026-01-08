@@ -235,6 +235,87 @@ void test_subscribe_initializer_list()
    fix.check_two_channels();
 }
 
+// --- unsubscribe ---
+struct unsubscribe_fixture {
+   request req;
+
+   void check_two_channels(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      constexpr std::string_view
+         expected = "*3\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+      if (!BOOST_TEST_EQ(req.payload(), expected))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST_EQ(req.get_commands(), 1u))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST_EQ(req.get_expected_responses(), 0u))
+         std::cerr << "Called from " << loc << std::endl;
+
+      constexpr pubsub_change_str expected_changes[] = {
+         {pubsub_change_type::unsubscribe, "ch1"},
+         {pubsub_change_type::unsubscribe, "ch2"},
+      };
+      check_pubsub_changes(req, expected_changes, loc);
+   }
+};
+
+void test_unsubscribe_iterators()
+{
+   unsubscribe_fixture fix;
+   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+
+   fix.req.unsubscribe(channels.begin(), channels.end());
+
+   fix.check_two_channels();
+}
+
+// Like push_range, if the range is empty, this is a no-op
+void test_unsubscribe_iterators_empty()
+{
+   const std::forward_list<std::string_view> channels;
+   request req;
+
+   req.unsubscribe(channels.begin(), channels.end());
+
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
+// Iterators whose value_type is convertible to std::string_view work
+void test_unsubscribe_iterators_convertible_string_view()
+{
+   unsubscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.unsubscribe(channels.begin(), channels.end());
+
+   fix.check_two_channels();
+}
+
+// The range overload just dispatches to the iterator one
+void test_unsubscribe_range()
+{
+   unsubscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.unsubscribe(channels);
+
+   fix.check_two_channels();
+}
+
+// The initializer_list overload just dispatches to the iterator one
+void test_unsubscribe_initializer_list()
+{
+   unsubscribe_fixture fix;
+
+   fix.req.unsubscribe({"ch1", "ch2"});
+
+   fix.check_two_channels();
+}
+
 // --- append ---
 void test_append()
 {
@@ -412,6 +493,12 @@ int main()
    test_subscribe_iterators_convertible_string_view();
    test_subscribe_range();
    test_subscribe_initializer_list();
+
+   test_unsubscribe_iterators();
+   test_unsubscribe_iterators_empty();
+   test_unsubscribe_iterators_convertible_string_view();
+   test_unsubscribe_range();
+   test_unsubscribe_initializer_list();
 
    test_append();
    test_append_no_response();
