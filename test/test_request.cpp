@@ -442,6 +442,31 @@ void test_punsubscribe_initializer_list()
    fix.check_punsubscribe();
 }
 
+// Mixing regular commands and pubsub commands is OK
+void test_mix_pubsub_regular()
+{
+   request req;
+   req.push("PING");
+   req.subscribe({"ch1", "ch2"});
+   req.push("GET", "key");
+   req.punsubscribe({"ch4*"});
+
+   constexpr std::string_view expected =
+      "*1\r\n$4\r\nPING\r\n"
+      "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n"
+      "*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n"
+      "*2\r\n$12\r\nPUNSUBSCRIBE\r\n$4\r\nch4*\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 4u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 2u);
+   constexpr pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe,    "ch1" },
+      {pubsub_change_type::subscribe,    "ch2" },
+      {pubsub_change_type::punsubscribe, "ch4*"},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
 // --- append ---
 void test_append()
 {
@@ -675,6 +700,8 @@ int main()
    test_punsubscribe_iterators_convertible_string_view();
    test_punsubscribe_range();
    test_punsubscribe_initializer_list();
+
+   test_mix_pubsub_regular();
 
    test_append();
    test_append_no_response();
