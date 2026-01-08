@@ -12,6 +12,7 @@
 
 #include <array>
 #include <forward_list>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -154,23 +155,38 @@ void test_push_range_pubsub()
    check_pubsub_changes(req, {});
 }
 
-// --- Functions that track subscriptions ---
-void test_subscribe_iterators()
-{
-   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+// --- subscribe ---
+struct subscribe_fixture {
    request req;
 
-   req.subscribe(channels.begin(), channels.end());
+   void check_two_channels(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+      if (!BOOST_TEST_EQ(req.payload(), expected))
+         std::cerr << "Called from " << loc << std::endl;
 
-   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST_EQ(req.get_commands(), 1u);
-   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
-   constexpr pubsub_change_str expected_changes[] = {
-      {pubsub_change_type::subscribe, "ch1"},
-      {pubsub_change_type::subscribe, "ch2"},
-   };
-   check_pubsub_changes(req, expected_changes);
+      if (!BOOST_TEST_EQ(req.get_commands(), 1u))
+         std::cerr << "Called from " << loc << std::endl;
+
+      if (!BOOST_TEST_EQ(req.get_expected_responses(), 0u))
+         std::cerr << "Called from " << loc << std::endl;
+
+      constexpr pubsub_change_str expected_changes[] = {
+         {pubsub_change_type::subscribe, "ch1"},
+         {pubsub_change_type::subscribe, "ch2"},
+      };
+      check_pubsub_changes(req, expected_changes, loc);
+   }
+};
+
+void test_subscribe_iterators()
+{
+   subscribe_fixture fix;
+   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+
+   fix.req.subscribe(channels.begin(), channels.end());
+
+   fix.check_two_channels();
 }
 
 // Like push_range, if the range is empty, this is a no-op
@@ -190,57 +206,33 @@ void test_subscribe_iterators_empty()
 // Iterators whose value_type is convertible to std::string_view work
 void test_subscribe_iterators_convertible_string_view()
 {
+   subscribe_fixture fix;
    const std::vector<std::string> channels{"ch1", "ch2"};
-   request req;
 
-   req.subscribe(channels.begin(), channels.end());
+   fix.req.subscribe(channels.begin(), channels.end());
 
-   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST_EQ(req.get_commands(), 1u);
-   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
-   constexpr pubsub_change_str expected_changes[] = {
-      {pubsub_change_type::subscribe, "ch1"},
-      {pubsub_change_type::subscribe, "ch2"},
-   };
-   check_pubsub_changes(req, expected_changes);
+   fix.check_two_channels();
 }
 
 // The range overload just dispatches to the iterator one
 void test_subscribe_range()
 {
+   subscribe_fixture fix;
    const std::vector<std::string> channels{"ch1", "ch2"};
-   request req;
 
-   req.subscribe(channels);
+   fix.req.subscribe(channels);
 
-   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST_EQ(req.get_commands(), 1u);
-   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
-   constexpr pubsub_change_str expected_changes[] = {
-      {pubsub_change_type::subscribe, "ch1"},
-      {pubsub_change_type::subscribe, "ch2"},
-   };
-   check_pubsub_changes(req, expected_changes);
+   fix.check_two_channels();
 }
 
 // The initializer_list overload just dispatches to the iterator one
 void test_subscribe_initializer_list()
 {
-   request req;
+   subscribe_fixture fix;
 
-   req.subscribe({"ch1", "ch2"});
+   fix.req.subscribe({"ch1", "ch2"});
 
-   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-   BOOST_TEST_EQ(req.payload(), expected);
-   BOOST_TEST_EQ(req.get_commands(), 1u);
-   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
-   constexpr pubsub_change_str expected_changes[] = {
-      {pubsub_change_type::subscribe, "ch1"},
-      {pubsub_change_type::subscribe, "ch2"},
-   };
-   check_pubsub_changes(req, expected_changes);
+   fix.check_two_channels();
 }
 
 // --- append ---
