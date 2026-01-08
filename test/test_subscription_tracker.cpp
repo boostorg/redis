@@ -76,6 +76,22 @@ void test_subscribe_psubscribe()
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
+// We can have subscribe and psubscribe commands with the same argument
+void test_subscribe_psubscribe_same_arg()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   req.subscribe({"ch1"});
+   req.psubscribe({"ch1"});
+   tracker.commit_changes(req);
+
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1");
+   req_expected.push("PSUBSCRIBE", "ch1");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
 }  // namespace
 
 int main()
@@ -83,6 +99,7 @@ int main()
    test_subscribe();
    test_psubscribe();
    test_subscribe_psubscribe();
+   test_subscribe_psubscribe_same_arg();
 
    return boost::report_errors();
 }
