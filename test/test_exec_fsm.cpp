@@ -445,6 +445,43 @@ void test_subscription_tracking_success()
    BOOST_TEST_EQ(tracker_req.payload(), expected_req.payload());
 }
 
+// If the request errors, tracked subscriptions are not committed
+void test_subscription_tracking_error()
+{
+   // Setup
+   request req;
+   req.subscribe({"ch1", "ch2"});
+   connection_state st;
+   elem_and_request input{std::move(req)};
+   exec_fsm fsm(std::move(input.elm));
+
+   // Initiate
+   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
+
+   // We should now wait for a response
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // Simulate a write error, which would trigger a reconnection
+   BOOST_TEST_EQ(st.mpx.prepare_write(), 1u);  // one request was placed in the packet to write
+   st.mpx.cancel_on_conn_lost();
+
+   // This awakens the request
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted, 0u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(input.weak_elm.expired());
+
+   // The subscription has not been added to the tracker
+   request tracker_req;
+   st.tracker.compose_subscribe_request(tracker_req);
+   BOOST_TEST_EQ(tracker_req.payload(), "");
+}
+
 }  // namespace
 
 int main()
@@ -457,6 +494,7 @@ int main()
    test_cancel_notwaiting_terminal_partial();
    test_cancel_notwaiting_total();
    test_subscription_tracking_success();
+   test_subscription_tracking_error();
 
    return boost::report_errors();
 }
