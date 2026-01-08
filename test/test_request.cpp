@@ -385,6 +385,63 @@ void test_psubscribe_initializer_list()
    fix.check_psubscribe();
 }
 
+// --- punsubscribe ---
+void test_punsubscribe_iterators()
+{
+   subscribe_fixture fix;
+   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+
+   fix.req.punsubscribe(channels.begin(), channels.end());
+
+   fix.check_punsubscribe();
+}
+
+// Like push_range, if the range is empty, this is a no-op
+void test_punsubscribe_iterators_empty()
+{
+   const std::forward_list<std::string_view> channels;
+   request req;
+
+   req.punsubscribe(channels.begin(), channels.end());
+
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
+// Iterators whose value_type is convertible to std::string_view work
+void test_punsubscribe_iterators_convertible_string_view()
+{
+   subscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.punsubscribe(channels.begin(), channels.end());
+
+   fix.check_punsubscribe();
+}
+
+// The range overload just dispatches to the iterator one
+void test_punsubscribe_range()
+{
+   subscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.punsubscribe(channels);
+
+   fix.check_punsubscribe();
+}
+
+// The initializer_list overload just dispatches to the iterator one
+void test_punsubscribe_initializer_list()
+{
+   subscribe_fixture fix;
+
+   fix.req.punsubscribe({"ch1", "ch2"});
+
+   fix.check_punsubscribe();
+}
+
 // --- append ---
 void test_append()
 {
@@ -574,6 +631,12 @@ int main()
    test_psubscribe_iterators_convertible_string_view();
    test_psubscribe_range();
    test_psubscribe_initializer_list();
+
+   test_punsubscribe_iterators();
+   test_punsubscribe_iterators_empty();
+   test_punsubscribe_iterators_convertible_string_view();
+   test_punsubscribe_range();
+   test_punsubscribe_initializer_list();
 
    test_append();
    test_append_no_response();
