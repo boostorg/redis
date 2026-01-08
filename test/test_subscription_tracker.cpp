@@ -35,11 +35,54 @@ void test_subscribe()
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
+// State originated by PSUBSCRIBE commands, only
+void test_psubscribe()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.psubscribe({"channel_b*", "channel_c*"});
+   tracker.commit_changes(req1);
+
+   req2.psubscribe({"channel_a*"});
+   tracker.commit_changes(req2);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("PSUBSCRIBE", "channel_a*", "channel_b*", "channel_c*");  // we sort them
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// We can mix SUBSCRIBE and PSUBSCRIBE operations
+void test_subscribe_psubscribe()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.psubscribe({"channel_a*", "channel_b*"});
+   req1.subscribe({"ch1"});
+   tracker.commit_changes(req1);
+
+   req2.subscribe({"ch2"});
+   req2.psubscribe({"channel_c*"});
+   tracker.commit_changes(req2);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   req_expected.push("PSUBSCRIBE", "channel_a*", "channel_b*", "channel_c*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
 }  // namespace
 
 int main()
 {
    test_subscribe();
+   test_psubscribe();
+   test_subscribe_psubscribe();
 
    return boost::report_errors();
 }
