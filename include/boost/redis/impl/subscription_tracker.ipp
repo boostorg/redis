@@ -24,12 +24,12 @@ void subscription_tracker::clear()
 void subscription_tracker::commit_changes(const request& req)
 {
    for (const auto& ch : request_access::pubsub_changes(req)) {
-      std::string owning_channel{req.payload().substr(ch.channel_offset, ch.channel_size)};
+      std::string channel{req.payload().substr(ch.channel_offset, ch.channel_size)};
       switch (ch.type) {
-         case pubsub_change_type::subscribe:    channels_.insert(std::move(owning_channel)); break;
-         case pubsub_change_type::unsubscribe:  channels_.erase(std::move(owning_channel)); break;
-         case pubsub_change_type::psubscribe:   pchannels_.insert(std::move(owning_channel)); break;
-         case pubsub_change_type::punsubscribe: pchannels_.erase(std::move(owning_channel)); break;
+         case pubsub_change_type::subscribe:    channels_.insert(std::move(channel)); break;
+         case pubsub_change_type::unsubscribe:  channels_.erase(std::move(channel)); break;
+         case pubsub_change_type::psubscribe:   pchannels_.insert(std::move(channel)); break;
+         case pubsub_change_type::punsubscribe: pchannels_.erase(std::move(channel)); break;
          default:                               BOOST_ASSERT(false);
       }
    }
