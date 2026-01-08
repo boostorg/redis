@@ -10,9 +10,11 @@
 #include <boost/redis/resp3/serialization.hpp>
 #include <boost/redis/resp3/type.hpp>
 
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 // NOTE: For some commands like hset it would be a good idea to assert
@@ -737,6 +739,12 @@ private:
       ForwardIt channels_begin,
       ForwardIt channels_end)
    {
+      static_assert(
+         std::is_convertible_v<
+            typename std::iterator_traits<ForwardIt>::value_type,
+            std::string_view>,
+         "subscribe, psubscribe, unsubscribe and punsubscribe should be passed ranges of elements "
+         "convertible to std::string_view");
       if (channels_begin == channels_end)
          return;
 
