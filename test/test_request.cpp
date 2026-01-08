@@ -11,6 +11,7 @@
 #include <boost/core/span.hpp>
 
 #include <map>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -267,6 +268,50 @@ void test_append_both_empty()
    check_pubsub_changes(req1, {});
 }
 
+// Append correctly handles requests with pubsub changes
+void test_append_pubsub()
+{
+   request req1;
+   req1.subscribe({"ch1"});
+
+   auto req2 = std::make_unique<request>();
+   req2->unsubscribe({"ch2"});
+   req2->psubscribe({"really_very_long_pattern_name*"});
+
+   req1.append(*req2);
+   req2.reset();  // make sure we don't leave dangling pointers
+
+   constexpr std::string_view expected =
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n"
+      "*2\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch2\r\n"
+      "*2\r\n$10\r\nPSUBSCRIBE\r\n$30\r\nreally_very_long_pattern_name*\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe,   "ch1"                           },
+      {pubsub_change_type::unsubscribe, "ch2"                           },
+      {pubsub_change_type::psubscribe,  "really_very_long_pattern_name*"},
+   };
+   check_pubsub_changes(req1, expected_changes);
+}
+
+// If the target is empty and the source has pubsub changes, that's OK
+void test_append_pubsub_target_empty()
+{
+   request req1;
+
+   request req2;
+   req2.punsubscribe({"ch2"});
+
+   req1.append(req2);
+
+   constexpr std::string_view expected = "*2\r\n$12\r\nPUNSUBSCRIBE\r\n$3\r\nch2\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::punsubscribe, "ch2"},
+   };
+   check_pubsub_changes(req1, expected_changes);
+}
+
 }  // namespace
 
 int main()
@@ -285,6 +330,8 @@ int main()
    test_append_target_empty();
    test_append_source_empty();
    test_append_both_empty();
+   test_append_pubsub();
+   test_append_pubsub_target_empty();
 
    return boost::report_errors();
 }
