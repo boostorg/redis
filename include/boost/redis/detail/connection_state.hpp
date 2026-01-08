@@ -50,7 +50,7 @@ struct connection_state {
    std::string diagnostic{};  // Used by the setup request and Sentinel
    request setup_req{};
    request ping_req{};
-   subscription_tracker pubsub_st{};
+   subscription_tracker tracker{};
 
    // Sentinel stuff
    lazy_random_engine eng{};

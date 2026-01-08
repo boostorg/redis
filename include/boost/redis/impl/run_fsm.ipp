@@ -102,7 +102,7 @@ run_action run_fsm::resume(
       }
 
       // Clear any remainder from previous runs
-      st.pubsub_st.clear();
+      st.tracker.clear();
 
       // Compose the PING request. This only depends on the config, so it can be done just once
       compose_ping_request(st.cfg, st.ping_req);
@@ -159,7 +159,7 @@ run_action run_fsm::resume(
          // Initialization
          st.mpx.reset();
          st.diagnostic.clear();
-         compose_setup_request(st.cfg, st.pubsub_st, st.setup_req);
+         compose_setup_request(st.cfg, st.tracker, st.setup_req);
 
          // Add the setup request to the multiplexer
          if (st.setup_req.get_commands() != 0u) {
