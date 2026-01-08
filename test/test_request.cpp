@@ -10,6 +10,8 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/core/span.hpp>
 
+#include <array>
+#include <forward_list>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -150,6 +152,95 @@ void test_push_range_pubsub()
    BOOST_TEST_EQ(req.payload(), res);
    BOOST_TEST_EQ(req.get_expected_responses(), 0u);
    check_pubsub_changes(req, {});
+}
+
+// --- Functions that track subscriptions ---
+void test_subscribe_iterators()
+{
+   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+   request req;
+
+   req.subscribe(channels.begin(), channels.end());
+
+   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   constexpr pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe, "ch1"},
+      {pubsub_change_type::subscribe, "ch2"},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
+// Like push_range, if the range is empty, this is a no-op
+void test_subscribe_iterators_empty()
+{
+   const std::forward_list<std::string_view> channels;
+   request req;
+
+   req.subscribe(channels.begin(), channels.end());
+
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
+// Iterators whose value_type is convertible to std::string_view work
+void test_subscribe_iterators_convertible_string_view()
+{
+   const std::vector<std::string> channels{"ch1", "ch2"};
+   request req;
+
+   req.subscribe(channels.begin(), channels.end());
+
+   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   constexpr pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe, "ch1"},
+      {pubsub_change_type::subscribe, "ch2"},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
+// The range overload just dispatches to the iterator one
+void test_subscribe_range()
+{
+   const std::vector<std::string> channels{"ch1", "ch2"};
+   request req;
+
+   req.subscribe(channels);
+
+   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   constexpr pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe, "ch1"},
+      {pubsub_change_type::subscribe, "ch2"},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
+// The initializer_list overload just dispatches to the iterator one
+void test_subscribe_initializer_list()
+{
+   request req;
+
+   req.subscribe({"ch1", "ch2"});
+
+   constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   constexpr pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe, "ch1"},
+      {pubsub_change_type::subscribe, "ch2"},
+   };
+   check_pubsub_changes(req, expected_changes);
 }
 
 // --- append ---
@@ -323,6 +414,12 @@ int main()
 
    test_push_range();
    test_push_range_pubsub();
+
+   test_subscribe_iterators();
+   test_subscribe_iterators_empty();
+   test_subscribe_iterators_convertible_string_view();
+   test_subscribe_range();
+   test_subscribe_initializer_list();
 
    test_append();
    test_append_no_response();
