@@ -13,7 +13,9 @@
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/system/errc.hpp>
 
+#include <set>
 #include <string>
+#include <string_view>
 
 #define BOOST_TEST_MODULE conn_push
 #include <boost/test/included/unit_test.hpp>
@@ -36,6 +38,8 @@ using boost::redis::ignore;
 using boost::redis::ignore_t;
 using boost::system::error_code;
 using boost::redis::logger;
+using boost::redis::resp3::node_view;
+using boost::redis::resp3::type;
 using namespace std::chrono_literals;
 
 namespace {
@@ -398,6 +402,38 @@ class test_pubsub_state_restoration_ {
    flat_tree resp_push;
    bool exec_finished = false;
 
+   void check_subscriptions()
+   {
+      // Checks for the expected subscriptions and patterns after restoration
+      std::set<std::string_view> seen_channels, seen_patterns;
+      for (auto it = resp_push.get_view().begin(); it != resp_push.get_view().end();) {
+         // The root element should be a push
+         BOOST_TEST_REQUIRE(it->data_type == type::push);
+         BOOST_TEST_REQUIRE(it->aggregate_size >= 2u);
+         BOOST_TEST_REQUIRE((++it != resp_push.get_view().end()));
+
+         // The next element should be the message type
+         std::string_view msg_type = it->value;
+         BOOST_TEST_REQUIRE((++it != resp_push.get_view().end()));
+
+         // The next element is the channel or pattern
+         if (msg_type == "subscribe")
+            seen_channels.insert(it->value);
+         else if (msg_type == "psubscribe")
+            seen_patterns.insert(it->value);
+
+         // Skip the rest of the nodes
+         while (it != resp_push.get_view().end() && it->depth != 0u)
+            ++it;
+      }
+
+      const std::string_view expected_channels[] = {"ch1", "ch3", "ch5"};
+      const std::string_view expected_patterns[] = {"ch1*", "ch3*", "ch4*", "ch8*"};
+
+      BOOST_TEST(seen_channels == expected_channels, boost::test_tools::per_element());
+      BOOST_TEST(seen_patterns == expected_patterns, boost::test_tools::per_element());
+   }
+
    void sub1()
    {
       // Subscribe to some channels and patterns
@@ -441,6 +477,8 @@ class test_pubsub_state_restoration_ {
 
       conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
          BOOST_TEST(ec == error_code());
+
+         // We are subscribed to 4 channels and 5 patterns
          BOOST_TEST(std::get<0>(resp_str).has_value());
          BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "sub") == "4");
          BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "psub") == "5");
@@ -458,11 +496,11 @@ class test_pubsub_state_restoration_ {
 
       conn.async_exec(req, ignore, [this](error_code, std::size_t) {
          // we don't know if this request will complete successfully or not
-         check_pubsub_restoration();
+         client_info();
       });
    }
 
-   void check_pubsub_restoration()
+   void client_info()
    {
       req.clear();
       req.push("CLIENT", "INFO");
@@ -470,13 +508,17 @@ class test_pubsub_state_restoration_ {
 
       conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
          BOOST_TEST(ec == error_code());
+
+         // We are subscribed to 3 channels and 4 patterns (1 of each didn't survive reconnection)
          BOOST_TEST(std::get<0>(resp_str).has_value());
          BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "sub") == "3");
          BOOST_TEST(find_client_info(std::get<0>(resp_str).value(), "psub") == "4");
+
+         // We have received pushes confirming it
+         check_subscriptions();
+
          exec_finished = true;
          conn.cancel();
-
-         // TODO: verify the push response
       });
    }
 
