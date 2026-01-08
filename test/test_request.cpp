@@ -328,6 +328,63 @@ void test_unsubscribe_initializer_list()
    fix.check_unsubscribe();
 }
 
+// --- psubscribe ---
+void test_psubscribe_iterators()
+{
+   subscribe_fixture fix;
+   const std::forward_list<std::string_view> channels{"ch1", "ch2"};
+
+   fix.req.psubscribe(channels.begin(), channels.end());
+
+   fix.check_psubscribe();
+}
+
+// Like push_range, if the range is empty, this is a no-op
+void test_psubscribe_iterators_empty()
+{
+   const std::forward_list<std::string_view> channels;
+   request req;
+
+   req.psubscribe(channels.begin(), channels.end());
+
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
+// Iterators whose value_type is convertible to std::string_view work
+void test_psubscribe_iterators_convertible_string_view()
+{
+   subscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.psubscribe(channels.begin(), channels.end());
+
+   fix.check_psubscribe();
+}
+
+// The range overload just dispatches to the iterator one
+void test_psubscribe_range()
+{
+   subscribe_fixture fix;
+   const std::vector<std::string> channels{"ch1", "ch2"};
+
+   fix.req.psubscribe(channels);
+
+   fix.check_psubscribe();
+}
+
+// The initializer_list overload just dispatches to the iterator one
+void test_psubscribe_initializer_list()
+{
+   subscribe_fixture fix;
+
+   fix.req.psubscribe({"ch1", "ch2"});
+
+   fix.check_psubscribe();
+}
+
 // --- append ---
 void test_append()
 {
@@ -511,6 +568,12 @@ int main()
    test_unsubscribe_iterators_convertible_string_view();
    test_unsubscribe_range();
    test_unsubscribe_initializer_list();
+
+   test_psubscribe_iterators();
+   test_psubscribe_iterators_empty();
+   test_psubscribe_iterators_convertible_string_view();
+   test_psubscribe_range();
+   test_psubscribe_initializer_list();
 
    test_append();
    test_append_no_response();
