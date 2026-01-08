@@ -276,17 +276,17 @@ public:
     *  of arguments and don't have a key. For example:
     *
     *  @code
-    *  std::set<std::string> channels
-    *     { "channel1" , "channel2" , "channel3" };
+    *  std::set<std::string> keys
+    *     { "key1" , "key2" , "key3" };
     *
     *  request req;
-    *  req.push("SUBSCRIBE", channels.cbegin(), channels.cend());
+    *  req.push("MGET", keys.begin(), keys.end());
     *  @endcode
     *
     *  This will generate the following command:
     *
     *  @code
-    *  SUBSCRIBE channel1 channel2 channel3
+    *  MGET key1 key2 key3
     *  @endcode
     *
     *  *If the passed range is empty, no command is added* and this
