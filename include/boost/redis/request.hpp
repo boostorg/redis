@@ -438,15 +438,16 @@ public:
     * If `channels` contains `{"ch1", "ch2"}`, the resulting command
     * is `SUBSCRIBE ch1 ch2`.
     *
-    * SUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `SUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
-    * PubSub store restoration only happens when using `subscribe`.
-    * Use @ref push or @ref push_range to disable it.
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    void subscribe(std::initializer_list<std::string_view> channels)
    {
@@ -459,16 +460,16 @@ public:
     * If `channels` contains `["ch1", "ch2"]`, the resulting command
     * is `SUBSCRIBE ch1 ch2`.
     *
-    * SUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `SUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class Range>
    void subscribe(Range&& channels, decltype(std::cbegin(channels))* = nullptr)
@@ -484,16 +485,16 @@ public:
     * If the range contains `["ch1", "ch2"]`, the resulting command
     * is `SUBSCRIBE ch1 ch2`.
     *
-    * SUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `SUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class ForwardIt>
    void subscribe(ForwardIt channels_begin, ForwardIt channels_end)
@@ -507,14 +508,16 @@ public:
     * If `channels` contains `{"ch1", "ch2"}`, the resulting command
     * is `UNSUBSCRIBE ch1 ch2`.
     *
-    * UNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    void unsubscribe(std::initializer_list<std::string_view> channels)
    {
@@ -527,14 +530,16 @@ public:
     * If `channels` contains `["ch1", "ch2"]`, the resulting command
     * is `UNSUBSCRIBE ch1 ch2`.
     *
-    * UNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class Range>
    void unsubscribe(Range&& channels, decltype(std::cbegin(channels))* = nullptr)
@@ -550,14 +555,16 @@ public:
     * If the range contains `["ch1", "ch2"]`, the resulting command
     * is `UNSUBSCRIBE ch1 ch2`.
     *
-    * UNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed channels tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class ForwardIt>
    void unsubscribe(ForwardIt channels_begin, ForwardIt channels_end)
@@ -575,16 +582,16 @@ public:
     * If `patterns` contains `{"news.*", "events.*"}`, the resulting command
     * is `PSUBSCRIBE news.* events.*`.
     *
-    * PSUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    void psubscribe(std::initializer_list<std::string_view> patterns)
    {
@@ -597,16 +604,16 @@ public:
     * If `patterns` contains `["news.*", "events.*"]`, the resulting command
     * is `PSUBSCRIBE news.* events.*`.
     *
-    * PSUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class Range>
    void psubscribe(Range&& patterns, decltype(std::cbegin(patterns))* = nullptr)
@@ -622,16 +629,16 @@ public:
     * If the range contains `["news.*", "events.*"]`, the resulting command
     * is `PSUBSCRIBE news.* events.*`.
     *
-    * PSUBSCRIBE commands created using this function are tracked
+    * Subscriptions created using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns is stored
-    * in the connection. Every time a reconnection happens,
-    * a suitable `PSUBSCRIBE` command is issued automatically,
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
     * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class ForwardIt>
    void psubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
@@ -649,14 +656,16 @@ public:
     * If `patterns` contains `{"news.*", "events.*"}`, the resulting command
     * is `PUNSUBSCRIBE news.* events.*`.
     *
-    * PUNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    void punsubscribe(std::initializer_list<std::string_view> patterns)
    {
@@ -669,14 +678,16 @@ public:
     * If `patterns` contains `["news.*", "events.*"]`, the resulting command
     * is `PUNSUBSCRIBE news.* events.*`.
     *
-    * PUNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class Range>
    void punsubscribe(Range&& patterns, decltype(std::cbegin(patterns))* = nullptr)
@@ -692,14 +703,16 @@ public:
     * If the range contains `["news.*", "events.*"]`, the resulting command
     * is `PUNSUBSCRIBE news.* events.*`.
     *
-    * PUNSUBSCRIBE commands created using this function are tracked
+    * Subscriptions removed using this function are tracked
     * to enable PubSub state restoration. After successfully executing
-    * the request, the list of subscribed patterns tracked by the
-    * connection is updated.
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
     * 
     * PubSub store restoration only happens when using @ref subscribe,
-    * @ref unsubscribe, @ref psubscribe and @ref punsubscribe.
-    * Use @ref push or @ref push_range to disable it.
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
     */
    template <class ForwardIt>
    void punsubscribe(ForwardIt patterns_begin, ForwardIt patterns_end)
