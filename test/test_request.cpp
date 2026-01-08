@@ -6,16 +6,68 @@
 
 #include <boost/redis/request.hpp>
 
+#include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/core/span.hpp>
 
 #include <map>
+#include <ostream>
 #include <string>
 #include <string_view>
+#include <vector>
 
-using boost::redis::request;
+using namespace boost::redis;
+using detail::pubsub_change;
+using detail::pubsub_change_type;
 
 namespace {
 
+// --- Utilities to check subscription tracking ---
+const char* to_string(pubsub_change_type type)
+{
+   switch (type) {
+      case pubsub_change_type::subscribe:    return "subscribe";
+      case pubsub_change_type::unsubscribe:  return "unsubscribe";
+      case pubsub_change_type::psubscribe:   return "psubscribe";
+      case pubsub_change_type::punsubscribe: return "punsubscribe";
+      default:                               return "<unknown pubsub_change_type>";
+   }
+}
+
+// Like pubsub_change, but using a string instead of an offset
+struct pubsub_change_str {
+   pubsub_change_type type;
+   std::string_view value;
+
+   friend bool operator==(const pubsub_change_str& lhs, const pubsub_change_str& rhs)
+   {
+      return lhs.type == rhs.type && lhs.value == rhs.value;
+   }
+
+   friend std::ostream& operator<<(std::ostream& os, const pubsub_change_str& value)
+   {
+      return os << "{ " << to_string(value.type) << ", " << value.value << " }";
+   }
+};
+
+void check_pubsub_changes(
+   const request& req,
+   boost::span<const pubsub_change_str> expected,
+   boost::source_location loc = BOOST_CURRENT_LOCATION)
+{
+   // Convert from offsets to strings
+   std::vector<pubsub_change_str> actual;
+   for (const auto& change : detail::request_access::pubsub_changes(req)) {
+      actual.push_back(
+         {change.type, req.payload().substr(change.channel_offset, change.channel_size)});
+   }
+
+   // Check
+   if (!BOOST_TEST_ALL_EQ(actual.begin(), actual.end(), expected.begin(), expected.end()))
+      std::cerr << "Called from " << loc << std::endl;
+}
+
+// --- Generic functions to add commands ---
 void test_push_no_args()
 {
    request req1;
@@ -38,6 +90,19 @@ void test_push_multiple_args()
    BOOST_TEST_EQ(req.payload(), res);
 }
 
+// Subscription commands added with push are not tracked
+void test_push_pubsub()
+{
+   request req;
+   req.push("SUBSCRIBE", "ch1");
+   req.push("UNSUBSCRIBE", "ch2");
+   req.push("PSUBSCRIBE", "ch3*");
+   req.push("PUNSUBSCRIBE", "ch4*");
+
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
 void test_push_range()
 {
    std::map<std::string, std::string> in{
@@ -58,7 +123,7 @@ void test_push_range()
    BOOST_TEST_EQ(req2.payload(), expected);
 }
 
-// Append
+// --- append ---
 void test_append()
 {
    request req1;
@@ -176,6 +241,8 @@ int main()
    test_push_no_args();
    test_push_int();
    test_push_multiple_args();
+   test_push_pubsub();
+
    test_push_range();
 
    test_append();
