@@ -149,8 +149,41 @@ void test_use_setup_flags()
    fix.run("*2\r\n$6\r\nSELECT\r\n$1\r\n8\r\n");
 }
 
+// If we have tracked subscriptions, these are added at the end
+void test_tracked_subscriptions()
+{
+   fixture fix;
+   fix.cfg.clientname = "";
+
+   // Populate the tracker
+   request sub_req;
+   sub_req.subscribe({"ch1", "ch2"});
+   fix.tracker.commit_changes(sub_req);
+
+   fix.run(
+      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
+      "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n");
+}
+
+void test_tracked_subscriptions_use_setup()
+{
+   fixture fix;
+   fix.cfg.use_setup = true;
+   fix.cfg.setup.clear();
+   fix.cfg.setup.push("PING", "value");
+
+   // Populate the tracker
+   request sub_req;
+   sub_req.subscribe({"ch1", "ch2"});
+   fix.tracker.commit_changes(sub_req);
+
+   fix.run(
+      "*2\r\n$4\r\nPING\r\n$5\r\nvalue\r\n"
+      "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n");
+}
+
 // When using Sentinel, a ROLE command is added. This works
-// both with the old HELLO and new setup strategies.
+// both with the old HELLO and new setup strategies, and with tracked subscriptions
 void test_sentinel_auth()
 {
    fixture fix;
@@ -181,6 +214,25 @@ void test_sentinel_use_setup()
       "*1\r\n$4\r\nROLE\r\n");
 }
 
+void test_sentinel_tracked_subscriptions()
+{
+   fixture fix;
+   fix.cfg.clientname = "";
+   fix.cfg.sentinel.addresses = {
+      {"localhost", "26379"}
+   };
+
+   // Populate the tracker
+   request sub_req;
+   sub_req.subscribe({"ch1", "ch2"});
+   fix.tracker.commit_changes(sub_req);
+
+   fix.run(
+      "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n"
+      "*1\r\n$4\r\nROLE\r\n"
+      "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n");
+}
+
 }  // namespace
 
 int main()
@@ -194,8 +246,11 @@ int main()
    test_use_setup();
    test_use_setup_no_hello();
    test_use_setup_flags();
+   test_tracked_subscriptions();
+   test_tracked_subscriptions_use_setup();
    test_sentinel_auth();
    test_sentinel_use_setup();
+   test_sentinel_tracked_subscriptions();
 
    return boost::report_errors();
 }
