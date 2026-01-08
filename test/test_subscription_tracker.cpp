@@ -92,6 +92,83 @@ void test_subscribe_psubscribe_same_arg()
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
+// An unsubscribe/punsubscribe balances a matching subscribe
+void test_unsubscribe()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.subscribe({"ch1", "ch2"});
+   req1.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req1);
+
+   // Unsubscribe from some channels
+   req2.punsubscribe({"ch2*"});
+   req2.unsubscribe({"ch1"});
+   tracker.commit_changes(req2);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch2");
+   req_expected.push("PSUBSCRIBE", "ch1*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// After an unsubscribe, we can subscribe again
+void test_resubscribe()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   // Subscribe to some channels
+   req.subscribe({"ch1", "ch2"});
+   req.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req);
+
+   // Unsubscribe from some channels
+   req.clear();
+   req.punsubscribe({"ch2*"});
+   req.unsubscribe({"ch1"});
+   tracker.commit_changes(req);
+
+   // Subscribe again
+   req.clear();
+   req.subscribe({"ch1"});
+   req.psubscribe({"ch2*"});
+   tracker.commit_changes(req);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// Subscribing twice is not a problem
+void test_subscribe_twice()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   // Subscribe to some channels
+   req.subscribe({"ch1", "ch2"});
+   req.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req);
+
+   // Subscribe to the same channels again
+   req.clear();
+   req.subscribe({"ch2"});
+   req.psubscribe({"ch1*"});
+   tracker.commit_changes(req);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
 }  // namespace
 
 int main()
@@ -100,6 +177,9 @@ int main()
    test_psubscribe();
    test_subscribe_psubscribe();
    test_subscribe_psubscribe_same_arg();
+   test_unsubscribe();
+   test_resubscribe();
+   test_subscribe_twice();
 
    return boost::report_errors();
 }
