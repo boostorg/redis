@@ -602,6 +602,44 @@ void test_append_pubsub_target_empty()
    check_pubsub_changes(req1, expected_changes);
 }
 
+// --- clear ---
+void test_clear()
+{
+   // Create  request with some commands and some pubsub changes
+   request req;
+   req.push("PING", "value");
+   req.push("GET", "key");
+   req.subscribe({"ch1", "ch2"});
+   req.punsubscribe({"ch3*"});
+
+   // Clear removes the payload, the commands and the pubsub changes
+   req.clear();
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+
+   // Clearing again does nothing
+   req.clear();
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
+// Clearing an empty request doesn't cause trouble
+void test_clear_empty()
+{
+   request req;
+
+   req.clear();
+
+   BOOST_TEST_EQ(req.payload(), "");
+   BOOST_TEST_EQ(req.get_commands(), 0u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   check_pubsub_changes(req, {});
+}
+
 }  // namespace
 
 int main()
@@ -646,6 +684,9 @@ int main()
    test_append_both_empty();
    test_append_pubsub();
    test_append_pubsub_target_empty();
+
+   test_clear();
+   test_clear_empty();
 
    return boost::report_errors();
 }
