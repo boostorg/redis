@@ -26,7 +26,6 @@ struct request_access;
 
 enum class pubsub_change_type
 {
-   none,
    subscribe,
    unsubscribe,
    psubscribe,
