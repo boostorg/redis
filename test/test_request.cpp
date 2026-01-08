@@ -170,6 +170,7 @@ void test_append()
    BOOST_TEST_EQ(req1.payload(), expected);
    BOOST_TEST_EQ(req1.get_commands(), 3u);
    BOOST_TEST_EQ(req1.get_expected_responses(), 3u);
+   check_pubsub_changes(req1, {});
 }
 
 // Commands without responses are handled correctly
@@ -191,6 +192,7 @@ void test_append_no_response()
    BOOST_TEST_EQ(req1.payload(), expected);
    BOOST_TEST_EQ(req1.get_commands(), 3u);
    BOOST_TEST_EQ(req1.get_expected_responses(), 2u);
+   check_pubsub_changes(req1, {});
 }
 
 // Flags are not modified by append
@@ -233,6 +235,7 @@ void test_append_target_empty()
    BOOST_TEST_EQ(req1.payload(), expected);
    BOOST_TEST_EQ(req1.get_commands(), 1u);
    BOOST_TEST_EQ(req1.get_expected_responses(), 1u);
+   check_pubsub_changes(req1, {});
 }
 
 void test_append_source_empty()
@@ -248,6 +251,7 @@ void test_append_source_empty()
    BOOST_TEST_EQ(req1.payload(), expected);
    BOOST_TEST_EQ(req1.get_commands(), 1u);
    BOOST_TEST_EQ(req1.get_expected_responses(), 1u);
+   check_pubsub_changes(req1, {});
 }
 
 void test_append_both_empty()
@@ -260,6 +264,7 @@ void test_append_both_empty()
    BOOST_TEST_EQ(req1.payload(), "");
    BOOST_TEST_EQ(req1.get_commands(), 0u);
    BOOST_TEST_EQ(req1.get_expected_responses(), 0u);
+   check_pubsub_changes(req1, {});
 }
 
 }  // namespace
