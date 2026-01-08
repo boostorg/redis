@@ -36,9 +36,23 @@ request make_hello_request()
 
 void boost::redis::request::append(const request& other)
 {
+   // Remember the old payload size, to update offsets
+   std::size_t old_offset = payload_.size();
+
+   // Add the payload
    payload_ += other.payload_;
    commands_ += other.commands_;
    expected_responses_ += other.expected_responses_;
+
+   // Add the pubsub changes. Offsets need to be updated
+   pubsub_changes_.reserve(pubsub_changes_.size() + other.pubsub_changes_.size());
+   for (const auto& change : other.pubsub_changes_) {
+      pubsub_changes_.push_back({
+         change.type,
+         change.channel_offset + old_offset,
+         change.channel_size,
+      });
+   }
 }
 
 void boost::redis::request::add_pubsub_arg(detail::pubsub_change_type type, std::string_view value)
