@@ -21,22 +21,18 @@ void subscription_tracker::clear()
    pchannels_.clear();
 }
 
-void subscription_tracker::commit_change(pubsub_change_type type, std::string_view channel)
-{
-   std::string owning_channel{channel};
-   switch (type) {
-      case pubsub_change_type::subscribe:    channels_.insert(std::move(owning_channel)); break;
-      case pubsub_change_type::unsubscribe:  channels_.erase(std::move(owning_channel)); break;
-      case pubsub_change_type::psubscribe:   pchannels_.insert(std::move(owning_channel)); break;
-      case pubsub_change_type::punsubscribe: pchannels_.erase(std::move(owning_channel)); break;
-      default:                               BOOST_ASSERT(false);
-   }
-}
-
 void subscription_tracker::commit_changes(const request& req)
 {
-   for (const auto& ch : request_access::pubsub_changes(req))
-      commit_change(ch.type, req.payload().substr(ch.channel_offset, ch.channel_size));
+   for (const auto& ch : request_access::pubsub_changes(req)) {
+      std::string owning_channel{req.payload().substr(ch.channel_offset, ch.channel_size)};
+      switch (ch.type) {
+         case pubsub_change_type::subscribe:    channels_.insert(std::move(owning_channel)); break;
+         case pubsub_change_type::unsubscribe:  channels_.erase(std::move(owning_channel)); break;
+         case pubsub_change_type::psubscribe:   pchannels_.insert(std::move(owning_channel)); break;
+         case pubsub_change_type::punsubscribe: pchannels_.erase(std::move(owning_channel)); break;
+         default:                               BOOST_ASSERT(false);
+      }
+   }
 }
 
 void subscription_tracker::compose_subscribe_request(request& to) const

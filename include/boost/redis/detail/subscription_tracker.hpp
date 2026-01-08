@@ -11,15 +11,12 @@
 
 #include <set>
 #include <string>
-#include <string_view>
 
 namespace boost::redis {
 
 class request;
 
 namespace detail {
-
-enum class pubsub_change_type;
 
 class subscription_tracker {
    std::set<std::string> channels_;
@@ -28,7 +25,6 @@ class subscription_tracker {
 public:
    subscription_tracker() = default;
    void clear();
-   void commit_change(pubsub_change_type type, std::string_view channel);
    void commit_changes(const request& req);
    void compose_subscribe_request(request& to) const;
 };
