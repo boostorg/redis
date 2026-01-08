@@ -35,6 +35,8 @@ struct fixture {
 
    void run(std::string_view expected_payload, boost::source_location loc = BOOST_CURRENT_LOCATION)
    {
+      out.push("PING", "leftover");  // verify that we clear the request
+
       compose_setup_request(cfg, tracker, out);
 
       if (!BOOST_TEST_EQ(out.payload(), expected_payload))
