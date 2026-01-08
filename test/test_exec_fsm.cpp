@@ -104,11 +104,23 @@ struct elem_and_request {
    std::shared_ptr<multiplexer::elem> elm;
    std::weak_ptr<multiplexer::elem> weak_elm;  // check that we free memory
 
-   elem_and_request(request::config cfg = {})
-   : req(cfg)
+   static request make_request(request::config cfg)
    {
+      request req{cfg};
+
       // Empty requests are not valid. The request needs to be populated before creating the element
       req.push("get", "mykey");
+
+      return req;
+   }
+
+   elem_and_request(request::config cfg = {})
+   : elem_and_request(make_request(cfg))
+   { }
+
+   elem_and_request(request input_req)
+   : req(std::move(input_req))
+   {
       elm = std::make_shared<multiplexer::elem>(req, any_adapter{});
 
       elm->set_done_callback([this] {
@@ -392,6 +404,47 @@ void test_cancel_notwaiting_total()
    BOOST_TEST_EQ(input.weak_elm.expired(), true);
 }
 
+// If a request completes successfully and contained pubsub changes, these are committed
+void test_subscription_tracking_success()
+{
+   // Setup
+   request req;
+   req.subscribe({"ch1", "ch2"});
+   connection_state st;
+   elem_and_request input{std::move(req)};
+   exec_fsm fsm(std::move(input.elm));
+
+   // Initiate
+   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::notify_writer);
+
+   // We should now wait for a response
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
+
+   // Simulate a successful write
+   BOOST_TEST_EQ(st.mpx.prepare_write(), 1u);  // one request was placed in the packet to write
+   BOOST_TEST(st.mpx.commit_write(st.mpx.get_write_buffer().size()));
+
+   // The request doesn't have a response, so this will
+   // awaken the exec operation, and should complete the operation
+   act = fsm.resume(true, st, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, exec_action(error_code(), 0u));
+
+   // All memory should have been freed by now
+   BOOST_TEST(input.weak_elm.expired());
+
+   // The subscription has been added to the tracker
+   request tracker_req;
+   st.tracker.compose_subscribe_request(tracker_req);
+
+   request expected_req;
+   expected_req.push("SUBSCRIBE", "ch1", "ch2");
+   BOOST_TEST_EQ(tracker_req.payload(), expected_req.payload());
+}
+
 }  // namespace
 
 int main()
@@ -403,6 +456,7 @@ int main()
    test_cancel_waiting();
    test_cancel_notwaiting_terminal_partial();
    test_cancel_notwaiting_total();
+   test_subscription_tracking_success();
 
    return boost::report_errors();
 }
