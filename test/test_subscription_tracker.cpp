@@ -169,6 +169,93 @@ void test_subscribe_twice()
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
+// Unsubscribing from channels we haven't subscribed to is not a problem
+void test_lone_unsubscribe()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   // Subscribe to some channels
+   req.subscribe({"ch1", "ch2"});
+   req.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req);
+
+   // Unsubscribe from channels we haven't subscribed to
+   req.clear();
+   req.unsubscribe({"other"});
+   req.punsubscribe({"other*"});
+   tracker.commit_changes(req);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// A state with no changes is not a problem
+void test_empty()
+{
+   subscription_tracker tracker;
+   request req_output;
+
+   tracker.compose_subscribe_request(req_output);
+   BOOST_TEST_EQ(req_output.payload(), "");
+}
+
+// If the output request is not empty, the commands are added to it, rather than replaced
+void test_output_request_not_empty()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   // Subscribe to some channels
+   req.subscribe({"ch1", "ch2"});
+   req.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req);
+
+   // Compose the output request
+   req_output.push("PING", "hello");
+   tracker.compose_subscribe_request(req_output);
+
+   // Check that we generate the correct response
+   req_expected.push("PING", "hello");
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// Clear removes everything from the state
+void test_clear()
+{
+   subscription_tracker tracker;
+   request req, req_output, req_expected;
+
+   // Subscribe to some channels
+   req.subscribe({"ch1", "ch2"});
+   req.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req);
+
+   // Clear
+   tracker.clear();
+
+   // Nothing should be generated
+   tracker.compose_subscribe_request(req_output);
+   BOOST_TEST_EQ(req_output.payload(), "");
+
+   // We can reuse the tracker by now committing some more changes
+   req.clear();
+   req.subscribe({"ch5"});
+   req.psubscribe({"ch6*"});
+   tracker.commit_changes(req);
+
+   // Check that we generate the correct response
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch5");
+   req_expected.push("PSUBSCRIBE", "ch6*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
 }  // namespace
 
 int main()
@@ -180,6 +267,10 @@ int main()
    test_unsubscribe();
    test_resubscribe();
    test_subscribe_twice();
+   test_lone_unsubscribe();
+   test_empty();
+   test_output_request_not_empty();
+   test_clear();
 
    return boost::report_errors();
 }
