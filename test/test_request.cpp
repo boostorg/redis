@@ -156,13 +156,17 @@ void test_push_range_pubsub()
 }
 
 // --- subscribe ---
+// Most of the tests build the same request using different overloads.
+// This fixture makes checking easier
 struct subscribe_fixture {
    request req;
 
-   void check_two_channels(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   void check_impl(
+      std::string_view expected_payload,
+      pubsub_change_type expected_type,
+      boost::source_location loc = BOOST_CURRENT_LOCATION)
    {
-      constexpr std::string_view expected = "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-      if (!BOOST_TEST_EQ(req.payload(), expected))
+      if (!BOOST_TEST_EQ(req.payload(), expected_payload))
          std::cerr << "Called from " << loc << std::endl;
 
       if (!BOOST_TEST_EQ(req.get_commands(), 1u))
@@ -171,11 +175,43 @@ struct subscribe_fixture {
       if (!BOOST_TEST_EQ(req.get_expected_responses(), 0u))
          std::cerr << "Called from " << loc << std::endl;
 
-      constexpr pubsub_change_str expected_changes[] = {
-         {pubsub_change_type::subscribe, "ch1"},
-         {pubsub_change_type::subscribe, "ch2"},
+      const pubsub_change_str expected_changes[] = {
+         {expected_type, "ch1"},
+         {expected_type, "ch2"},
       };
       check_pubsub_changes(req, expected_changes, loc);
+   }
+
+   void check_subscribe(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      check_impl(
+         "*3\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n",
+         pubsub_change_type::subscribe,
+         loc);
+   }
+
+   void check_unsubscribe(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      check_impl(
+         "*3\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n",
+         pubsub_change_type::unsubscribe,
+         loc);
+   }
+
+   void check_psubscribe(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      check_impl(
+         "*3\r\n$10\r\nPSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n",
+         pubsub_change_type::psubscribe,
+         loc);
+   }
+
+   void check_punsubscribe(boost::source_location loc = BOOST_CURRENT_LOCATION)
+   {
+      check_impl(
+         "*3\r\n$12\r\nPUNSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n",
+         pubsub_change_type::punsubscribe,
+         loc);
    }
 };
 
@@ -186,7 +222,7 @@ void test_subscribe_iterators()
 
    fix.req.subscribe(channels.begin(), channels.end());
 
-   fix.check_two_channels();
+   fix.check_subscribe();
 }
 
 // Like push_range, if the range is empty, this is a no-op
@@ -211,7 +247,7 @@ void test_subscribe_iterators_convertible_string_view()
 
    fix.req.subscribe(channels.begin(), channels.end());
 
-   fix.check_two_channels();
+   fix.check_subscribe();
 }
 
 // The range overload just dispatches to the iterator one
@@ -222,7 +258,7 @@ void test_subscribe_range()
 
    fix.req.subscribe(channels);
 
-   fix.check_two_channels();
+   fix.check_subscribe();
 }
 
 // The initializer_list overload just dispatches to the iterator one
@@ -232,42 +268,18 @@ void test_subscribe_initializer_list()
 
    fix.req.subscribe({"ch1", "ch2"});
 
-   fix.check_two_channels();
+   fix.check_subscribe();
 }
 
 // --- unsubscribe ---
-struct unsubscribe_fixture {
-   request req;
-
-   void check_two_channels(boost::source_location loc = BOOST_CURRENT_LOCATION)
-   {
-      constexpr std::string_view
-         expected = "*3\r\n$11\r\nUNSUBSCRIBE\r\n$3\r\nch1\r\n$3\r\nch2\r\n";
-      if (!BOOST_TEST_EQ(req.payload(), expected))
-         std::cerr << "Called from " << loc << std::endl;
-
-      if (!BOOST_TEST_EQ(req.get_commands(), 1u))
-         std::cerr << "Called from " << loc << std::endl;
-
-      if (!BOOST_TEST_EQ(req.get_expected_responses(), 0u))
-         std::cerr << "Called from " << loc << std::endl;
-
-      constexpr pubsub_change_str expected_changes[] = {
-         {pubsub_change_type::unsubscribe, "ch1"},
-         {pubsub_change_type::unsubscribe, "ch2"},
-      };
-      check_pubsub_changes(req, expected_changes, loc);
-   }
-};
-
 void test_unsubscribe_iterators()
 {
-   unsubscribe_fixture fix;
+   subscribe_fixture fix;
    const std::forward_list<std::string_view> channels{"ch1", "ch2"};
 
    fix.req.unsubscribe(channels.begin(), channels.end());
 
-   fix.check_two_channels();
+   fix.check_unsubscribe();
 }
 
 // Like push_range, if the range is empty, this is a no-op
@@ -287,33 +299,33 @@ void test_unsubscribe_iterators_empty()
 // Iterators whose value_type is convertible to std::string_view work
 void test_unsubscribe_iterators_convertible_string_view()
 {
-   unsubscribe_fixture fix;
+   subscribe_fixture fix;
    const std::vector<std::string> channels{"ch1", "ch2"};
 
    fix.req.unsubscribe(channels.begin(), channels.end());
 
-   fix.check_two_channels();
+   fix.check_unsubscribe();
 }
 
 // The range overload just dispatches to the iterator one
 void test_unsubscribe_range()
 {
-   unsubscribe_fixture fix;
+   subscribe_fixture fix;
    const std::vector<std::string> channels{"ch1", "ch2"};
 
    fix.req.unsubscribe(channels);
 
-   fix.check_two_channels();
+   fix.check_unsubscribe();
 }
 
 // The initializer_list overload just dispatches to the iterator one
 void test_unsubscribe_initializer_list()
 {
-   unsubscribe_fixture fix;
+   subscribe_fixture fix;
 
    fix.req.unsubscribe({"ch1", "ch2"});
 
-   fix.check_two_channels();
+   fix.check_unsubscribe();
 }
 
 // --- append ---
