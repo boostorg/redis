@@ -565,7 +565,7 @@ void test_setup_ping_requests()
    const std::string_view
       expected_setup = "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
    BOOST_TEST_EQ(fix.st.ping_req.payload(), expected_ping);
-   BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
+   BOOST_TEST_EQ(fix.st.setup_req.payload(), expected_setup);
 
    // Reconnect
    act = fix.fsm.resume(fix.st, error::empty_field, cancellation_type_t::none);
@@ -579,7 +579,7 @@ void test_setup_ping_requests()
 
    // The requests haven't been modified
    BOOST_TEST_EQ(fix.st.ping_req.payload(), expected_ping);
-   BOOST_TEST_EQ(fix.st.cfg.setup.payload(), expected_setup);
+   BOOST_TEST_EQ(fix.st.setup_req.payload(), expected_setup);
 }
 
 // We correctly send and log the setup request
