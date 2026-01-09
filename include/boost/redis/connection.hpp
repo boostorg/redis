@@ -108,7 +108,10 @@ struct connection_impl {
       {
          while (true) {
             // Invoke the state machine
-            auto act = fsm_.resume(obj_->is_open(), self.get_cancellation_state().cancelled());
+            auto act = fsm_.resume(
+               obj_->is_open(),
+               obj_->st_,
+               self.get_cancellation_state().cancelled());
 
             // Do what the FSM said
             switch (act.type()) {
@@ -203,7 +206,7 @@ struct connection_impl {
       });
 
       return asio::async_compose<CompletionToken, void(system::error_code, std::size_t)>(
-         exec_op{this, notifier, exec_fsm(st_.mpx, std::move(info))},
+         exec_op{this, notifier, exec_fsm(std::move(info))},
          token,
          writer_cv_);
    }

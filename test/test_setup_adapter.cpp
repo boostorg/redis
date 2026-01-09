@@ -30,7 +30,7 @@ void test_success()
    connection_state st;
    st.cfg.use_setup = true;
    st.cfg.setup.push("SELECT", 2);
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -55,7 +55,7 @@ void test_simple_error()
    // Setup
    connection_state st;
    st.cfg.use_setup = true;
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO contains an error
@@ -73,7 +73,7 @@ void test_blob_error()
    connection_state st;
    st.cfg.use_setup = true;
    st.cfg.setup.push("SELECT", 1);
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -97,7 +97,7 @@ void test_null()
    // Setup
    connection_state st;
    st.cfg.use_setup = true;
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -129,7 +129,7 @@ void test_sentinel_master()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -164,7 +164,7 @@ void test_sentinel_replica()
       {"localhost", "26379"}
    };
    st.cfg.sentinel.server_role = role::replica;
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -193,7 +193,7 @@ void test_sentinel_role_check_failed_master()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -222,7 +222,7 @@ void test_sentinel_role_check_failed_replica()
       {"localhost", "26379"}
    };
    st.cfg.sentinel.server_role = role::replica;
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to HELLO
@@ -252,7 +252,7 @@ void test_sentinel_role_error_node()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to ROLE
@@ -273,7 +273,7 @@ void test_sentinel_role_not_array()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to ROLE
@@ -294,7 +294,7 @@ void test_sentinel_role_empty_array()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to ROLE
@@ -315,7 +315,7 @@ void test_sentinel_role_first_element_not_string()
    st.cfg.sentinel.addresses = {
       {"localhost", "26379"}
    };
-   compose_setup_request(st.cfg);
+   compose_setup_request(st.cfg, st.tracker, st.setup_req);
    setup_adapter adapter{st};
 
    // Response to ROLE

@@ -11,6 +11,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
@@ -47,7 +48,9 @@ struct connection_state {
    config cfg{};
    multiplexer mpx{};
    std::string diagnostic{};  // Used by the setup request and Sentinel
+   request setup_req{};
    request ping_req{};
+   subscription_tracker tracker{};
 
    // Sentinel stuff
    lazy_random_engine eng{};

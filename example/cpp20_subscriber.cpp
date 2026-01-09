@@ -10,6 +10,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/use_awaitable.hpp>
@@ -32,7 +33,7 @@ using asio::signal_set;
  * To test send messages with redis-cli
  *
  *    $ redis-cli -3
- *    127.0.0.1:6379> PUBLISH channel some-message
+ *    127.0.0.1:6379> PUBLISH mychannel some-message
  *    (integer) 3
  *    127.0.0.1:6379>
  *
@@ -46,33 +47,39 @@ using asio::signal_set;
 // Receives server pushes.
 auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 {
-   request req;
-   req.push("SUBSCRIBE", "channel");
-
    generic_flat_response resp;
    conn->set_receive_response(resp);
 
-   // Loop while reconnection is enabled
-   while (conn->will_reconnect()) {
-      // Reconnect to the channels.
-      co_await conn->async_exec(req);
+   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
+   request req;
+   req.subscribe({"mychannel"});
+   co_await conn->async_exec(req);
 
-      // Loop to read Redis push messages.
-      for (error_code ec;;) {
-         // Wait for pushes
-         co_await conn->async_receive2(asio::redirect_error(ec));
-         if (ec)
-            break;  // Connection lost, break so we can reconnect to channels.
+   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
+   // in resp. If the connection encounters a network error and reconnects to the server,
+   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
+   // You need to use specialized request::subscribe() function (instead of request::push)
+   // to enable this behavior.
 
-         // The response must be consumed without suspending the
-         // coroutine i.e. without the use of async operations.
-         for (auto const& elem: resp.value().get_view())
-            std::cout << elem.value << "\n";
+   // Loop to read Redis push messages.
+   for (error_code ec;;) {
+      // Wait for pushes
+      co_await conn->async_receive2(asio::redirect_error(ec));
 
-         std::cout << std::endl;
-
-         resp.value().clear();
+      // Check for errors and cancellations
+      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
+         std::cerr << "Error during receive2: " << ec << std::endl;
+         break;
       }
+
+      // The response must be consumed without suspending the
+      // coroutine i.e. without the use of async operations.
+      for (auto const& elem : resp.value().get_view())
+         std::cout << elem.value << "\n";
+
+      std::cout << std::endl;
+
+      resp.value().clear();
    }
 }
 

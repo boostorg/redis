@@ -14,6 +14,7 @@
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 
+#include <exception>
 #include <iostream>
 #include <unistd.h>
 
@@ -40,31 +41,44 @@ using namespace std::chrono_literals;
 // Chat over Redis pubsub. To test, run this program from multiple
 // terminals and type messages to stdin.
 
+namespace {
+
+auto rethrow_on_error = [](std::exception_ptr exc) {
+   if (exc)
+      std::rethrow_exception(exc);
+};
+
 auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
 {
-   request req;
-   req.push("SUBSCRIBE", "channel");
-
+   // Set the receive response, so pushes are stored in resp
    generic_flat_response resp;
    conn->set_receive_response(resp);
 
-   while (conn->will_reconnect()) {
-      // Subscribe to channels.
-      co_await conn->async_exec(req);
+   // Subscribe to the channel 'channel'. Using request::subscribe()
+   // (instead of request::push()) makes the connection re-subscribe
+   // to 'channel' whenever it re-connects to the server.
+   request req;
+   req.subscribe({"channel"});
+   co_await conn->async_exec(req);
 
-      // Loop reading Redis push messages.
-      for (error_code ec;;) {
-         co_await conn->async_receive2(redirect_error(ec));
-         if (ec)
-            break;  // Connection lost, break so we can reconnect to channels.
+   for (error_code ec;;) {
+      // Wait for pushes
+      co_await conn->async_receive2(asio::redirect_error(ec));
 
-         for (auto const& elem: resp.value().get_view())
-            std::cout << elem.value << "\n";
-
-         std::cout << std::endl;
-
-         resp.value().clear();
+      // Check for errors and cancellations
+      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
+         std::cerr << "Error during receive2: " << ec << std::endl;
+         break;
       }
+
+      // The response must be consumed without suspending the
+      // coroutine i.e. without the use of async operations.
+      for (auto const& elem : resp.value().get_view())
+         std::cout << elem.value << "\n";
+
+      std::cout << std::endl;
+
+      resp.value().clear();
    }
 }
 
@@ -81,6 +95,8 @@ auto publisher(std::shared_ptr<stream_descriptor> in, std::shared_ptr<connection
    }
 }
 
+}  // namespace
+
 // Called from the main function (see main.cpp)
 auto co_main(config cfg) -> awaitable<void>
 {
@@ -88,8 +104,8 @@ auto co_main(config cfg) -> awaitable<void>
    auto conn = std::make_shared<connection>(ex);
    auto stream = std::make_shared<stream_descriptor>(ex, ::dup(STDIN_FILENO));
 
-   co_spawn(ex, receiver(conn), detached);
-   co_spawn(ex, publisher(stream, conn), detached);
+   co_spawn(ex, receiver(conn), rethrow_on_error);
+   co_spawn(ex, publisher(stream, conn), rethrow_on_error);
    conn->async_run(cfg, consign(detached, conn));
 
    signal_set sig_set{ex, SIGINT, SIGTERM};

@@ -55,11 +55,7 @@ std::ostream& operator<<(std::ostream& os, usage const& u)
 
 namespace {
 
-auto
-receiver(
-   connection& conn,
-   flat_tree& resp,
-   std::size_t expected) -> net::awaitable<void>
+auto receiver(connection& conn, flat_tree& resp, std::size_t expected) -> net::awaitable<void>
 {
    std::size_t push_counter = 0;
    while (push_counter != expected) {
@@ -135,7 +131,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
 
    // Subscribe, then launch the coroutines
    request req;
-   req.push("SUBSCRIBE", "channel");
+   req.subscribe({"channel"});
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       subscribe_finished = true;
       BOOST_TEST(ec == error_code());
@@ -150,13 +146,11 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    BOOST_TEST(subscribe_finished);
 
    // Print statistics
-   std::cout
-      << "-------------------\n"
-      << "Usage data: \n"
-      << conn.get_usage() << "\n"
-      << "-------------------\n"
-      << "Reallocations: " << resp.get_reallocs()
-      << std::endl;
+   std::cout << "-------------------\n"
+             << "Usage data: \n"
+             << conn.get_usage() << "\n"
+             << "-------------------\n"
+             << "Reallocations: " << resp.get_reallocs() << std::endl;
 }
 
 }  // namespace

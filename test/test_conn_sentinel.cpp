@@ -96,7 +96,7 @@ void test_receive()
 
    // Subscribe to a channel. This produces a push message on itself
    request req;
-   req.push("SUBSCRIBE", "sentinel_channel");
+   req.subscribe({"sentinel_channel"});
 
    bool exec_finished = false, receive_finished = false, run_finished = false;
 
