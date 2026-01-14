@@ -222,6 +222,104 @@ void test_exec_push_interleaved()
    BOOST_TEST(run_finished);
 }
 
+// async_receive is cancelled every time a reconnection happens,
+// so we can re-establish subscriptions
+struct test_async_receive_cancelled_on_reconnection {
+   net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp{};
+   request req_subscribe{}, req_quit{};
+   bool receive_finished = false, quit_finished = false;
+
+   // Subscribe to a channel. This will cause a push to be received
+   void start_subscribe1()
+   {
+      conn.async_exec(req_subscribe, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+         start_receive1();
+      });
+   }
+
+   // Receive the push triggered by the subscribe
+   void start_receive1()
+   {
+      conn.async_receive([this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+         BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+         resp.clear();
+
+         // In parallel, trigger a reconnection and start a receive operation
+         start_receive_reconnection();
+         start_quit();
+      });
+   }
+
+   // The next receive operation will be cancelled by the reconnection
+   void start_receive_reconnection()
+   {
+      conn.async_receive([this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, net::experimental::channel_errc::channel_cancelled);
+         BOOST_TEST_EQ(resp.get_total_msgs(), 0u);
+         start_subscribe2();
+      });
+   }
+
+   // Trigger a reconnection. This is a "leaf" operation
+   void start_quit()
+   {
+      conn.async_exec(req_quit, ignore, [this](error_code, std::size_t) {
+         quit_finished = true;
+      });
+   }
+
+   // Resubscribe after the reconnection
+   void start_subscribe2()
+   {
+      conn.async_exec(req_subscribe, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+         start_receive2();
+      });
+   }
+
+   // Receive the push triggered by the 2nd subscribe
+   void start_receive2()
+   {
+      conn.async_receive([this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+         BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+         receive_finished = true;
+         conn.cancel();
+      });
+   }
+
+   void run()
+   {
+      req_subscribe.push("SUBSCRIBE", "test_async_receive_cancelled_on_reconnection");
+      req_subscribe.push("PING");
+
+      req_quit.push("QUIT");
+
+      conn.set_receive_response(resp);
+
+      bool run_finished = false;
+
+      start_subscribe1();
+
+      auto cfg = make_test_config();
+      cfg.reconnect_wait_interval = 50ms;  // make the test run faster
+      conn.async_run(cfg, [&](error_code ec) {
+         run_finished = true;
+         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      });
+
+      ioc.run_for(test_timeout);
+
+      BOOST_TEST(run_finished);
+      BOOST_TEST(receive_finished);
+      BOOST_TEST(quit_finished);
+   }
+};
+
 // An adapter that always errors
 struct response_error_tag { };
 response_error_tag error_tag_obj;
@@ -330,8 +428,6 @@ void test_push_adapter_error_reconnection()
    BOOST_TEST(run_finished);
 }
 
-// TODO: async_receive is cancelled when a reconnection happens
-
 // After an async_receive operation finishes, another one can be issued
 struct test_consecutive_receives {
    net::io_context ioc;
@@ -432,6 +528,7 @@ int main()
    test_async_receive_push_available();
    test_sync_receive();
    test_exec_push_interleaved();
+   test_async_receive_cancelled_on_reconnection{}.run();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
    test_consecutive_receives{}.run();
