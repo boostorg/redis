@@ -29,7 +29,7 @@ using boost::system::error_code;
 namespace {
 
 // async_receive is outstanding when a push is received
-void receive_waiting_for_push()
+void test_async_receive_waiting_for_push()
 {
    resp3::flat_tree resp;
    net::io_context ioc;
@@ -77,15 +77,63 @@ void receive_waiting_for_push()
    BOOST_TEST(run_finished);
 }
 
-void push_received1()
+// A push is already available when async_receive is called
+void test_async_receive_push_available()
 {
    net::io_context ioc;
+   connection conn{ioc};
+
+   request req;
+   req.push("SUBSCRIBE", "channel1");
+   req.push("SUBSCRIBE", "channel2");
+
+   bool push_received = false, exec_finished = false, run_finished = false;
+
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      std::cout << "async_exec" << std::endl;
+      BOOST_TEST_EQ(ec, error_code());
+   });
+
+   conn.async_receive([&](error_code ec, std::size_t) {
+      push_received = true;
+      std::cout << "(1) async_receive" << std::endl;
+
+      BOOST_TEST_EQ(ec, error_code());
+
+      // Receives the second push synchronously.
+      error_code ec2;
+      std::size_t res = 0;
+      res = conn.receive(ec2);
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_NE(res, 0u);
+
+      // Tries to receive a third push synchronously.
+      ec2 = {};
+      res = conn.receive(ec2);
+      BOOST_TEST_EQ(ec2, error::sync_receive_push_failed);
+
+      conn.cancel();
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(push_received);
+   BOOST_TEST(run_finished);
+}
+
+void async_receive_push_available2()
+{
+   net::io_context ioc;
+
    auto conn = std::make_shared<connection>(ioc);
 
-   // Trick: Uses SUBSCRIBE because this command has no response or
-   // better said, its response is a server push, which is what we
-   // want to test. We send two because we want to test both
-   // async_receive and receive.
    request req;
    req.push("SUBSCRIBE", "channel1");
    req.push("SUBSCRIBE", "channel2");
@@ -378,8 +426,9 @@ void test_unsubscribe()
 
 int main()
 {
-   receive_waiting_for_push();
-   push_received1();
+   test_async_receive_waiting_for_push();
+   test_async_receive_push_available();
+   async_receive_push_available2();
    push_filtered_out();
    test_push_adapter();
    many_subscribers();
