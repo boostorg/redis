@@ -170,51 +170,48 @@ void test_exec_push_interleaved()
    BOOST_TEST(run_finished);
 }
 
+// An adapter that always errors
 struct response_error_tag { };
 response_error_tag error_tag_obj;
 
 struct response_error_adapter {
    void on_init() { }
    void on_done() { }
-
-   void on_node(
-      boost::redis::resp3::basic_node<std::string_view> const&,
-      boost::system::error_code& ec)
-   {
-      ec = boost::redis::error::incompatible_size;
-   }
+   void on_node(node_view const&, error_code& ec) { ec = error::incompatible_size; }
 };
 
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
 
-void test_test_push_adapter()
+// If the push adapter returns an error, the connection is torn down
+void test_push_adapter_error()
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   connection conn{ioc};
+   conn.set_receive_response(error_tag_obj);
 
    request req;
-   req.push("HELLO", 3);
    req.push("PING");
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn->set_receive_response(error_tag_obj);
-
    bool push_received = false, exec_finished = false, run_finished = false;
 
-   conn->async_receive2([&, conn](error_code ec) {
+   // async_receive2 is cancelled every reconnection cycle
+   conn.async_receive2([&](error_code ec) {
       BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
       push_received = true;
    });
 
-   conn->async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
+   // The request is cancelled because the PING response isn't processed
+   // by the time the error is generated
+   conn.async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       exec_finished = true;
    });
 
    auto cfg = make_test_config();
-   cfg.reconnect_wait_interval = 0s;
-   conn->async_run(cfg, [&run_finished](error_code ec) {
+   cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
+   conn.async_run(cfg, [&run_finished](error_code ec) {
       BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
    });
@@ -223,9 +220,60 @@ void test_test_push_adapter()
    BOOST_TEST(push_received);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
+}
 
-   // TODO: Reset the ioc reconnect and send a quit to ensure
-   // reconnection is possible after an error.
+// A push response error triggers a reconnection
+void test_push_adapter_error_reconnection()
+{
+   net::io_context ioc;
+   connection conn{ioc};
+   conn.set_receive_response(error_tag_obj);
+
+   request req;
+   req.push("PING");
+   req.push("SUBSCRIBE", "channel");
+   req.push("PING");
+
+   request req2;
+   req2.push("PING", "msg2");
+   req2.get_config().cancel_if_unresponded = false;
+
+   response<std::string> resp;
+
+   bool push_received = false, exec_finished = false, run_finished = false;
+
+   // async_receive2 is cancelled every reconnection cycle
+   conn.async_receive2([&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+      push_received = true;
+   });
+
+   auto on_exec2 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg2");
+      exec_finished = true;
+      conn.cancel();
+   };
+
+   // The request is cancelled because the PING response isn't processed
+   // by the time the error is generated
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      conn.async_exec(req2, resp, on_exec2);
+   });
+
+   auto cfg = make_test_config();
+   cfg.reconnect_wait_interval = 50ms;  // make the test run faster
+   conn.async_run(cfg, [&run_finished](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(push_received);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
 }
 
 void launch_push_consumer(std::shared_ptr<connection> conn)
@@ -554,7 +602,8 @@ int main()
    test_async_receive2_waiting_for_push();
    test_async_receive2_push_available();
    test_exec_push_interleaved();
-   test_test_push_adapter();
+   test_push_adapter_error();
+   test_push_adapter_error_reconnection();
    test_many_subscribers();
    test_test_unsubscribe();
    test_pubsub_state_restoration{}.run();
