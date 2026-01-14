@@ -40,6 +40,9 @@ using boost::redis::resp3::node_view;
 using boost::redis::resp3::type;
 using namespace std::chrono_literals;
 
+// Covers all receive functionality except for the deprecated
+// async_receive and receive functions.
+
 namespace {
 
 void test_receives_push_waiting_resps()

@@ -27,6 +27,9 @@ using namespace boost::redis;
 using namespace std::chrono_literals;
 using boost::system::error_code;
 
+// Focuses on the deprecated async_receive and receive
+// functions. test_conn_push2 covers the newer receive functionality.
+
 namespace {
 
 // async_receive is outstanding when a push is received
