@@ -20,7 +20,7 @@
 #include "common.hpp"
 
 #include <cstddef>
-#include <string>
+#include <functional>
 
 namespace net = boost::asio;
 using namespace boost::redis;
@@ -183,7 +183,7 @@ void test_sync_receive()
 
 // async_receive is cancelled every time a reconnection happens,
 // so we can re-establish subscriptions
-struct test_async_receive_cancelled_on_reconnection {
+struct test_async_receive_cancelled_on_reconnection_impl {
    net::io_context ioc;
    connection conn{ioc};
    resp3::flat_tree resp{};
@@ -279,16 +279,21 @@ struct test_async_receive_cancelled_on_reconnection {
    }
 };
 
+void test_async_receive_cancelled_on_reconnection()
+{
+   test_async_receive_cancelled_on_reconnection_impl{}.run();
+}
+
 // After an async_receive operation finishes, another one can be issued
-struct test_consecutive_receives {
+void test_consecutive_receives()
+{
    net::io_context ioc;
    connection conn{ioc};
    resp3::flat_tree resp;
    bool push_consumer_finished{false};
 
-   void launch_push_consumer()
-   {
-      conn.async_receive([this](error_code ec, std::size_t) {
+   std::function<void()> launch_push_consumer = [&]() {
+      conn.async_receive([&](error_code ec, std::size_t) {
          if (ec) {
             BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
             push_consumer_finished = true;
@@ -297,78 +302,75 @@ struct test_consecutive_receives {
          }
          launch_push_consumer();
       });
-   }
+   };
 
-   void run()
-   {
-      conn.set_receive_response(resp);
+   conn.set_receive_response(resp);
 
-      request req1;
-      req1.get_config().cancel_on_connection_lost = false;
-      req1.push("PING", "Message1");
+   request req1;
+   req1.get_config().cancel_on_connection_lost = false;
+   req1.push("PING", "Message1");
 
-      request req2;
-      req2.get_config().cancel_on_connection_lost = false;
-      req2.push("SUBSCRIBE", "channel");
+   request req2;
+   req2.get_config().cancel_on_connection_lost = false;
+   req2.push("SUBSCRIBE", "channel");
 
-      bool exec_finished = false, run_finished = false;
+   bool exec_finished = false, run_finished = false;
 
-      auto c10 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         exec_finished = true;
-         conn.cancel();
-      };
-      auto c9 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c10);
-      };
-      auto c8 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req1, ignore, c9);
-      };
-      auto c7 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c8);
-      };
-      auto c6 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c7);
-      };
-      auto c5 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req1, ignore, c6);
-      };
-      auto c4 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c5);
-      };
-      auto c3 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req1, ignore, c4);
-      };
-      auto c2 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c3);
-      };
-      auto c1 = [&](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         conn.async_exec(req2, ignore, c2);
-      };
+   auto c10 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      exec_finished = true;
+      conn.cancel();
+   };
+   auto c9 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c10);
+   };
+   auto c8 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req1, ignore, c9);
+   };
+   auto c7 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c8);
+   };
+   auto c6 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c7);
+   };
+   auto c5 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req1, ignore, c6);
+   };
+   auto c4 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c5);
+   };
+   auto c3 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req1, ignore, c4);
+   };
+   auto c2 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c3);
+   };
+   auto c1 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_exec(req2, ignore, c2);
+   };
 
-      conn.async_exec(req1, ignore, c1);
-      launch_push_consumer();
+   conn.async_exec(req1, ignore, c1);
+   launch_push_consumer();
 
-      conn.async_run(make_test_config(), [&](error_code ec) {
-         run_finished = true;
-         BOOST_TEST_EQ(ec, net::error::operation_aborted);
-      });
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
 
-      ioc.run_for(test_timeout);
+   ioc.run_for(test_timeout);
 
-      BOOST_TEST(exec_finished);
-      BOOST_TEST(run_finished);
-      BOOST_TEST(push_consumer_finished);
-   }
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+   BOOST_TEST(push_consumer_finished);
 };
 
 }  // namespace
@@ -378,8 +380,8 @@ int main()
    test_async_receive_waiting_for_push();
    test_async_receive_push_available();
    test_sync_receive();
-   test_async_receive_cancelled_on_reconnection{}.run();
-   test_consecutive_receives{}.run();
+   test_async_receive_cancelled_on_reconnection();
+   test_consecutive_receives();
 
    return boost::report_errors();
 }
