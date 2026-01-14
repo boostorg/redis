@@ -36,59 +36,52 @@ using resp3::type;
 
 namespace {
 
-void test_receives_push_waiting_resps()
+// async_receive2 is outstanding when a push is received
+void test_async_receive2_waiting_for_push()
 {
+   resp3::flat_tree resp;
+   net::io_context ioc;
+   connection conn{ioc};
+   conn.set_receive_response(resp);
+
    request req1;
-   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
+   req1.push("SUBSCRIBE", "test_async_receive_waiting_for_push");
 
    request req2;
-   req2.push("SUBSCRIBE", "channel");
+   req2.push("PING", "Message2");
 
-   request req3;
-   req3.push("PING", "Message2");
-   req3.push("QUIT");
+   bool run_finished = false, push_received = false, exec1_finished = false, exec2_finished = false;
 
-   net::io_context ioc;
-
-   auto conn = std::make_shared<connection>(ioc);
-
-   bool push_received = false, c1_called = false, c2_called = false, c3_called = false;
-
-   auto c3 = [&](error_code ec, std::size_t) {
-      c3_called = true;
-      std::cout << "c3: " << ec.message() << std::endl;
+   auto on_exec2 = [&](error_code ec2, std::size_t) {
+      BOOST_TEST_EQ(ec2, error_code());
+      exec2_finished = true;
+      conn.cancel();
    };
 
-   auto c2 = [&, conn](error_code ec, std::size_t) {
-      c2_called = true;
+   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req3, ignore, c3);
-   };
+      exec1_finished = true;
+   });
 
-   auto c1 = [&, conn](error_code ec, std::size_t) {
-      c1_called = true;
+   conn.async_receive2([&](error_code ec) {
       BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c2);
-   };
-
-   conn->async_exec(req1, ignore, c1);
-
-   run(conn, make_test_config(), {});
-
-   conn->async_receive2([&, conn](error_code ec) {
-      std::cout << "async_receive2" << std::endl;
-      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
       push_received = true;
-      conn->cancel();
+      conn.async_exec(req2, ignore, on_exec2);
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
    });
 
    ioc.run_for(test_timeout);
 
    BOOST_TEST(push_received);
-   BOOST_TEST(c1_called);
-   BOOST_TEST(c2_called);
-   BOOST_TEST(c3_called);
+   BOOST_TEST(exec1_finished);
+   BOOST_TEST(exec2_finished);
+   BOOST_TEST(run_finished);
 }
 
 void test_push_received1()
@@ -548,7 +541,7 @@ public:
 
 int main()
 {
-   test_receives_push_waiting_resps();
+   test_async_receive2_waiting_for_push();
    test_push_received1();
    test_push_filtered_out();
    test_test_push_adapter();
