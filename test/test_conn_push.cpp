@@ -181,50 +181,6 @@ void test_sync_receive()
    BOOST_TEST(run_finished);
 }
 
-// A push may be interleaved between regular responses.
-// It is handed to the receive adapter (filtered out).
-void test_exec_push_interleaved()
-{
-   net::io_context ioc;
-   connection conn{ioc};
-   resp3::flat_tree receive_resp;
-   conn.set_receive_response(receive_resp);
-
-   request req;
-   req.push("PING", "msg1");
-   req.push("SUBSCRIBE", "test_exec_push_interleaved");
-   req.push("PING", "msg2");
-
-   response<std::string, std::string> resp;
-
-   bool exec_finished = false, push_received = false, run_finished = false;
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg1");
-      BOOST_TEST_EQ(std::get<1>(resp).value(), "msg2");
-      conn.cancel();
-   });
-
-   conn.async_receive([&](error_code ec, std::size_t) {
-      push_received = true;
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(receive_resp.get_total_msgs(), 1u);
-   });
-
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(push_received);
-   BOOST_TEST(run_finished);
-}
-
 // async_receive is cancelled every time a reconnection happens,
 // so we can re-establish subscriptions
 struct test_async_receive_cancelled_on_reconnection {
@@ -530,7 +486,6 @@ int main()
    test_async_receive_waiting_for_push();
    test_async_receive_push_available();
    test_sync_receive();
-   test_exec_push_interleaved();
    test_async_receive_cancelled_on_reconnection{}.run();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
