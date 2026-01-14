@@ -84,44 +84,46 @@ void test_async_receive2_waiting_for_push()
    BOOST_TEST(run_finished);
 }
 
-void test_push_received1()
+// A push is already available when async_receive2 is called
+void test_async_receive2_push_available()
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
 
-   flat_tree resp;
-   conn->set_receive_response(resp);
-
-   // Trick: Uses SUBSCRIBE because this command has no response or
-   // better said, its response is a server push, which is what we
-   // want to test.
+   // SUBSCRIBE doesn't have a response, but causes a push to be delivered.
+   // Add a PING so the overall request has a response.
+   // This ensures that when async_exec completes, the push has been delivered
    request req;
-   req.push("SUBSCRIBE", "channel1");
-   req.push("SUBSCRIBE", "channel2");
+   req.push("SUBSCRIBE", "test_async_receive_push_available");
+   req.push("PING", "message");
 
-   bool push_received = false, exec_finished = false;
+   bool push_received = false, exec_finished = false, run_finished = false;
 
-   conn->async_exec(req, ignore, [&, conn](error_code ec, std::size_t) {
-      exec_finished = true;
-      std::cout << "async_exec" << std::endl;
-      BOOST_TEST_EQ(ec, error_code());
-   });
-
-   conn->async_receive2([&, conn](error_code ec) {
+   auto on_receive = [&](error_code ec, std::size_t) {
       push_received = true;
-      std::cout << "async_receive2" << std::endl;
-
       BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+      conn.cancel();
+   };
 
-      conn->cancel();
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      exec_finished = true;
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_receive(on_receive);
    });
 
-   run(conn);
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
    ioc.run_for(test_timeout);
 
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
+   BOOST_TEST(run_finished);
 }
 
 void test_push_filtered_out()
@@ -542,7 +544,7 @@ public:
 int main()
 {
    test_async_receive2_waiting_for_push();
-   test_push_received1();
+   test_async_receive2_push_available();
    test_push_filtered_out();
    test_test_push_adapter();
    test_many_subscribers();
