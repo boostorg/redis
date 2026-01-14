@@ -276,97 +276,101 @@ void test_push_adapter_error_reconnection()
    BOOST_TEST(run_finished);
 }
 
-void launch_push_consumer(std::shared_ptr<connection> conn)
+// After an async_receive2 operation finishes, another one can be issued
+void test_consecutive_receives()
 {
-   conn->async_receive2([conn](error_code ec) {
-      if (ec) {
-         BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
-         return;
+   struct impl {
+      net::io_context ioc;
+      connection conn{ioc};
+      resp3::flat_tree resp;
+      bool push_consumer_finished{false};
+
+      void launch_push_consumer()
+      {
+         conn.async_receive2([this](error_code ec) {
+            if (ec) {
+               BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+               push_consumer_finished = true;
+               resp.clear();
+               return;
+            }
+            launch_push_consumer();
+         });
       }
-      launch_push_consumer(conn);
-   });
-}
 
-void test_many_subscribers()
-{
-   request req0;
-   req0.get_config().cancel_on_connection_lost = false;
-   req0.push("HELLO", 3);
+      void run()
+      {
+         conn.set_receive_response(resp);
 
-   request req1;
-   req1.get_config().cancel_on_connection_lost = false;
-   req1.push("PING", "Message1");
+         request req1;
+         req1.get_config().cancel_on_connection_lost = false;
+         req1.push("PING", "Message1");
 
-   request req2;
-   req2.get_config().cancel_on_connection_lost = false;
-   req2.push("SUBSCRIBE", "channel");
+         request req2;
+         req2.get_config().cancel_on_connection_lost = false;
+         req2.push("SUBSCRIBE", "channel");
 
-   request req3;
-   req3.get_config().cancel_on_connection_lost = false;
-   req3.push("QUIT");
+         bool exec_finished = false, run_finished = false;
 
-   net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+         auto c10 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            exec_finished = true;
+            conn.cancel();
+         };
+         auto c9 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c10);
+         };
+         auto c8 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req1, ignore, c9);
+         };
+         auto c7 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c8);
+         };
+         auto c6 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c7);
+         };
+         auto c5 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req1, ignore, c6);
+         };
+         auto c4 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c5);
+         };
+         auto c3 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req1, ignore, c4);
+         };
+         auto c2 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c3);
+         };
+         auto c1 = [&](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            conn.async_exec(req2, ignore, c2);
+         };
 
-   bool finished = false;
+         conn.async_exec(req1, ignore, c1);
+         launch_push_consumer();
 
-   auto c11 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->cancel(operation::reconnection);
-      finished = true;
-   };
-   auto c10 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req3, ignore, c11);
-   };
-   auto c9 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c10);
-   };
-   auto c8 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req1, ignore, c9);
-   };
-   auto c7 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c8);
-   };
-   auto c6 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c7);
-   };
-   auto c5 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req1, ignore, c6);
-   };
-   auto c4 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c5);
-   };
-   auto c3 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req1, ignore, c4);
-   };
-   auto c2 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c3);
-   };
-   auto c1 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c2);
-   };
-   auto c0 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req1, ignore, c1);
+         conn.async_run(make_test_config(), [&](error_code ec) {
+            run_finished = true;
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         });
+
+         ioc.run_for(test_timeout);
+
+         BOOST_TEST(exec_finished);
+         BOOST_TEST(run_finished);
+         BOOST_TEST(push_consumer_finished);
+      }
    };
 
-   conn->async_exec(req0, ignore, c0);
-   launch_push_consumer(conn);
-
-   run(conn, make_test_config(), {});
-
-   ioc.run_for(test_timeout);
-   BOOST_TEST(finished);
+   impl{}.run();
 }
 
 void test_test_unsubscribe()
@@ -604,7 +608,7 @@ int main()
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
-   test_many_subscribers();
+   test_consecutive_receives();
    test_test_unsubscribe();
    test_pubsub_state_restoration{}.run();
 
