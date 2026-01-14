@@ -10,17 +10,15 @@
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/experimental/channel_error.hpp>
+#include <boost/core/lightweight_test.hpp>
+#include <boost/system/detail/error_code.hpp>
 #include <boost/system/errc.hpp>
-
-#include <string>
-
-#define BOOST_TEST_MODULE conn_push
-#include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
 
 #include <cstddef>
 #include <iostream>
+#include <string>
 
 namespace net = boost::asio;
 namespace redis = boost::redis;
@@ -38,7 +36,7 @@ using namespace std::chrono_literals;
 
 namespace {
 
-BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
+void receives_push_waiting_resps()
 {
    request req1;
    req1.push("HELLO", 3);
@@ -64,13 +62,13 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    auto c2 = [&, conn](error_code ec, std::size_t) {
       c2_called = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req3, ignore, c3);
    };
 
    auto c1 = [&, conn](error_code ec, std::size_t) {
       c1_called = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c2);
    };
 
@@ -80,7 +78,7 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
 
    conn->async_receive([&, conn](error_code ec, std::size_t) {
       std::cout << "async_receive" << std::endl;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       push_received = true;
       conn->cancel();
    });
@@ -93,7 +91,7 @@ BOOST_AUTO_TEST_CASE(receives_push_waiting_resps)
    BOOST_TEST(c3_called);
 }
 
-BOOST_AUTO_TEST_CASE(push_received1)
+void push_received1()
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
@@ -111,28 +109,26 @@ BOOST_AUTO_TEST_CASE(push_received1)
    conn->async_exec(req, ignore, [&, conn](error_code ec, std::size_t) {
       exec_finished = true;
       std::cout << "async_exec" << std::endl;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
    });
 
    conn->async_receive([&, conn](error_code ec, std::size_t) {
       push_received = true;
       std::cout << "(1) async_receive" << std::endl;
 
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
 
       // Receives the second push synchronously.
       error_code ec2;
       std::size_t res = 0;
       res = conn->receive(ec2);
-      BOOST_TEST(!ec2);
-      BOOST_TEST(res != std::size_t(0));
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_NE(res, 0u);
 
       // Tries to receive a third push synchronously.
       ec2 = {};
       res = conn->receive(ec2);
-      BOOST_CHECK_EQUAL(
-         ec2,
-         boost::redis::make_error_code(boost::redis::error::sync_receive_push_failed));
+      BOOST_TEST_EQ(ec2, error_code(boost::redis::error::sync_receive_push_failed));
 
       conn->cancel();
    });
@@ -144,7 +140,7 @@ BOOST_AUTO_TEST_CASE(push_received1)
    BOOST_TEST(push_received);
 }
 
-BOOST_AUTO_TEST_CASE(push_filtered_out)
+void push_filtered_out()
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
@@ -161,12 +157,12 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
 
    conn->async_exec(req, resp, [conn, &exec_finished](error_code ec, std::size_t) {
       exec_finished = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
    });
 
    conn->async_receive([&, conn](error_code ec, std::size_t) {
       push_received = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->cancel(operation::reconnection);
    });
 
@@ -176,8 +172,8 @@ BOOST_AUTO_TEST_CASE(push_filtered_out)
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
 
-   BOOST_CHECK_EQUAL(std::get<1>(resp).value(), "PONG");
-   BOOST_CHECK_EQUAL(std::get<2>(resp).value(), "OK");
+   BOOST_TEST_EQ(std::get<1>(resp).value(), "PONG");
+   BOOST_TEST_EQ(std::get<2>(resp).value(), "OK");
 }
 
 struct response_error_tag { };
@@ -197,7 +193,7 @@ struct response_error_adapter {
 
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
 
-BOOST_AUTO_TEST_CASE(test_push_adapter)
+void test_push_adapter()
 {
    net::io_context ioc;
    auto conn = std::make_shared<connection>(ioc);
@@ -213,19 +209,19 @@ BOOST_AUTO_TEST_CASE(test_push_adapter)
    bool push_received = false, exec_finished = false, run_finished = false;
 
    conn->async_receive([&, conn](error_code ec, std::size_t) {
-      BOOST_CHECK_EQUAL(ec, boost::asio::experimental::error::channel_cancelled);
+      BOOST_TEST_EQ(ec, boost::asio::experimental::error::channel_cancelled);
       push_received = true;
    });
 
    conn->async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
-      BOOST_CHECK_EQUAL(ec, boost::system::errc::errc_t::operation_canceled);
+      BOOST_TEST_EQ(ec, boost::system::errc::errc_t::operation_canceled);
       exec_finished = true;
    });
 
    auto cfg = make_test_config();
    cfg.reconnect_wait_interval = 0s;
    conn->async_run(cfg, [&run_finished](error_code ec) {
-      BOOST_CHECK_EQUAL(ec, redis::error::incompatible_size);
+      BOOST_TEST_EQ(ec, redis::error::incompatible_size);
       run_finished = true;
    });
 
@@ -242,14 +238,14 @@ void launch_push_consumer(std::shared_ptr<connection> conn)
 {
    conn->async_receive([conn](error_code ec, std::size_t) {
       if (ec) {
-         BOOST_TEST(ec == net::experimental::error::channel_cancelled);
+         BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
          return;
       }
       launch_push_consumer(conn);
    });
 }
 
-BOOST_AUTO_TEST_CASE(many_subscribers)
+void many_subscribers()
 {
    request req0;
    req0.get_config().cancel_on_connection_lost = false;
@@ -273,52 +269,52 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    bool finished = false;
 
    auto c11 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->cancel(operation::reconnection);
       finished = true;
    };
    auto c10 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req3, ignore, c11);
    };
    auto c9 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c10);
    };
    auto c8 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req1, ignore, c9);
    };
    auto c7 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c8);
    };
    auto c6 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c7);
    };
    auto c5 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req1, ignore, c6);
    };
    auto c4 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c5);
    };
    auto c3 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req1, ignore, c4);
    };
    auto c2 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c3);
    };
    auto c1 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req2, ignore, c2);
    };
    auto c0 = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       conn->async_exec(req1, ignore, c1);
    };
 
@@ -331,7 +327,7 @@ BOOST_AUTO_TEST_CASE(many_subscribers)
    BOOST_TEST(finished);
 }
 
-BOOST_AUTO_TEST_CASE(test_unsubscribe)
+void test_unsubscribe()
 {
    net::io_context ioc;
    connection conn{ioc};
@@ -358,7 +354,7 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
         run_finished = false;
 
    auto on_ping = [&](error_code ec, std::size_t) {
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       ping_finished = true;
       BOOST_TEST(std::get<0>(resp_ping).has_value());
       BOOST_TEST(std::get<0>(resp_ping).value() == "test_unsubscribe");
@@ -367,7 +363,7 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
 
    auto on_unsubscribe = [&](error_code ec, std::size_t) {
       unsubscribe_finished = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST(std::get<0>(resp_unsubscribe).has_value());
       BOOST_TEST(find_client_info(std::get<0>(resp_unsubscribe).value(), "sub") == "2");
       BOOST_TEST(find_client_info(std::get<0>(resp_unsubscribe).value(), "psub") == "1");
@@ -376,7 +372,7 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
 
    auto on_subscribe = [&](error_code ec, std::size_t) {
       subscribe_finished = true;
-      BOOST_TEST(ec == error_code());
+      BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST(std::get<0>(resp_subscribe).has_value());
       BOOST_TEST(find_client_info(std::get<0>(resp_subscribe).value(), "sub") == "3");
       BOOST_TEST(find_client_info(std::get<0>(resp_subscribe).value(), "psub") == "2");
@@ -386,7 +382,7 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
    conn.async_exec(req_subscribe, resp_subscribe, on_subscribe);
 
    conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       run_finished = true;
    });
 
@@ -399,3 +395,15 @@ BOOST_AUTO_TEST_CASE(test_unsubscribe)
 }
 
 }  // namespace
+
+int main()
+{
+   receives_push_waiting_resps();
+   push_received1();
+   push_filtered_out();
+   test_push_adapter();
+   many_subscribers();
+   test_unsubscribe();
+
+   return boost::report_errors();
+}
