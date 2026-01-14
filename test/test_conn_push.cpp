@@ -10,6 +10,7 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
 
@@ -26,59 +27,47 @@ using boost::system::error_code;
 
 namespace {
 
-void receives_push_waiting_resps()
+// async_receive is outstanding when a push is received
+void receive_waiting_for_push()
 {
+   net::io_context ioc;
+   connection conn{ioc};
+
    request req1;
-   req1.push("HELLO", 3);
    req1.push("PING", "Message1");
+   req1.push("SUBSCRIBE", "channel");
 
    request req2;
-   req2.push("SUBSCRIBE", "channel");
+   req2.push("PING", "Message2");
 
-   request req3;
-   req3.push("PING", "Message2");
-   req3.push("QUIT");
+   bool run_finished = false, push_received = false, exec1_finished = false, exec2_finished = false;
 
-   net::io_context ioc;
-
-   auto conn = std::make_shared<connection>(ioc);
-
-   bool push_received = false, c1_called = false, c2_called = false, c3_called = false;
-
-   auto c3 = [&](error_code ec, std::size_t) {
-      c3_called = true;
-      std::cout << "c3: " << ec.message() << std::endl;
-   };
-
-   auto c2 = [&, conn](error_code ec, std::size_t) {
-      c2_called = true;
+   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req3, ignore, c3);
-   };
+      exec1_finished = true;
+   });
 
-   auto c1 = [&, conn](error_code ec, std::size_t) {
-      c1_called = true;
-      BOOST_TEST_EQ(ec, error_code());
-      conn->async_exec(req2, ignore, c2);
-   };
-
-   conn->async_exec(req1, ignore, c1);
-
-   run(conn, make_test_config(), {});
-
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
-      std::cout << "async_receive" << std::endl;
+   conn.async_receive([&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
       push_received = true;
-      conn->cancel();
+      conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
+         BOOST_TEST_EQ(ec2, error_code());
+         exec2_finished = true;
+         conn.cancel();
+      });
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
    });
 
    ioc.run_for(test_timeout);
 
    BOOST_TEST(push_received);
-   BOOST_TEST(c1_called);
-   BOOST_TEST(c2_called);
-   BOOST_TEST(c3_called);
+   BOOST_TEST(exec1_finished);
+   BOOST_TEST(exec2_finished);
+   BOOST_TEST(run_finished);
 }
 
 void push_received1()
@@ -382,7 +371,7 @@ void test_unsubscribe()
 
 int main()
 {
-   receives_push_waiting_resps();
+   receive_waiting_for_push();
    push_received1();
    push_filtered_out();
    test_push_adapter();
