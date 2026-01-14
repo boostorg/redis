@@ -176,40 +176,48 @@ void test_sync_receive()
    BOOST_TEST(run_finished);
 }
 
-void push_filtered_out()
+// A push may be interleaved between regular responses.
+// It is handed to the receive adapter (filtered out).
+void test_exec_push_interleaved()
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   connection conn{ioc};
+   resp3::flat_tree receive_resp;
+   conn.set_receive_response(receive_resp);
 
    request req;
-   req.push("HELLO", 3);
-   req.push("PING");
-   req.push("SUBSCRIBE", "channel");
-   req.push("QUIT");
+   req.push("PING", "msg1");
+   req.push("SUBSCRIBE", "test_exec_push_interleaved");
+   req.push("PING", "msg2");
 
-   response<ignore_t, std::string, std::string> resp;
+   response<std::string, std::string> resp;
 
-   bool exec_finished = false, push_received = false;
+   bool exec_finished = false, push_received = false, run_finished = false;
 
-   conn->async_exec(req, resp, [conn, &exec_finished](error_code ec, std::size_t) {
+   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
       exec_finished = true;
       BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg1");
+      BOOST_TEST_EQ(std::get<1>(resp).value(), "msg2");
+      conn.cancel();
    });
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
+   conn.async_receive([&](error_code ec, std::size_t) {
       push_received = true;
       BOOST_TEST_EQ(ec, error_code());
-      conn->cancel(operation::reconnection);
+      BOOST_TEST_EQ(receive_resp.get_total_msgs(), 1u);
    });
 
-   run(conn);
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
 
    ioc.run_for(test_timeout);
+
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
-
-   BOOST_TEST_EQ(std::get<1>(resp).value(), "PONG");
-   BOOST_TEST_EQ(std::get<2>(resp).value(), "OK");
+   BOOST_TEST(run_finished);
 }
 
 // An adapter that always errors
@@ -436,8 +444,8 @@ int main()
    test_async_receive_waiting_for_push();
    test_async_receive_push_available();
    test_sync_receive();
+   test_exec_push_interleaved();
    test_push_adapter_error();
-   push_filtered_out();
    many_subscribers();
    test_unsubscribe();
 
