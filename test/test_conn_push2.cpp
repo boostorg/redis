@@ -10,9 +10,9 @@
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/errc.hpp>
 
 #include "common.hpp"
 
@@ -24,21 +24,12 @@
 #include <string_view>
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-
-using boost::redis::operation;
-using boost::redis::connection;
-using boost::system::error_code;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::resp3::flat_tree;
-using boost::redis::ignore;
-using boost::redis::ignore_t;
-using boost::system::error_code;
-using boost::redis::logger;
-using boost::redis::resp3::node_view;
-using boost::redis::resp3::type;
+using namespace boost::redis;
 using namespace std::chrono_literals;
+using boost::system::error_code;
+using resp3::flat_tree;
+using resp3::node_view;
+using resp3::type;
 
 // Covers all receive functionality except for the deprecated
 // async_receive and receive functions.
@@ -209,19 +200,19 @@ void test_test_push_adapter()
    bool push_received = false, exec_finished = false, run_finished = false;
 
    conn->async_receive2([&, conn](error_code ec) {
-      BOOST_TEST_EQ(ec, boost::asio::experimental::error::channel_cancelled);
+      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
       push_received = true;
    });
 
    conn->async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, boost::system::errc::errc_t::operation_canceled);
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       exec_finished = true;
    });
 
    auto cfg = make_test_config();
    cfg.reconnect_wait_interval = 0s;
    conn->async_run(cfg, [&run_finished](error_code ec) {
-      BOOST_TEST_EQ(ec, redis::error::incompatible_size);
+      BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
    });
 
