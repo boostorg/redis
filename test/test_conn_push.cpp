@@ -212,6 +212,7 @@ void push_filtered_out()
    BOOST_TEST_EQ(std::get<2>(resp).value(), "OK");
 }
 
+// An adapter that always errors
 struct response_error_tag { };
 response_error_tag error_tag_obj;
 
@@ -223,34 +224,38 @@ struct response_error_adapter {
 
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
 
-void test_push_adapter()
+// If the push adapter returns an error, the connection is torn down
+// (a reconnection would be triggered)
+// TODO: this test should be in push2
+void test_push_adapter_error()
 {
    net::io_context ioc;
-   auto conn = std::make_shared<connection>(ioc);
+   connection conn{ioc};
+   conn.set_receive_response(error_tag_obj);
 
    request req;
-   req.push("HELLO", 3);
    req.push("PING");
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   conn->set_receive_response(error_tag_obj);
-
    bool push_received = false, exec_finished = false, run_finished = false;
 
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, boost::asio::experimental::error::channel_cancelled);
+   // async_receive is cancelled every reconnection cycle
+   conn.async_receive([&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
       push_received = true;
    });
 
-   conn->async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, boost::system::errc::errc_t::operation_canceled);
+   // The request is cancelled because the PING response isn't processed
+   // by the time the error is generated
+   conn.async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       exec_finished = true;
    });
 
    auto cfg = make_test_config();
-   cfg.reconnect_wait_interval = 0s;
-   conn->async_run(cfg, [&run_finished](error_code ec) {
+   cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
+   conn.async_run(cfg, [&run_finished](error_code ec) {
       BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
    });
@@ -259,10 +264,10 @@ void test_push_adapter()
    BOOST_TEST(push_received);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
-
-   // TODO: Reset the ioc reconnect and send a quit to ensure
-   // reconnection is possible after an error.
 }
+
+// TODO: push adapter errors trigger a reconnection
+// TODO: async_receive is cancelled when a reconnection happens
 
 void launch_push_consumer(std::shared_ptr<connection> conn)
 {
@@ -431,8 +436,8 @@ int main()
    test_async_receive_waiting_for_push();
    test_async_receive_push_available();
    test_sync_receive();
+   test_push_adapter_error();
    push_filtered_out();
-   test_push_adapter();
    many_subscribers();
    test_unsubscribe();
 
