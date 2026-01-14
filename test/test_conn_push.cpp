@@ -7,6 +7,7 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
@@ -30,8 +31,10 @@ namespace {
 // async_receive is outstanding when a push is received
 void receive_waiting_for_push()
 {
+   resp3::flat_tree resp;
    net::io_context ioc;
    connection conn{ioc};
+   conn.set_receive_response(resp);
 
    request req1;
    req1.push("PING", "Message1");
@@ -42,19 +45,23 @@ void receive_waiting_for_push()
 
    bool run_finished = false, push_received = false, exec1_finished = false, exec2_finished = false;
 
+   auto on_exec2 = [&](error_code ec2, std::size_t) {
+      BOOST_TEST_EQ(ec2, error_code());
+      exec2_finished = true;
+      conn.cancel();
+   };
+
    conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
       exec1_finished = true;
    });
 
-   conn.async_receive([&](error_code ec, std::size_t) {
+   conn.async_receive([&](error_code ec, std::size_t num_pushes) {
       BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_GT(num_pushes, 0u);
+      BOOST_TEST_GT(resp.get_view().size(), 0u);
       push_received = true;
-      conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
-         BOOST_TEST_EQ(ec2, error_code());
-         exec2_finished = true;
-         conn.cancel();
-      });
+      conn.async_exec(req2, ignore, on_exec2);
    });
 
    conn.async_run(make_test_config(), [&](error_code ec) {
