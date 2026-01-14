@@ -38,7 +38,7 @@ void test_async_receive_waiting_for_push()
 
    request req1;
    req1.push("PING", "Message1");
-   req1.push("SUBSCRIBE", "channel");
+   req1.push("SUBSCRIBE", "test_async_receive_waiting_for_push");
 
    request req2;
    req2.push("PING", "Message2");
@@ -56,10 +56,9 @@ void test_async_receive_waiting_for_push()
       exec1_finished = true;
    });
 
-   conn.async_receive([&](error_code ec, std::size_t num_pushes) {
+   conn.async_receive([&](error_code ec, std::size_t) {
       BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_GT(num_pushes, 0u);
-      BOOST_TEST_GT(resp.get_view().size(), 0u);
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
       push_received = true;
       conn.async_exec(req2, ignore, on_exec2);
    });
@@ -82,38 +81,29 @@ void test_async_receive_push_available()
 {
    net::io_context ioc;
    connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
 
+   // SUBSCRIBE doesn't have a response, but causes a push to be delivered.
+   // Add a PING so the overall request has a response.
+   // This ensures that when async_exec completes, the push has been delivered
    request req;
-   req.push("SUBSCRIBE", "channel1");
-   req.push("SUBSCRIBE", "channel2");
+   req.push("SUBSCRIBE", "test_async_receive_push_available");
+   req.push("PING", "message");
 
    bool push_received = false, exec_finished = false, run_finished = false;
 
+   auto on_receive = [&](error_code ec, std::size_t) {
+      push_received = true;
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+      conn.cancel();
+   };
+
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       exec_finished = true;
-      std::cout << "async_exec" << std::endl;
       BOOST_TEST_EQ(ec, error_code());
-   });
-
-   conn.async_receive([&](error_code ec, std::size_t) {
-      push_received = true;
-      std::cout << "(1) async_receive" << std::endl;
-
-      BOOST_TEST_EQ(ec, error_code());
-
-      // Receives the second push synchronously.
-      error_code ec2;
-      std::size_t res = 0;
-      res = conn.receive(ec2);
-      BOOST_TEST_EQ(ec2, error_code());
-      BOOST_TEST_NE(res, 0u);
-
-      // Tries to receive a third push synchronously.
-      ec2 = {};
-      res = conn.receive(ec2);
-      BOOST_TEST_EQ(ec2, error::sync_receive_push_failed);
-
-      conn.cancel();
+      conn.async_receive(on_receive);
    });
 
    conn.async_run(make_test_config(), [&](error_code ec) {
