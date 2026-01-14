@@ -18,7 +18,6 @@
 #include "common.hpp"
 
 #include <cstddef>
-#include <iostream>
 #include <string>
 
 namespace net = boost::asio;
@@ -118,50 +117,63 @@ void test_async_receive_push_available()
    BOOST_TEST(run_finished);
 }
 
-void async_receive_push_available2()
+// Synchronous receive can be used to try to read a message
+void test_sync_receive()
 {
    net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
 
-   auto conn = std::make_shared<connection>(ioc);
-
+   // Subscribing to 2 channels causes 2 pushes to be delivered.
+   // Adding a PING guarantees that after exec finishes, the push has been read
    request req;
-   req.push("SUBSCRIBE", "channel1");
-   req.push("SUBSCRIBE", "channel2");
+   req.push("SUBSCRIBE", "test_sync_receive_channel1");
+   req.push("SUBSCRIBE", "test_sync_receive_channel2");
+   req.push("PING", "message");
 
-   bool push_received = false, exec_finished = false;
+   bool exec_finished = false, run_finished = false;
 
-   conn->async_exec(req, ignore, [&, conn](error_code ec, std::size_t) {
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       exec_finished = true;
-      std::cout << "async_exec" << std::endl;
-      BOOST_TEST_EQ(ec, error_code());
-   });
-
-   conn->async_receive([&, conn](error_code ec, std::size_t) {
-      push_received = true;
-      std::cout << "(1) async_receive" << std::endl;
-
       BOOST_TEST_EQ(ec, error_code());
 
-      // Receives the second push synchronously.
-      error_code ec2;
-      std::size_t res = 0;
-      res = conn->receive(ec2);
-      BOOST_TEST_EQ(ec2, error_code());
-      BOOST_TEST_NE(res, 0u);
+      // At this point, the receive response contains all the pushes
+      BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
 
-      // Tries to receive a third push synchronously.
-      ec2 = {};
-      res = conn->receive(ec2);
-      BOOST_TEST_EQ(ec2, error::sync_receive_push_failed);
+      // Receive the 1st push synchronously
+      std::size_t push_bytes = conn.receive(ec);
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_GT(push_bytes, 0u);
 
-      conn->cancel();
+      // Receive the 2nd push synchronously
+      push_bytes = conn.receive(ec);
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_GT(push_bytes, 0u);
+
+      // There are no more pushes. Trying to receive one more fails
+      push_bytes = conn.receive(ec);
+      BOOST_TEST_EQ(ec, error::sync_receive_push_failed);
+      BOOST_TEST_EQ(push_bytes, 0u);
+
+      conn.cancel();
    });
 
-   run(conn);
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
+   });
+
+   // Trying to receive a push before one is received fails
+   error_code ec;
+   std::size_t push_bytes = conn.receive(ec);
+   BOOST_TEST_EQ(ec, error::sync_receive_push_failed);
+   BOOST_TEST_EQ(push_bytes, 0u);
+
    ioc.run_for(test_timeout);
 
    BOOST_TEST(exec_finished);
-   BOOST_TEST(push_received);
+   BOOST_TEST(run_finished);
 }
 
 void push_filtered_out()
@@ -418,7 +430,7 @@ int main()
 {
    test_async_receive_waiting_for_push();
    test_async_receive_push_available();
-   async_receive_push_available2();
+   test_sync_receive();
    push_filtered_out();
    test_push_adapter();
    many_subscribers();
