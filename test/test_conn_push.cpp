@@ -7,12 +7,11 @@
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
+#include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/detail/error_code.hpp>
-#include <boost/system/errc.hpp>
 
 #include "common.hpp"
 
@@ -21,18 +20,9 @@
 #include <string>
 
 namespace net = boost::asio;
-namespace redis = boost::redis;
-
-using boost::redis::operation;
-using boost::redis::connection;
-using boost::system::error_code;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::ignore;
-using boost::redis::ignore_t;
-using boost::system::error_code;
-using boost::redis::logger;
+using namespace boost::redis;
 using namespace std::chrono_literals;
+using boost::system::error_code;
 
 namespace {
 
@@ -128,7 +118,7 @@ void push_received1()
       // Tries to receive a third push synchronously.
       ec2 = {};
       res = conn->receive(ec2);
-      BOOST_TEST_EQ(ec2, error_code(boost::redis::error::sync_receive_push_failed));
+      BOOST_TEST_EQ(ec2, error::sync_receive_push_failed);
 
       conn->cancel();
    });
@@ -182,13 +172,7 @@ response_error_tag error_tag_obj;
 struct response_error_adapter {
    void on_init() { }
    void on_done() { }
-
-   void on_node(
-      boost::redis::resp3::basic_node<std::string_view> const&,
-      boost::system::error_code& ec)
-   {
-      ec = boost::redis::error::incompatible_size;
-   }
+   void on_node(resp3::node_view const&, error_code& ec) { ec = error::incompatible_size; }
 };
 
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
@@ -221,7 +205,7 @@ void test_push_adapter()
    auto cfg = make_test_config();
    cfg.reconnect_wait_interval = 0s;
    conn->async_run(cfg, [&run_finished](error_code ec) {
-      BOOST_TEST_EQ(ec, redis::error::incompatible_size);
+      BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
    });
 
