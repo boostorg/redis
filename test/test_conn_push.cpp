@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
@@ -234,7 +235,6 @@ struct response_error_adapter {
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
 
 // If the push adapter returns an error, the connection is torn down
-// (a reconnection would be triggered)
 // TODO: this test should be in push2
 void test_push_adapter_error()
 {
@@ -275,7 +275,61 @@ void test_push_adapter_error()
    BOOST_TEST(run_finished);
 }
 
-// TODO: push adapter errors trigger a reconnection
+// A push response error triggers a reconnection
+// TODO: this test should be in push2
+void test_push_adapter_error_reconnection()
+{
+   net::io_context ioc;
+   connection conn{ioc};
+   conn.set_receive_response(error_tag_obj);
+
+   request req;
+   req.push("PING");
+   req.push("SUBSCRIBE", "channel");
+   req.push("PING");
+
+   request req2;
+   req2.push("PING", "msg2");
+   req2.get_config().cancel_if_unresponded = false;
+
+   response<std::string> resp;
+
+   bool push_received = false, exec_finished = false, run_finished = false;
+
+   // async_receive is cancelled every reconnection cycle
+   conn.async_receive([&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+      push_received = true;
+   });
+
+   auto on_exec2 = [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg2");
+      exec_finished = true;
+      conn.cancel();
+   };
+
+   // The request is cancelled because the PING response isn't processed
+   // by the time the error is generated
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      conn.async_exec(req2, resp, on_exec2);
+   });
+
+   auto cfg = make_test_config();
+   cfg.reconnect_wait_interval = 50ms;  // make the test run faster
+   conn.async_run(cfg, [&run_finished](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      run_finished = true;
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(push_received);
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(run_finished);
+}
+
 // TODO: async_receive is cancelled when a reconnection happens
 
 // After an async_receive operation finishes, another one can be issued
@@ -379,6 +433,7 @@ int main()
    test_sync_receive();
    test_exec_push_interleaved();
    test_push_adapter_error();
+   test_push_adapter_error_reconnection();
    test_consecutive_receives{}.run();
 
    return boost::report_errors();
