@@ -198,7 +198,7 @@ void test_push_adapter_error()
 
    // async_receive2 is cancelled every reconnection cycle
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       push_received = true;
    });
 
@@ -244,7 +244,7 @@ void test_push_adapter_error_reconnection()
 
    // async_receive2 is cancelled every reconnection cycle
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       push_received = true;
    });
 
@@ -287,7 +287,7 @@ void test_consecutive_receives()
    std::function<void()> launch_push_consumer = [&]() {
       conn.async_receive2([&](error_code ec) {
          if (ec) {
-            BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
             push_consumer_finished = true;
             resp.clear();
             return;

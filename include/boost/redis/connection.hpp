@@ -15,6 +15,7 @@
 #include <boost/redis/detail/exec_one_fsm.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
+#include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/detail/redis_stream.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
@@ -234,34 +235,57 @@ struct connection_impl {
 
       return size;
    }
+};
 
-   template <class CompletionToken>
-   auto async_receive2(CompletionToken&& token)
+template <class Executor>
+struct receive2_op {
+   connection_impl<Executor>* conn_;
+   receive_fsm fsm_{};
+
+   void drain_receive_channel()
    {
-      // clang-format off
-      return
-         receive_channel_.async_receive(
-            asio::deferred(
-               [this](system::error_code ec, std::size_t)
-               {
-                  if (!ec) {
-                     auto f = [](system::error_code, std::size_t) {
-                       // There is no point in checking for errors
-                       // here since async_receive just completed
-                       // without errors.
-                     };
+      // TODO: review
+      auto f = [](system::error_code, std::size_t) {
+         // There is no point in checking for errors
+         // here since async_receive just completed
+         // without errors.
+      };
 
-                     // We just want to drain the channel.
-                     while (receive_channel_.try_receive(f));
-                  }
+      // We just want to drain the channel.
+      while (conn_->receive_channel_.try_receive(f))
+         ;
+   }
 
-                  return asio::deferred.values(ec);
-               }
-            )
-         )(std::forward<CompletionToken>(token));
-      // clang-format on
+   template <class Self>
+   void operator()(Self& self, system::error_code ec = {}, std::size_t /* push_bytes */ = 0u)
+   {
+      receive_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+
+      switch (act.type) {
+         case receive_action::action_type::setup_cancellation:
+            self.reset_cancellation_state(asio::enable_total_cancellation());
+            (*this)(self);  // this action does not require yielding
+            return;
+         case receive_action::action_type::wait:
+            conn_->receive_channel_.async_receive(std::move(self));
+            return;
+         case receive_action::action_type::drain_channel:
+            drain_receive_channel();
+            (*this)(self);  // this action does not require yielding
+            return;
+         case receive_action::action_type::done: self.complete(act.ec); return;
+      }
    }
 };
+
+template <class Executor, class CompletionToken>
+auto async_receive2(connection_impl<Executor>& conn, CompletionToken&& token)
+{
+   return asio::async_compose<CompletionToken, void(system::error_code)>(
+      receive2_op<Executor>{&conn},
+      token,
+      conn);
+}
 
 template <class Executor>
 struct exec_one_op {
@@ -826,7 +850,7 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive2(CompletionToken&& token = {})
    {
-      return impl_->async_receive2(std::forward<CompletionToken>(token));
+      return detail::async_receive2(*impl_, std::forward<CompletionToken>(token));
    }
 
    /** @brief (Deprecated) Receives server pushes synchronously without blocking.
@@ -1219,6 +1243,7 @@ public:
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
+   // TODO: might want to use type-erased handlers here
    /// @copydoc basic_connection::async_receive2
    template <class CompletionToken = asio::deferred_t>
    auto async_receive2(CompletionToken&& token = {})
