@@ -155,7 +155,7 @@ struct connection_impl {
    {
       switch (op) {
          case operation::exec:    st_.mpx.cancel_waiting(); break;
-         case operation::receive: receive_channel_.cancel(); break;
+         case operation::receive: cancel_receive(); break;
          case operation::reconnection:
             st_.cfg.reconnect_wait_interval = std::chrono::seconds::zero();
             break;
@@ -166,12 +166,18 @@ struct connection_impl {
          case operation::health_check:  cancel_run(); break;
          case operation::all:
             st_.mpx.cancel_waiting();                                        // exec
-            receive_channel_.cancel();                                       // receive
+            cancel_receive();                                                // receive
             st_.cfg.reconnect_wait_interval = std::chrono::seconds::zero();  // reconnect
             cancel_run();                                                    // run
             break;
          default: /* ignore */;
       }
+   }
+
+   void cancel_receive()
+   {
+      st_.receive2_cancelled = true;
+      receive_channel_.cancel();
    }
 
    void cancel_run()
@@ -185,7 +191,8 @@ struct connection_impl {
       stream_.cancel_resolve();
 
       // Receive is technically not part of run, but we also cancel it for
-      // backwards compatibility.
+      // backwards compatibility. Note that this intentionally doesn't
+      // set the receive2_cancelled flag, so only v1 receive is cancelled.
       receive_channel_.cancel();
    }
 
@@ -272,6 +279,9 @@ struct receive2_op {
          case receive_action::action_type::drain_channel:
             drain_receive_channel();
             (*this)(self);  // this action does not require yielding
+            return;
+         case receive_action::action_type::immediate:
+            asio::async_immediate(self.get_io_executor(), std::move(self));
             return;
          case receive_action::action_type::done: self.complete(act.ec); return;
       }

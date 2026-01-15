@@ -24,6 +24,7 @@ struct receive_action {
       setup_cancellation,  // Set up the cancellation types supported by the composed operation
       wait,                // Wait for a message to appear in the receive channel
       drain_channel,       // Empty the receive channel
+      immediate,           // Call async_immediate
       done,                // Complete
    };
 

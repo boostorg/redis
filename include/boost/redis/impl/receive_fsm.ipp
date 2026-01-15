@@ -9,11 +9,11 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/receive_fsm.hpp>
+#include <boost/redis/error.hpp>
 
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/assert.hpp>
-#include <boost/system/detail/error_code.hpp>
 
 namespace boost::redis::detail {
 
@@ -32,6 +32,16 @@ receive_action receive_fsm::resume(
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
+      // Parallel async_receive2 operations not supported
+      if (st.receive2_running) {
+         BOOST_REDIS_YIELD(resume_point_, 4, receive_action::action_type::immediate)
+         return system::error_code(error::already_running);
+      }
+
+      // We're now running. Discard any previous cancellation state
+      st.receive2_running = true;
+      st.receive2_cancelled = false;
+
       // This operation supports total cancellation. Set it up
       BOOST_REDIS_YIELD(resume_point_, 1, receive_action::action_type::setup_cancellation)
 
@@ -42,27 +52,24 @@ receive_action receive_fsm::resume(
          // If the wait completed successfully, we have pushes. Drain the channel and exit
          if (!ec) {
             BOOST_REDIS_YIELD(resume_point_, 3, receive_action::action_type::drain_channel)
+            st.receive2_running = false;
             return system::error_code();
          }
 
          // Check for cancellations
-         if (is_any_cancel(cancel_state))
+         if (is_any_cancel(cancel_state) || st.receive2_cancelled) {
+            st.receive2_running = false;
             return system::error_code(asio::error::operation_aborted);
+         }
 
-         // If the channel was cancelled, it might be due to a reconnection.
-         // If the connection isn't reconnecting (run is exiting), exit, otherwise continue.
-         if (ec == asio::experimental::channel_errc::channel_cancelled) {
-            if (st.cfg.reconnect_wait_interval.count() == 0) {
-               // Won't reconnect
-               return system::error_code(asio::error::operation_aborted);
-            } else {
-               // Will reconnect, ignore the notification
-               continue;
-            }
-         } else {
-            // This is an unknown error. Propagate it, just in case
+         // If we get any unknown errors, propagate them (shouldn't happen, but just in case)
+         if (ec != asio::experimental::channel_errc::channel_cancelled) {
+            st.receive2_running = false;
             return ec;
          }
+
+         // The channel was cancelled and no cancellation state is set.
+         // This is due to a reconnection. Ignore the notification
       }
    }
 

@@ -6,6 +6,7 @@
 
 #include <boost/redis/connection.hpp>
 #include <boost/redis/logger.hpp>
+#include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
@@ -194,12 +195,12 @@ void test_push_adapter_error()
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   bool push_received = false, exec_finished = false, run_finished = false;
+   bool receive_finished = false, exec_finished = false, run_finished = false;
 
-   // async_receive2 is cancelled every reconnection cycle
+   // We cancel receive when run exits
    conn.async_receive2([&](error_code ec) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
-      push_received = true;
+      receive_finished = true;
    });
 
    // The request is cancelled because the PING response isn't processed
@@ -211,13 +212,14 @@ void test_push_adapter_error()
 
    auto cfg = make_test_config();
    cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
-   conn.async_run(cfg, [&run_finished](error_code ec) {
+   conn.async_run(cfg, [&](error_code ec) {
       BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
+      conn.cancel(operation::receive);
    });
 
    ioc.run_for(test_timeout);
-   BOOST_TEST(push_received);
+   BOOST_TEST(receive_finished);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
 }
