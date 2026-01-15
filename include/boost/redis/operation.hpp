@@ -52,7 +52,7 @@ enum class operation
    /// Refers to `connection::async_run` operations.
    run,
 
-   /// Refers to `connection::async_receive` operations.
+   /// Refers to @ref basic_connection::async_receive and @ref basic_connection::async_receive2 operations.
    receive,
 
    /**
