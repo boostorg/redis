@@ -501,9 +501,7 @@ void test_push_adapter_error_reconnection()
       conn.async_exec(req2, resp, on_exec2);
    });
 
-   auto cfg = make_test_config();
-   cfg.reconnect_wait_interval = 50ms;  // make the test run faster
-   conn.async_run(cfg, [&run_finished](error_code ec) {
+   conn.async_run(make_test_config(), [&run_finished](error_code ec) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       run_finished = true;
    });
@@ -817,9 +815,7 @@ struct test_pubsub_state_restoration_impl {
 
       // Start running
       bool run_finished = false;
-      auto cfg = make_test_config();
-      cfg.reconnect_wait_interval = 50ms;  // make the test run faster
-      conn.async_run(cfg, [&run_finished](error_code ec) {
+      conn.async_run(make_test_config(), [&run_finished](error_code ec) {
          BOOST_TEST_EQ(ec, net::error::operation_aborted);
          run_finished = true;
       });

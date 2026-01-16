@@ -264,9 +264,7 @@ struct test_async_receive_cancelled_on_reconnection_impl {
 
       start_subscribe1();
 
-      auto cfg = make_test_config();
-      cfg.reconnect_wait_interval = 50ms;  // make the test run faster
-      conn.async_run(cfg, [&](error_code ec) {
+      conn.async_run(make_test_config(), [&](error_code ec) {
          run_finished = true;
          BOOST_TEST_EQ(ec, net::error::operation_aborted);
       });
