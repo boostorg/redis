@@ -819,27 +819,56 @@ public:
       return impl_->receive_channel_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   /** @brief Wait for server pushes asynchronously
+   /** @brief Wait for server pushes asynchronously.
     *
-    * This function suspends until a server push is received by the
+    * This function suspends until at least one server push is received by the
     * connection. On completion an unspecified number of pushes will
     * have been added to the response object set with @ref
-    * boost::redis::connection::set_receive_response.
+    * set_receive_response. Use the functions in the response object
+    * to know how many messages they were received and consume them.
     *
     * To prevent receiving an unbound number of pushes the connection
     * blocks further read operations on the socket when 256 pushes
     * accumulate internally (we don't make any commitment to this
     * exact number). When that happens any `async_exec`s and
     * health-checks won't make any progress and the connection may
-    * eventually timeout. To avoid that Apps should call
-    * `async_receive2` continuously in a loop.
+    * eventually timeout. To avoid that apps that expect server pushes
+    * should call this function continuously in a loop.
     *
-    * @Note To avoid deadlocks the task (e.g. coroutine) calling
+    * This function should be used instead of the deprecated @ref async_receive.
+    * It differs from `async_receive` in the following:
+    *
+    * @li `async_receive` is designed to consume a single push message at a time.
+    *     This can be inefficient when receiving lots of server pushes.
+    *     `async_receive2` is batch-oriented, and will only suspend once if
+    *     several pushes are received in a single network packet.
+    * @li `async_receive` is cancelled when a reconnection happens (e.g. because
+    *     of a network error). This enabled the user to re-establish subscriptions
+    *     using @ref async_exec before waiting for pushes again. With the introduction of
+    *     functions like @ref request::subscribe, subscriptions are automatically
+    *     re-established on reconnection. Thus, `async_receive2` is not cancelled
+    *     on reconnection.
+    * @li `async_receive` passes the number of bytes that each received
+    *     push message contains. This information is unreliable and not very useful.
+    *     Equivalent information is available using functions in the response object.
+    * @li `async_receive` might get cancelled if `async_run` is cancelled.
+    *     This doesn't happen with `async_receive2`.
+    *
+    * This function does *not* remove messages from the response object
+    * passed to @ref set_receive_response - use the functions in the response
+    * object to achieve this.
+    *
+    * Only a single instance of `async_receive2` may be outstanding
+    * for a given connection at any time. Trying to start a second one
+    * will fail with @ref error::already_running.
+    *
+    * @note To avoid deadlocks the task (e.g. coroutine) calling
     * `async_receive2` should not call `async_exec` in a way where
     * they could block each other.
     *
-    * For an example see cpp20_subscriber.cpp. The completion token
-    * must have the following signature
+    * For an example see cpp20_subscriber.cpp.
+    *
+    * The completion token must have the following signature:
     *
     * @code
     * void f(system::error_code);
@@ -852,9 +881,6 @@ public:
     *   @li `asio::cancellation_type_t::partial`.
     *   @li `asio::cancellation_type_t::total`.
     *
-    * Calling `basic_connection::cancel(operation::receive)` will
-    * also cancel any ongoing receive operations.
-    * 
     * @param token Completion token.
     */
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
