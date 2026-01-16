@@ -70,11 +70,7 @@ void check_nodes(
    boost::span<const node_view> expected,
    boost::source_location loc = BOOST_CURRENT_LOCATION)
 {
-   if (!BOOST_TEST_ALL_EQ(
-          tree.get_view().begin(),
-          tree.get_view().end(),
-          expected.begin(),
-          expected.end()))
+   if (!BOOST_TEST_ALL_EQ(tree.begin(), tree.end(), expected.begin(), expected.end()))
       std::cerr << "Called from " << loc << std::endl;
 }
 
