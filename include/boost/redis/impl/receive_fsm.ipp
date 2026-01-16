@@ -24,6 +24,10 @@ constexpr bool is_any_cancel(asio::cancellation_type_t type)
               asio::cancellation_type_t::total));
 }
 
+// We use the receive2_cancelled flag rather than will_reconnect() to
+// avoid entanglement between async_run and async_receive2 cancellations.
+// If we had used will_reconnect(), async_receive2 would be cancelled
+// when disabling reconnection and async_run exits, and in an unpredictable fashion.
 receive_action receive_fsm::resume(
    connection_state& st,
    system::error_code ec,
