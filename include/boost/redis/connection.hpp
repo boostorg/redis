@@ -285,15 +285,6 @@ struct receive2_op {
    }
 };
 
-template <class Executor, class CompletionToken>
-auto async_receive2(connection_impl<Executor>& conn, CompletionToken&& token)
-{
-   return asio::async_compose<CompletionToken, void(system::error_code)>(
-      receive2_op<Executor>{&conn},
-      token,
-      conn);
-}
-
 template <class Executor>
 struct exec_one_op {
    connection_impl<Executor>* conn_;
@@ -895,7 +886,10 @@ public:
    template <class CompletionToken = asio::default_completion_token_t<executor_type>>
    auto async_receive2(CompletionToken&& token = {})
    {
-      return detail::async_receive2(*impl_, std::forward<CompletionToken>(token));
+      return asio::async_compose<CompletionToken, void(system::error_code)>(
+         detail::receive2_op<Executor>{impl_.get()},
+         token,
+         *impl_);
    }
 
    /** @brief (Deprecated) Receives server pushes synchronously without blocking.
