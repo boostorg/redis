@@ -865,7 +865,19 @@ public:
     *
     * @note To avoid deadlocks the task (e.g. coroutine) calling
     * `async_receive2` should not call `async_exec` in a way where
-    * they could block each other.
+    * they could block each other. This is, avoid the following pattern:
+    *
+    * @code
+    * asio::awaitable<void> receiver()
+    * {
+    *    // Do NOT do this!!! The receive buffer might get full while 
+    *    // async_exec runs, which will block all read operations until async_receive2
+    *    // is called. The two operations end up waiting each other, making the connection unresponsive.
+    *    // If you need to do this, use two connections, instead.
+    *    co_await conn.async_receive2();
+    *    co_await conn.async_exec(req, resp);
+    * }
+    * @endcode
     *
     * For an example see cpp20_subscriber.cpp.
     *
