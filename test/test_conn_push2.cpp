@@ -12,7 +12,10 @@
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/bind_cancellation_slot.hpp>
 #include <boost/asio/cancel_after.hpp>
+#include <boost/asio/cancellation_signal.hpp>
+#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -21,6 +24,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <set>
 #include <string>
@@ -248,6 +252,32 @@ void test_async_receive2_subsequent_calls()
    };
 
    impl{}.run();
+}
+
+// async_receive2 can be cancelled using per-operation cancellation,
+// and supports all cancellation types
+void test_async_receive2_per_operation_cancellation(
+   std::string_view name,
+   net::cancellation_type_t type)
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   net::cancellation_signal sig;
+   bool receive_finished = false;
+
+   conn.async_receive2(net::bind_cancellation_slot(sig.slot(), [&](error_code ec) {
+      if (!BOOST_TEST_EQ(ec, net::error::operation_aborted))
+         std::cerr << "With cancellation type " << name << std::endl;
+      receive_finished = true;
+   }));
+
+   sig.emit(type);
+
+   ioc.run_for(test_timeout);
+
+   if (!BOOST_TEST(receive_finished))
+      std::cerr << "With cancellation type " << name << std::endl;
 }
 
 // A push may be interleaved between regular responses.
@@ -727,6 +757,9 @@ int main()
    test_async_receive2_push_available();
    test_async_receive2_batch();
    test_async_receive2_subsequent_calls();
+   test_async_receive2_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
+   test_async_receive2_per_operation_cancellation("partial", net::cancellation_type_t::partial);
+   test_async_receive2_per_operation_cancellation("total", net::cancellation_type_t::total);
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
