@@ -215,7 +215,7 @@ void test_push_adapter_error()
    conn.async_run(cfg, [&](error_code ec) {
       BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
-      conn.cancel(operation::receive);
+      conn.cancel();
    });
 
    ioc.run_for(test_timeout);
