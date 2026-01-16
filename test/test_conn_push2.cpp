@@ -132,68 +132,50 @@ void test_async_receive2_push_available()
 // async_receive2 blocks only once if several messages are received in a batch
 void test_async_receive2_batch()
 {
-   struct impl {
-      net::io_context ioc{};
-      connection conn{ioc};
-      resp3::flat_tree resp{};
-      request req{};
-      bool receive_finished = false, run_finished = false;
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
 
-      // Trigger pushes
-      void start_exec()
-      {
-         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
-            BOOST_TEST_EQ(ec, error_code());
-            start_receive1();
-         });
-      }
+   // Cause two messages to be delivered. The PING ensures that
+   // the pushes have been read when exec completes
+   request req;
+   req.push("SUBSCRIBE", "test_async_receive2_batch");
+   req.push("SUBSCRIBE", "test_async_receive2_batch");
+   req.push("PING", "message");
 
-      // Receive the two pushes
-      void start_receive1()
-      {
-         conn.async_receive2([this](error_code ec) {
-            BOOST_TEST_EQ(ec, error_code());
-            BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
-            start_receive2();
-         });
-      }
+   bool receive_finished = false, run_finished = false;
 
-      // The previous receive has consumed the two pushes,
-      // so this one will block (and be cancelled).
-      void start_receive2()
-      {
-         conn.async_receive2(net::cancel_after(50ms, [this](error_code ec) {
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
-            receive_finished = true;
-            conn.cancel();
-         }));
-      }
-
-      void run()
-      {
-         // Setup
-         conn.set_receive_response(resp);
-
-         // Cause two messages to be delivered. The PING ensures that
-         // the pushes have been read when exec completes
-         req.push("SUBSCRIBE", "test_async_receive2_batch");
-         req.push("SUBSCRIBE", "test_async_receive2_batch");
-         req.push("PING", "message");
-
-         start_exec();
-         conn.async_run(make_test_config(), [&](error_code ec) {
-            run_finished = true;
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
-         });
-
-         ioc.run_for(test_timeout);
-
-         BOOST_TEST(receive_finished);
-         BOOST_TEST(run_finished);
-      }
+   // 1. Trigger pushes
+   // 2. Receive both of them
+   // 3. Check that receive2 has consumed them by calling it again
+   auto on_receive2 = [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      receive_finished = true;
+      conn.cancel();
    };
 
-   impl{}.run();
+   auto on_receive1 = [&](error_code ec) {
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
+      conn.async_receive2(net::cancel_after(50ms, on_receive2));
+   };
+
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_receive2(on_receive1);
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(receive_finished);
+   BOOST_TEST(run_finished);
 }
 
 // async_receive2 can be called several times in a row
