@@ -252,14 +252,10 @@ struct receive2_op {
 
    void drain_receive_channel()
    {
-      // TODO: review
-      auto f = [](system::error_code, std::size_t) {
-         // There is no point in checking for errors
-         // here since async_receive just completed
-         // without errors.
-      };
-
-      // We just want to drain the channel.
+      // We don't expect any errors here. The only errors
+      // that might appear in the channel are due to cancellations,
+      // and these don't make sense with try_receive
+      auto f = [](system::error_code, std::size_t) { };
       while (conn_->receive_channel_.try_receive(f))
          ;
    }
@@ -1292,12 +1288,13 @@ public:
       return impl_.async_receive(std::forward<CompletionToken>(token));
    }
 
-   // TODO: might want to use type-erased handlers here
    /// @copydoc basic_connection::async_receive2
    template <class CompletionToken = asio::deferred_t>
    auto async_receive2(CompletionToken&& token = {})
    {
-      return impl_.async_receive2(std::forward<CompletionToken>(token));
+      return asio::async_initiate<CompletionToken, void(boost::system::error_code)>(
+         initiation{this},
+         token);
    }
 
    /// @copydoc basic_connection::receive
@@ -1410,6 +1407,12 @@ private:
       {
          self->async_exec_impl(*req, std::move(adapter), std::forward<Handler>(handler));
       }
+
+      template <class Handler>
+      void operator()(Handler&& handler)
+      {
+         self->async_receive2_impl(std::forward<Handler>(handler));
+      }
    };
 
    void async_run_impl(
@@ -1425,6 +1428,8 @@ private:
       request const& req,
       any_adapter&& adapter,
       asio::any_completion_handler<void(boost::system::error_code, std::size_t)> token);
+
+   void async_receive2_impl(asio::any_completion_handler<void(boost::system::error_code)> token);
 
    basic_connection<executor_type> impl_;
 };
