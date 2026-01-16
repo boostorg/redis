@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
@@ -125,6 +126,80 @@ void test_async_receive2_push_available()
    BOOST_TEST(exec_finished);
    BOOST_TEST(push_received);
    BOOST_TEST(run_finished);
+}
+
+// TODO: several pushes available
+
+// async_receive2 can be called several times in a row
+void test_async_receive2_subsequent_calls()
+{
+   struct impl {
+      net::io_context ioc{};
+      connection conn{ioc};
+      resp3::flat_tree resp{};
+      request req{};
+      bool receive_finished = false, run_finished = false;
+
+      // Send a SUBSCRIBE, which will trigger a push
+      void start_subscribe1()
+      {
+         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            start_receive1();
+         });
+      }
+
+      // Receive the push
+      void start_receive1()
+      {
+         conn.async_receive2([this](error_code ec) {
+            BOOST_TEST_EQ(ec, error_code());
+            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+            resp.clear();
+            start_subscribe2();
+         });
+      }
+
+      // Send another SUBSCRIBE, which will trigger another push
+      void start_subscribe2()
+      {
+         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            start_receive2();
+         });
+      }
+
+      // End
+      void start_receive2()
+      {
+         conn.async_receive2([this](error_code ec) {
+            BOOST_TEST_EQ(ec, error_code());
+            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+            receive_finished = true;
+            conn.cancel();
+         });
+      }
+
+      void run()
+      {
+         // Setup
+         conn.set_receive_response(resp);
+         req.push("SUBSCRIBE", "test_async_receive2_subsequent_calls");
+
+         start_subscribe1();
+         conn.async_run(make_test_config(), [&](error_code ec) {
+            run_finished = true;
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         });
+
+         ioc.run_for(test_timeout);
+
+         BOOST_TEST(receive_finished);
+         BOOST_TEST(run_finished);
+      }
+   };
+
+   impl{}.run();
 }
 
 // A push may be interleaved between regular responses.
@@ -278,8 +353,8 @@ void test_push_adapter_error_reconnection()
    BOOST_TEST(run_finished);
 }
 
-// After an async_receive2 operation finishes, another one can be issued
-void test_consecutive_receives()
+// Tests the usual push consumer pattern that we recommend in the examples
+void test_push_consumer()
 {
    net::io_context ioc;
    connection conn{ioc};
@@ -600,10 +675,11 @@ int main()
 {
    test_async_receive2_waiting_for_push();
    test_async_receive2_push_available();
+   test_async_receive2_subsequent_calls();
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
-   test_consecutive_receives();
+   test_push_consumer();
    test_unsubscribe();
    test_pubsub_state_restoration();
 
