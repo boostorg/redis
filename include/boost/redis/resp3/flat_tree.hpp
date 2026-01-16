@@ -15,6 +15,7 @@
 #include <boost/core/span.hpp>
 
 #include <cstddef>
+#include <iterator>
 #include <memory>
 
 namespace boost::redis {
@@ -54,6 +55,9 @@ struct flat_buffer {
  */
 class flat_tree {
 public:
+   using iterator = const node_view*;
+   using reverse_iterator = std::reverse_iterator<iterator>;
+
    /**
     * @brief Default constructor.
     *
@@ -116,6 +120,18 @@ public:
     * Basic guarantee. Memory allocations might throw.
     */
    flat_tree& operator=(const flat_tree& other);
+
+   iterator begin() const noexcept { return data(); }
+   iterator end() const noexcept { return data() + size(); }
+   reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
+   reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
+   const node_view& at(std::size_t i) const;
+   const node_view& operator[](std::size_t i) const noexcept { return get_view()[i]; }
+   const node_view& front() const noexcept { return get_view().front(); }
+   const node_view& back() const noexcept { return get_view().back(); }
+   const node_view* data() const noexcept { return view_tree_.data(); }
+   bool empty() const noexcept { return size() != 0u; }
+   std::size_t size() const noexcept { return node_tmp_offset_; }
 
    friend bool operator==(flat_tree const&, flat_tree const&);
 
@@ -189,17 +205,6 @@ public:
     */
    auto data_capacity() const noexcept -> std::size_t { return data_.capacity; }
 
-   /** @brief Returns a vector with the nodes in the tree.
-    *
-    * This is the main way to access the contents of the tree.
-    *
-    * @par Exception safety
-    * No-throw guarantee.
-    *
-    * @returns The nodes in the tree.
-    */
-   span<const node_view> get_view() const noexcept { return {view_tree_.data(), node_tmp_offset_}; }
-
    /** @brief Returns the number of memory reallocations that took place in the data buffer.
     *
     * This function returns how many reallocations in the data buffer were performed and
@@ -226,6 +231,7 @@ public:
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
+   span<const node_view> get_view() const noexcept { return {data(), size()}; }
    void notify_init();
    void notify_done();
 

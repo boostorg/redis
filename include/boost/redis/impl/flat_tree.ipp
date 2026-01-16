@@ -11,10 +11,12 @@
 #include <boost/redis/resp3/tree.hpp>
 
 #include <boost/assert.hpp>
+#include <boost/throw_exception.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <stdexcept>
 #include <string_view>
 
 namespace boost::redis::resp3 {
@@ -226,6 +228,13 @@ void flat_tree::notify_done()
    ++total_msgs_;
    node_tmp_offset_ = view_tree_.size();
    data_tmp_offset_ = data_.size;
+}
+
+const node_view& flat_tree::at(std::size_t i) const
+{
+   if (i >= size())
+      BOOST_THROW_EXCEPTION(std::out_of_range("flat_tree::at"));
+   return view_tree_[i];
 }
 
 bool operator==(flat_tree const& a, flat_tree const& b)
