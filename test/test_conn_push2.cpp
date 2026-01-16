@@ -301,6 +301,69 @@ void test_async_receive2_connection_cancel()
    BOOST_TEST(receive_finished);
 }
 
+// Reconnection doesn't cancel async_receive2
+void test_async_receive2_reconnection()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
+
+   // Causes the reconnection
+   request req_quit;
+   req_quit.push("QUIT");
+
+   // When this completes, the reconnection has happened
+   request req_ping;
+   req_ping.get_config().cancel_if_unresponded = false;
+   req_ping.push("PING", "test_async_receive2_connection");
+
+   // Generates a push
+   request req_subscribe;
+   req_subscribe.push("SUBSCRIBE", "test_async_receive2_connection");
+
+   bool exec_finished = false, receive_finished = false, run_finished = false;
+
+   // Launch a receive operation, and in parallel
+   //   1. Trigger a reconnection
+   //   2. Wait for the reconnection and check that receive hasn't been cancelled
+   //   3. Trigger a push to make receive complete
+   auto on_subscribe = [&](error_code ec, std::size_t) {
+      // Will finish before receive2 because the command doesn't have a response
+      BOOST_TEST_EQ(ec, error_code());
+      exec_finished = true;
+   };
+
+   auto on_ping = [&](error_code ec, std::size_t) {
+      // Reconnection has already happened here
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_NOT(receive_finished);
+      conn.async_exec(req_subscribe, ignore, on_subscribe);
+   };
+
+   conn.async_exec(req_quit, ignore, [&](error_code, std::size_t) {
+      conn.async_exec(req_ping, ignore, on_ping);
+   });
+
+   conn.async_receive2([&](error_code ec) {
+      BOOST_TEST_EQ(ec, error_code());
+      receive_finished = true;
+      conn.cancel();
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(receive_finished);
+   BOOST_TEST(run_finished);
+}
+
 // A push may be interleaved between regular responses.
 // It is handed to the receive adapter (filtered out).
 void test_exec_push_interleaved()
@@ -782,6 +845,7 @@ int main()
    test_async_receive2_per_operation_cancellation("partial", net::cancellation_type_t::partial);
    test_async_receive2_per_operation_cancellation("total", net::cancellation_type_t::total);
    test_async_receive2_connection_cancel();
+   test_async_receive2_reconnection();
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
