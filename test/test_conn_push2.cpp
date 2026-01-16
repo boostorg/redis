@@ -280,6 +280,27 @@ void test_async_receive2_per_operation_cancellation(
       std::cerr << "With cancellation type " << name << std::endl;
 }
 
+// connection::cancel() cancels async_receive2
+void test_async_receive2_connection_cancel()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   net::cancellation_signal sig;
+   bool receive_finished = false;
+
+   conn.async_receive2([&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      receive_finished = true;
+   });
+
+   conn.cancel();
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(receive_finished);
+}
+
 // A push may be interleaved between regular responses.
 // It is handed to the receive adapter (filtered out).
 void test_exec_push_interleaved()
@@ -760,6 +781,7 @@ int main()
    test_async_receive2_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
    test_async_receive2_per_operation_cancellation("partial", net::cancellation_type_t::partial);
    test_async_receive2_per_operation_cancellation("total", net::cancellation_type_t::total);
+   test_async_receive2_connection_cancel();
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
