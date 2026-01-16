@@ -655,7 +655,9 @@ struct test_pubsub_state_restoration_impl {
 
       // Start running
       bool run_finished = false;
-      conn.async_run(make_test_config(), [&run_finished](error_code ec) {
+      auto cfg = make_test_config();
+      cfg.reconnect_wait_interval = 50ms;  // make the test run faster
+      conn.async_run(cfg, [&run_finished](error_code ec) {
          BOOST_TEST_EQ(ec, net::error::operation_aborted);
          run_finished = true;
       });
