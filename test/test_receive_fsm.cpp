@@ -190,6 +190,41 @@ void test_per_operation_cancellation(std::string_view name, cancellation_type_t 
    BOOST_TEST_NOT(st.receive2_running);
 }
 
+// Only a single instance of async_receive2 can be running at the same time
+void test_error_already_running()
+{
+   connection_state st;
+   receive_fsm fsm;
+   st.receive2_running = true;
+
+   // The operation fails immediately
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::immediate);
+   BOOST_TEST(st.receive2_running);  // not affected
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::already_running));
+   BOOST_TEST(st.receive2_running);  // not affected
+}
+
+// If an unknown error was obtained during channel receive, we propagate it
+void test_error_unknown()
+{
+   connection_state st;
+   receive_fsm fsm;
+
+   // Initiate
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::setup_cancellation);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);
+
+   // We have an unknown error
+   act = fsm.resume(st, channel_errc::channel_closed, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(channel_errc::channel_closed));
+   BOOST_TEST_NOT(st.receive2_running);
+}
+
 }  // namespace
 
 int main()
@@ -203,6 +238,9 @@ int main()
    test_per_operation_cancellation("partial", cancellation_type_t::partial);
    test_per_operation_cancellation("total", cancellation_type_t::total);
    test_per_operation_cancellation("all", cancellation_type_t::all);
+
+   test_error_already_running();
+   test_error_unknown();
 
    return boost::report_errors();
 }
