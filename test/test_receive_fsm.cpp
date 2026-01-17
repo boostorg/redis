@@ -11,11 +11,9 @@
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
+#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/detail/error_code.hpp>
 #include <boost/system/error_code.hpp>
-
-#include "sansio_utils.hpp"
 
 namespace net = boost::asio;
 using namespace boost::redis;
@@ -25,6 +23,7 @@ using net::cancellation_type_t;
 using detail::receive_action;
 using detail::receive_fsm;
 using detail::connection_state;
+namespace channel_errc = net::experimental::channel_errc;
 using action_type = receive_action::action_type;
 
 // Operators
@@ -77,11 +76,89 @@ void test_success()
    act = fsm.resume(st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action_type::wait);
 
+   // At this point, the operation is now running
+   BOOST_TEST(st.receive2_running);
+
    // The wait finishes successfully (we were notified). Receive exits
    act = fsm.resume(st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action_type::drain_channel);
    act = fsm.resume(st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code());
+
+   // The operation is no longer running
+   BOOST_TEST_NOT(st.receive2_running);
+}
+
+// We might see spurious cancels during reconnection (v1 compatibility).
+void test_cancelled_reconnection()
+{
+   connection_state st;
+   receive_fsm fsm;
+
+   // Initiate
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::setup_cancellation);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+
+   // Reconnection happens
+   act = fsm.resume(st, channel_errc::channel_cancelled, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);  // still running
+
+   // The wait finishes successfully (we were notified). Receive exits
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::drain_channel);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code());
+
+   // The operation is no longer running
+   BOOST_TEST_NOT(st.receive2_running);
+}
+
+// We might get cancellations due to connection::cancel()
+void test_cancelled_connection_cancel()
+{
+   connection_state st;
+   receive_fsm fsm;
+
+   // Initiate
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::setup_cancellation);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+
+   // Simulate a connection::cancel()
+   st.receive2_cancelled = true;
+   act = fsm.resume(st, channel_errc::channel_cancelled, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   BOOST_TEST_NOT(st.receive2_running);
+}
+
+// Operations can still run after connection::cancel()
+void test_after_connection_cancel()
+{
+   connection_state st;
+   receive_fsm fsm;
+   st.receive2_cancelled = true;
+
+   // The operation initiates and runs normally
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::setup_cancellation);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);
+
+   // Reconnection behavior not affected
+   act = fsm.resume(st, channel_errc::channel_cancelled, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);  // still running
+
+   // Simulate a connection::cancel()
+   st.receive2_cancelled = true;
+   act = fsm.resume(st, channel_errc::channel_cancelled, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   BOOST_TEST_NOT(st.receive2_running);
 }
 
 }  // namespace
@@ -89,6 +166,9 @@ void test_success()
 int main()
 {
    test_success();
+   test_cancelled_reconnection();
+   test_cancelled_connection_cancel();
+   test_after_connection_cancel();
 
    return boost::report_errors();
 }
