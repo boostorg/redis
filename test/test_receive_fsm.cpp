@@ -15,6 +15,9 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <iostream>
+#include <string_view>
+
 namespace net = boost::asio;
 using namespace boost::redis;
 using net::cancellation_type_t;
@@ -106,6 +109,11 @@ void test_cancelled_reconnection()
    BOOST_TEST_EQ(act, action_type::wait);
    BOOST_TEST(st.receive2_running);  // still running
 
+   // Another reconnection
+   act = fsm.resume(st, channel_errc::channel_cancelled, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);  // still running
+
    // The wait finishes successfully (we were notified). Receive exits
    act = fsm.resume(st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, action_type::drain_channel);
@@ -161,6 +169,27 @@ void test_after_connection_cancel()
    BOOST_TEST_NOT(st.receive2_running);
 }
 
+// Per-operation cancellation is supported
+void test_per_operation_cancellation(std::string_view name, cancellation_type_t type)
+{
+   std::cerr << "Running cancellation case " << name << std::endl;
+
+   connection_state st;
+   receive_fsm fsm;
+
+   // The operation initiates and runs normally
+   auto act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::setup_cancellation);
+   act = fsm.resume(st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, action_type::wait);
+   BOOST_TEST(st.receive2_running);
+
+   // Cancellation is received
+   act = fsm.resume(st, channel_errc::channel_cancelled, type);
+   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   BOOST_TEST_NOT(st.receive2_running);
+}
+
 }  // namespace
 
 int main()
@@ -169,6 +198,11 @@ int main()
    test_cancelled_reconnection();
    test_cancelled_connection_cancel();
    test_after_connection_cancel();
+
+   test_per_operation_cancellation("terminal", cancellation_type_t::terminal);
+   test_per_operation_cancellation("partial", cancellation_type_t::partial);
+   test_per_operation_cancellation("total", cancellation_type_t::total);
+   test_per_operation_cancellation("all", cancellation_type_t::all);
 
    return boost::report_errors();
 }
