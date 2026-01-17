@@ -38,7 +38,7 @@ receive_action receive_fsm::resume(
 
       // Parallel async_receive2 operations not supported
       if (st.receive2_running) {
-         BOOST_REDIS_YIELD(resume_point_, 4, receive_action::action_type::immediate)
+         BOOST_REDIS_YIELD(resume_point_, 1, receive_action::action_type::immediate)
          return system::error_code(error::already_running);
       }
 
@@ -47,15 +47,15 @@ receive_action receive_fsm::resume(
       st.receive2_cancelled = false;
 
       // This operation supports total cancellation. Set it up
-      BOOST_REDIS_YIELD(resume_point_, 1, receive_action::action_type::setup_cancellation)
+      BOOST_REDIS_YIELD(resume_point_, 2, receive_action::action_type::setup_cancellation)
 
       while (true) {
          // Wait at least once for a notification to arrive
-         BOOST_REDIS_YIELD(resume_point_, 2, receive_action::action_type::wait)
+         BOOST_REDIS_YIELD(resume_point_, 3, receive_action::action_type::wait)
 
          // If the wait completed successfully, we have pushes. Drain the channel and exit
          if (!ec) {
-            BOOST_REDIS_YIELD(resume_point_, 3, receive_action::action_type::drain_channel)
+            BOOST_REDIS_YIELD(resume_point_, 4, receive_action::action_type::drain_channel)
             st.receive2_running = false;
             return system::error_code();
          }
