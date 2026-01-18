@@ -1118,6 +1118,23 @@ void test_iterators()
    BOOST_TEST_ALL_EQ(nodes.begin(), nodes.end(), expected_nodes.begin(), expected_nodes.end());
 }
 
+// Empty ranges don't cause trouble
+void test_iterators_empty()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.begin(), t.end());
+}
+
+// Tmp area is not included in the range
+// More or less tested with the add_nodes tests
+void test_iterators_tmp()
+{
+   parser p;
+   flat_tree t;
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   BOOST_TEST_EQ(t.begin(), t.end());
+}
+
 // --- Comparison ---
 void test_comparison_different()
 {
@@ -1339,6 +1356,8 @@ int main()
    test_move_assign_tmp();
 
    test_iterators();
+   test_iterators_empty();
+   test_iterators_tmp();
 
    test_comparison_different();
    test_comparison_different_node_types();
