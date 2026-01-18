@@ -55,7 +55,20 @@ struct flat_buffer {
  */
 class flat_tree {
 public:
+   /**
+    * @brief The type of the iterators returned by @ref begin and @ref end.
+    *
+    * It is guaranteed to be a contiguous iterator. While this is currently a pointer,
+    * users shouldn't rely on this fact, as the exact implementation may change between releases.
+    */
    using iterator = const node_view*;
+
+   /**
+    * @brief The type of the iterators returned by @ref rbegin and @ref rend.
+    *
+    * As with @ref iterator, users should treat this type as an unspecified
+    * contiguous iterator type rather than assuming a specific type.
+    */
    using reverse_iterator = std::reverse_iterator<iterator>;
 
    /**
