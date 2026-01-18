@@ -820,7 +820,7 @@ public:
     * accumulate internally (we don't make any commitment to this
     * exact number). When that happens any `async_exec`s and
     * health-checks won't make any progress and the connection may
-    * eventually timeout. To avoid that apps that expect server pushes
+    * eventually timeout. To avoid this, apps that expect server pushes
     * should call this function continuously in a loop.
     *
     * This function should be used instead of the deprecated @ref async_receive.
@@ -828,8 +828,8 @@ public:
     *
     * @li `async_receive` is designed to consume a single push message at a time.
     *     This can be inefficient when receiving lots of server pushes.
-    *     `async_receive2` is batch-oriented, and will only suspend once if
-    *     several pushes are received in a single network packet.
+    *     `async_receive2` is batch-oriented. All pushes that are available
+    *     when `async_receive2` is called will be marked as consumed.
     * @li `async_receive` is cancelled when a reconnection happens (e.g. because
     *     of a network error). This enabled the user to re-establish subscriptions
     *     using @ref async_exec before waiting for pushes again. With the introduction of
