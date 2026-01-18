@@ -51,7 +51,7 @@ struct flat_buffer {
  * @ref front) are provided. Once populated, `flat_tree` can't be modified,
  * except for @ref clear and assignment.
  *
- * `flat_tree` models `std::ranges::contiguous_range<resp3::node_view>`.
+ * `flat_tree` models `std::ranges::contiguous_range`.
  *
  * A `flat_tree` is conceptually similar to a pair of `std::vector` objects, one holding
  * @ref resp3::node_view objects, and another owning the the string data that these views
