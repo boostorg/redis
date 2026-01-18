@@ -36,11 +36,7 @@ void test_success()
    std::vector<node_view> expected_nodes{
       {type::simple_string, 1u, 0u, "hello"},
    };
-   BOOST_TEST_ALL_EQ(
-      resp->get_view().begin(),
-      resp->get_view().end(),
-      expected_nodes.begin(),
-      expected_nodes.end());
+   BOOST_TEST_ALL_EQ(resp->begin(), resp->end(), expected_nodes.begin(), expected_nodes.end());
 }
 
 // If an error of any kind appears, we set the overall result to error
