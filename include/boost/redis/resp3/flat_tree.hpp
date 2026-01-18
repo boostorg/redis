@@ -74,7 +74,7 @@ public:
     * Constructs a tree by taking ownership of the nodes in `other`.
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `other` remain valid.
+    * Iterators, pointers and references to the nodes and strings in `other` remain valid.
     *
     * @par Exception safety
     * No-throw guarantee.
@@ -99,8 +99,8 @@ public:
     * `other` is left in a valid but unspecified state.
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `other` remain valid.
-    * References to the nodes and strings in `*this` are invalidated.
+    * Iterators, pointers and references to the nodes and strings in `other` remain valid.
+    * Iterators, pointers and references to the nodes and strings in `*this` are invalidated.
     *
     * @par Exception safety
     * No-throw guarantee.
@@ -114,14 +114,21 @@ public:
     * After the copy, `*this` and `other` have independent lifetimes (usual copy semantics).
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `*this` are invalidated.
+    * Iterators, pointers and references to the nodes and strings in `*this` are invalidated.
     *
     * @par Exception safety
     * Basic guarantee. Memory allocations might throw.
     */
    flat_tree& operator=(const flat_tree& other);
 
+   /**
+    * @brief Returns an iterator to the beginning of the range.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
    iterator begin() const noexcept { return data(); }
+
    iterator end() const noexcept { return data() + size(); }
    reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
    reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
