@@ -247,7 +247,7 @@ public:
     *
     * @returns `true` if the tree contains no nodes, `false` otherwise.
     */
-   bool empty() const noexcept { return size() != 0u; }
+   bool empty() const noexcept { return size() == 0u; }
 
    /**
     * @brief Returns the number of nodes in the tree.

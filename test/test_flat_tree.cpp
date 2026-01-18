@@ -1274,6 +1274,50 @@ void test_data_empty()
    BOOST_TEST_EQ(t.data(), nullptr);
 }
 
+// --- size and empty ---
+void test_size()
+{
+   flat_tree t;
+   add_nodes(t, "*1\r\n+node1\r\n");
+
+   BOOST_TEST_EQ(t.size(), 2u);
+   BOOST_TEST_NOT(t.empty());
+}
+
+void test_size_empty()
+{
+   flat_tree t;
+
+   BOOST_TEST_EQ(t.size(), 0u);
+   BOOST_TEST(t.empty());
+}
+
+// Tmp area not taken into account
+void test_size_tmp()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   BOOST_TEST_EQ(t.size(), 2u);
+   BOOST_TEST_NOT(t.empty());
+}
+
+void test_size_tmp_only()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one partial message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   BOOST_TEST_EQ(t.size(), 0u);
+   BOOST_TEST(t.empty());
+}
+
 // The range should model contiguous range
 #ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
 static_assert(std::ranges::contiguous_range<flat_tree>);
@@ -1514,6 +1558,11 @@ int main()
 
    test_data();
    test_data_empty();
+
+   test_size();
+   test_size_empty();
+   test_size_tmp();
+   test_size_tmp_only();
 
    test_comparison_different();
    test_comparison_different_node_types();
