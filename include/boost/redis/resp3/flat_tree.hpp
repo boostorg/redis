@@ -122,22 +122,120 @@ public:
    flat_tree& operator=(const flat_tree& other);
 
    /**
-    * @brief Returns an iterator to the beginning of the range.
+    * @brief Returns an iterator to the beginning of the node range.
     *
     * @par Exception safety
     * No-throw guarantee.
     */
    iterator begin() const noexcept { return data(); }
 
+   /**
+    * @brief Returns an iterator to the end of the node range.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
    iterator end() const noexcept { return data() + size(); }
+
+   /**
+    * @brief Returns an iterator to the beginning of the reversed node range.
+    *
+    * Allows iterating the range of nodes in reverse order.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
    reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
+
+   /**
+    * @brief Returns an iterator to the beginning of the reversed node range.
+    *
+    * Allows iterating the range of nodes in reverse order.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    */
    reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
+
+   /**
+    * @brief Returns a reference to the node at the specified position (checked access).
+    *
+    * @par Exception safety
+    * Strong guarantee. Throws `std::out_of_range` if `i >= size()`.
+    *
+    * @param i Position of the node to return.
+    * @returns A reference to the node at position `i`.
+    */
    const node_view& at(std::size_t i) const;
+
+   /**
+    * @brief Returns a reference to the node at the specified position (unchecked access).
+    *
+    * @par Precondition
+    * `i < size()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @param i Position of the node to return.
+    * @returns A reference to the node at position `i`.
+    */
    const node_view& operator[](std::size_t i) const noexcept { return get_view()[i]; }
+
+   /**
+    * @brief Returns a reference to the first node.
+    *
+    * @par Precondition
+    * `!empty()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A reference to the first node.
+    */
    const node_view& front() const noexcept { return get_view().front(); }
+
+   /**
+    * @brief Returns a reference to the last node.
+    *
+    * @par Precondition
+    * `!empty()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A reference to the last node.
+    */
    const node_view& back() const noexcept { return get_view().back(); }
+
+   /**
+    * @brief Returns a pointer to the underlying node storage.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A pointer to the underlying node array.
+    */
    const node_view* data() const noexcept { return view_tree_.data(); }
+
+   /**
+    * @brief Checks whether the tree is empty.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns `true` if the tree contains no nodes, `false` otherwise.
+    */
    bool empty() const noexcept { return size() != 0u; }
+
+   /**
+    * @brief Returns the number of nodes in the tree.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of nodes.
+    */
    std::size_t size() const noexcept { return node_tmp_offset_; }
 
    friend bool operator==(flat_tree const&, flat_tree const&);
