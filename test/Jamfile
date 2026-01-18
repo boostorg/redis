@@ -62,6 +62,7 @@ local tests =
     test_writer_fsm
     test_reader_fsm
     test_sentinel_resolve_fsm
+    test_receive_fsm
     test_run_fsm
     test_connect_fsm
     test_compose_setup_request

@@ -78,7 +78,6 @@ void test_reconnection()
    connection conn{ioc};
    auto cfg = make_test_config();
    cfg.unix_socket = unix_socket_path;
-   cfg.reconnect_wait_interval = 10ms;  // make the test run faster
 
    request ping_request;
    ping_request.get_config().cancel_if_not_connected = false;

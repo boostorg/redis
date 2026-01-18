@@ -147,8 +147,6 @@ BOOST_AUTO_TEST_CASE(reconnection)
    net::io_context ioc;
    net::steady_timer timer{ioc};
    connection conn{ioc};
-   auto cfg = make_tls_config();
-   cfg.reconnect_wait_interval = 10ms;  // make the test run faster
 
    request ping_request;
    ping_request.push("PING", "some_value");
@@ -161,7 +159,7 @@ BOOST_AUTO_TEST_CASE(reconnection)
    bool exec_finished = false, run_finished = false;
 
    // Run the connection
-   conn.async_run(cfg, {}, [&](error_code ec) {
+   conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
       BOOST_TEST(ec == net::error::operation_aborted);
    });

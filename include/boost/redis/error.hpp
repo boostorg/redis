@@ -112,6 +112,10 @@ enum class error
 
    /// Expects a RESP3 array, but got a different data type.
    expects_resp3_array,
+
+   /// A @ref basic_connection::async_receive2 operation is already running.
+   /// Only one of such operations might be running at any point in time.
+   already_running,
 };
 
 /**

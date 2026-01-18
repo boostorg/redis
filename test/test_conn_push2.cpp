@@ -5,11 +5,17 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/ignore.hpp>
 #include <boost/redis/logger.hpp>
+#include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/bind_cancellation_slot.hpp>
+#include <boost/asio/cancel_after.hpp>
+#include <boost/asio/cancellation_signal.hpp>
+#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -18,6 +24,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <set>
 #include <string>
@@ -126,6 +133,237 @@ void test_async_receive2_push_available()
    BOOST_TEST(run_finished);
 }
 
+// async_receive2 blocks only once if several messages are received in a batch
+void test_async_receive2_batch()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
+
+   // Cause two messages to be delivered. The PING ensures that
+   // the pushes have been read when exec completes
+   request req;
+   req.push("SUBSCRIBE", "test_async_receive2_batch");
+   req.push("SUBSCRIBE", "test_async_receive2_batch");
+   req.push("PING", "message");
+
+   bool receive_finished = false, run_finished = false;
+
+   // 1. Trigger pushes
+   // 2. Receive both of them
+   // 3. Check that receive2 has consumed them by calling it again
+   auto on_receive2 = [&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      receive_finished = true;
+      conn.cancel();
+   };
+
+   auto on_receive1 = [&](error_code ec) {
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
+      conn.async_receive2(net::cancel_after(50ms, on_receive2));
+   };
+
+   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+      BOOST_TEST_EQ(ec, error_code());
+      conn.async_receive2(on_receive1);
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(receive_finished);
+   BOOST_TEST(run_finished);
+}
+
+// async_receive2 can be called several times in a row
+void test_async_receive2_subsequent_calls()
+{
+   struct impl {
+      net::io_context ioc{};
+      connection conn{ioc};
+      resp3::flat_tree resp{};
+      request req{};
+      bool receive_finished = false, run_finished = false;
+
+      // Send a SUBSCRIBE, which will trigger a push
+      void start_subscribe1()
+      {
+         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            start_receive1();
+         });
+      }
+
+      // Receive the push
+      void start_receive1()
+      {
+         conn.async_receive2([this](error_code ec) {
+            BOOST_TEST_EQ(ec, error_code());
+            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+            resp.clear();
+            start_subscribe2();
+         });
+      }
+
+      // Send another SUBSCRIBE, which will trigger another push
+      void start_subscribe2()
+      {
+         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+            BOOST_TEST_EQ(ec, error_code());
+            start_receive2();
+         });
+      }
+
+      // End
+      void start_receive2()
+      {
+         conn.async_receive2([this](error_code ec) {
+            BOOST_TEST_EQ(ec, error_code());
+            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+            receive_finished = true;
+            conn.cancel();
+         });
+      }
+
+      void run()
+      {
+         // Setup
+         conn.set_receive_response(resp);
+         req.push("SUBSCRIBE", "test_async_receive2_subsequent_calls");
+
+         start_subscribe1();
+         conn.async_run(make_test_config(), [&](error_code ec) {
+            run_finished = true;
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         });
+
+         ioc.run_for(test_timeout);
+
+         BOOST_TEST(receive_finished);
+         BOOST_TEST(run_finished);
+      }
+   };
+
+   impl{}.run();
+}
+
+// async_receive2 can be cancelled using per-operation cancellation,
+// and supports all cancellation types
+void test_async_receive2_per_operation_cancellation(
+   std::string_view name,
+   net::cancellation_type_t type)
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   net::cancellation_signal sig;
+   bool receive_finished = false;
+
+   conn.async_receive2(net::bind_cancellation_slot(sig.slot(), [&](error_code ec) {
+      if (!BOOST_TEST_EQ(ec, net::error::operation_aborted))
+         std::cerr << "With cancellation type " << name << std::endl;
+      receive_finished = true;
+   }));
+
+   sig.emit(type);
+
+   ioc.run_for(test_timeout);
+
+   if (!BOOST_TEST(receive_finished))
+      std::cerr << "With cancellation type " << name << std::endl;
+}
+
+// connection::cancel() cancels async_receive2
+void test_async_receive2_connection_cancel()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   net::cancellation_signal sig;
+   bool receive_finished = false;
+
+   conn.async_receive2([&](error_code ec) {
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      receive_finished = true;
+   });
+
+   conn.cancel();
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(receive_finished);
+}
+
+// Reconnection doesn't cancel async_receive2
+void test_async_receive2_reconnection()
+{
+   // Setup
+   net::io_context ioc;
+   connection conn{ioc};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
+
+   // Causes the reconnection
+   request req_quit;
+   req_quit.push("QUIT");
+
+   // When this completes, the reconnection has happened
+   request req_ping;
+   req_ping.get_config().cancel_if_unresponded = false;
+   req_ping.push("PING", "test_async_receive2_connection");
+
+   // Generates a push
+   request req_subscribe;
+   req_subscribe.push("SUBSCRIBE", "test_async_receive2_connection");
+
+   bool exec_finished = false, receive_finished = false, run_finished = false;
+
+   // Launch a receive operation, and in parallel
+   //   1. Trigger a reconnection
+   //   2. Wait for the reconnection and check that receive hasn't been cancelled
+   //   3. Trigger a push to make receive complete
+   auto on_subscribe = [&](error_code ec, std::size_t) {
+      // Will finish before receive2 because the command doesn't have a response
+      BOOST_TEST_EQ(ec, error_code());
+      exec_finished = true;
+   };
+
+   auto on_ping = [&](error_code ec, std::size_t) {
+      // Reconnection has already happened here
+      BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_NOT(receive_finished);
+      conn.async_exec(req_subscribe, ignore, on_subscribe);
+   };
+
+   conn.async_exec(req_quit, ignore, [&](error_code, std::size_t) {
+      conn.async_exec(req_ping, ignore, on_ping);
+   });
+
+   conn.async_receive2([&](error_code ec) {
+      BOOST_TEST_EQ(ec, error_code());
+      receive_finished = true;
+      conn.cancel();
+   });
+
+   conn.async_run(make_test_config(), [&](error_code ec) {
+      run_finished = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+   });
+
+   ioc.run_for(test_timeout);
+
+   BOOST_TEST(exec_finished);
+   BOOST_TEST(receive_finished);
+   BOOST_TEST(run_finished);
+}
+
 // A push may be interleaved between regular responses.
 // It is handed to the receive adapter (filtered out).
 void test_exec_push_interleaved()
@@ -194,12 +432,12 @@ void test_push_adapter_error()
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   bool push_received = false, exec_finished = false, run_finished = false;
+   bool receive_finished = false, exec_finished = false, run_finished = false;
 
-   // async_receive2 is cancelled every reconnection cycle
+   // We cancel receive when run exits
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
-      push_received = true;
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      receive_finished = true;
    });
 
    // The request is cancelled because the PING response isn't processed
@@ -211,13 +449,14 @@ void test_push_adapter_error()
 
    auto cfg = make_test_config();
    cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
-   conn.async_run(cfg, [&run_finished](error_code ec) {
+   conn.async_run(cfg, [&](error_code ec) {
       BOOST_TEST_EQ(ec, error::incompatible_size);
       run_finished = true;
+      conn.cancel();
    });
 
    ioc.run_for(test_timeout);
-   BOOST_TEST(push_received);
+   BOOST_TEST(receive_finished);
    BOOST_TEST(exec_finished);
    BOOST_TEST(run_finished);
 }
@@ -244,7 +483,7 @@ void test_push_adapter_error_reconnection()
 
    // async_receive2 is cancelled every reconnection cycle
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+      BOOST_TEST_EQ(ec, net::error::operation_aborted);
       push_received = true;
    });
 
@@ -262,9 +501,7 @@ void test_push_adapter_error_reconnection()
       conn.async_exec(req2, resp, on_exec2);
    });
 
-   auto cfg = make_test_config();
-   cfg.reconnect_wait_interval = 50ms;  // make the test run faster
-   conn.async_run(cfg, [&run_finished](error_code ec) {
+   conn.async_run(make_test_config(), [&run_finished](error_code ec) {
       BOOST_TEST_EQ(ec, net::error::operation_aborted);
       run_finished = true;
    });
@@ -276,8 +513,8 @@ void test_push_adapter_error_reconnection()
    BOOST_TEST(run_finished);
 }
 
-// After an async_receive2 operation finishes, another one can be issued
-void test_consecutive_receives()
+// Tests the usual push consumer pattern that we recommend in the examples
+void test_push_consumer()
 {
    net::io_context ioc;
    connection conn{ioc};
@@ -287,7 +524,7 @@ void test_consecutive_receives()
    std::function<void()> launch_push_consumer = [&]() {
       conn.async_receive2([&](error_code ec) {
          if (ec) {
-            BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+            BOOST_TEST_EQ(ec, net::error::operation_aborted);
             push_consumer_finished = true;
             resp.clear();
             return;
@@ -598,10 +835,17 @@ int main()
 {
    test_async_receive2_waiting_for_push();
    test_async_receive2_push_available();
+   test_async_receive2_batch();
+   test_async_receive2_subsequent_calls();
+   test_async_receive2_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
+   test_async_receive2_per_operation_cancellation("partial", net::cancellation_type_t::partial);
+   test_async_receive2_per_operation_cancellation("total", net::cancellation_type_t::total);
+   test_async_receive2_connection_cancel();
+   test_async_receive2_reconnection();
    test_exec_push_interleaved();
    test_push_adapter_error();
    test_push_adapter_error_reconnection();
-   test_consecutive_receives();
+   test_push_consumer();
    test_unsubscribe();
    test_pubsub_state_restoration();
 

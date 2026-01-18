@@ -68,6 +68,9 @@ struct error_category_impl : system::error_category {
             return "Expects a RESP3 string, but got a different data type.";
          case error::expects_resp3_array:
             return "Expects a RESP3 array, but got a different data type.";
+         case error::already_running:
+            return "An async_receive2 operation is already running. Only one of such operations "
+                   "might be running at any point in time.";
          default: BOOST_ASSERT(false); return "Boost.Redis error.";
       }
    }
