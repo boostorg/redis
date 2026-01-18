@@ -11,6 +11,7 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert/source_location.hpp>
+#include <boost/config.hpp>  // for a safe #include <version>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/core/span.hpp>
 
@@ -20,10 +21,16 @@
 #include <array>
 #include <initializer_list>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#if (__cpp_lib_ranges >= 201911L) && (__cpp_lib_concepts >= 202002L)
+#define BOOST_REDIS_TEST_RANGE_CONCEPTS
+#include <ranges>
+#endif
 
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
@@ -1134,6 +1141,16 @@ void test_iterators_tmp()
    BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
    BOOST_TEST_EQ(t.begin(), t.end());
 }
+
+// The iterator should be contiguous
+#ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
+static_assert(std::contiguous_iterator<flat_tree::iterator>);
+#endif
+
+// The range should model contiguous range
+#ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
+static_assert(std::ranges::contiguous_range<flat_tree>);
+#endif
 
 // --- Comparison ---
 void test_comparison_different()
