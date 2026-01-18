@@ -22,7 +22,9 @@
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -1195,6 +1197,41 @@ void test_reverse_iterators_tmp()
    BOOST_TEST_ALL_EQ(t.rbegin(), t.rend(), std::begin(expected_nodes), std::end(expected_nodes));
 }
 
+// --- at ---
+void test_at()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   // Nodes in the range can be accessed with at()
+   constexpr node_view n0{type::array, 1u, 0u, ""};
+   constexpr node_view n1{type::simple_string, 1u, 1u, "node1"};
+   BOOST_TEST_EQ(t.at(0u), n0);
+   BOOST_TEST_EQ(t.at(1u), n1);
+
+   // Nodes in the tmp area are not considered in range
+   BOOST_TEST_THROWS(t.at(2u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(3u), std::out_of_range);
+
+   // Indices out of range throw
+   BOOST_TEST_THROWS(t.at(4u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(5u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at((std::numeric_limits<std::size_t>::max)()), std::out_of_range);
+}
+
+// Empty ranges don't cause trouble
+void test_at_empty()
+{
+   flat_tree t;
+   BOOST_TEST_THROWS(t.at(0u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(2u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at((std::numeric_limits<std::size_t>::max)()), std::out_of_range);
+}
+
 // The range should model contiguous range
 #ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
 static_assert(std::ranges::contiguous_range<flat_tree>);
@@ -1427,6 +1464,9 @@ int main()
    test_reverse_iterators();
    test_reverse_iterators_empty();
    test_reverse_iterators_tmp();
+
+   test_at();
+   test_at_empty();
 
    test_comparison_different();
    test_comparison_different_node_types();
