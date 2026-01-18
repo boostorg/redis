@@ -46,8 +46,12 @@ struct flat_buffer {
  * to obtain how many responses this object contains.
  *
  * Objects are typically created by the user and passed to @ref connection::async_exec
- * to be used as response containers. Call @ref get_view to access the actual RESP3 nodes.
- * Once populated, `flat_tree` can't be modified, except for @ref clear and assignment.
+ * to be used as response containers. Once populated, they can be used as a const range
+ * of @ref resp3::node_view objects. The usual random access range methods (like @ref at, @ref size or
+ * @ref front) are provided. Once populated, `flat_tree` can't be modified,
+ * except for @ref clear and assignment.
+ *
+ * `flat_tree` models `std::ranges::contiguous_range<resp3::node_view>`.
  *
  * A `flat_tree` is conceptually similar to a pair of `std::vector` objects, one holding
  * @ref resp3::node_view objects, and another owning the the string data that these views
@@ -259,10 +263,6 @@ public:
     */
    std::size_t size() const noexcept { return node_tmp_offset_; }
 
-   friend bool operator==(flat_tree const&, flat_tree const&);
-
-   friend bool operator!=(flat_tree const&, flat_tree const&);
-
    /** @brief Reserves capacity for incoming data.
     *
     * Adding nodes (e.g. by passing the tree to `async_exec`)
@@ -284,7 +284,7 @@ public:
    /** @brief Clears the tree so it contains no nodes.
     * 
     * Calling this function removes every node, making
-    * @ref get_view return empty and @ref get_total_msgs
+    * the range contain no nodes, and @ref get_total_msgs
     * return zero. It does not modify the object's capacity.
     * 
     * To re-use a `flat_tree` for several requests,

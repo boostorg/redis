@@ -241,11 +241,8 @@ bool operator==(flat_tree const& a, flat_tree const& b)
 {
    // data is already taken into account by comparing the nodes.
    // Only committed nodes should be taken into account.
-   auto a_nodes = a.get_view();
-   auto b_nodes = b.get_view();
-   return a_nodes.size() == b_nodes.size() &&
-          std::equal(a_nodes.begin(), a_nodes.end(), b_nodes.begin()) &&
-          a.total_msgs_ == b.total_msgs_;
+   return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin()) &&
+          a.get_total_msgs() == b.get_total_msgs();
 }
 
 }  // namespace boost::redis::resp3
