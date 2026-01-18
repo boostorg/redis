@@ -1147,6 +1147,54 @@ void test_iterators_tmp()
 static_assert(std::contiguous_iterator<flat_tree::iterator>);
 #endif
 
+// --- Reverse iterators ---
+// We can obtain iterators using rbegin() and rend() and use them to iterate
+void test_reverse_iterators()
+{
+   // Setup
+   flat_tree t;
+   add_nodes(t, "+node1\r\n");
+   add_nodes(t, ":200\r\n");
+
+   // These methods are const
+   const auto& tconst = t;
+
+   constexpr node_view expected_nodes[] = {
+      {type::number,        1u, 0u, "200"  },
+      {type::simple_string, 1u, 0u, "node1"},
+   };
+   BOOST_TEST_ALL_EQ(
+      tconst.rbegin(),
+      tconst.rend(),
+      std::begin(expected_nodes),
+      std::end(expected_nodes));
+}
+
+// Empty ranges don't cause trouble
+void test_reverse_iterators_empty()
+{
+   flat_tree t;
+   BOOST_TEST(t.rbegin() == t.rend());
+}
+
+// Tmp area is not included in the range
+void test_reverse_iterators_tmp()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   // Only the full message appears in the reversed range
+   constexpr node_view expected_nodes[] = {
+      {type::simple_string, 1u, 1u, "node1"},
+      {type::array,         1u, 0u, ""     },
+   };
+   BOOST_TEST_ALL_EQ(t.rbegin(), t.rend(), std::begin(expected_nodes), std::end(expected_nodes));
+}
+
 // The range should model contiguous range
 #ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
 static_assert(std::ranges::contiguous_range<flat_tree>);
@@ -1375,6 +1423,10 @@ int main()
    test_iterators();
    test_iterators_empty();
    test_iterators_tmp();
+
+   test_reverse_iterators();
+   test_reverse_iterators_empty();
+   test_reverse_iterators_tmp();
 
    test_comparison_different();
    test_comparison_different_node_types();
