@@ -17,6 +17,7 @@
 #include "print_node.hpp"
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <iostream>
 #include <memory>
@@ -1086,6 +1087,37 @@ void test_move_assign_tmp()
    BOOST_TEST_EQ(t.get_total_msgs(), 2u);
 }
 
+// --- Iterators ---
+// We can obtain iterators using begin() and end() and use them to iterate
+void test_iterators()
+{
+   // Setup
+   flat_tree t;
+   add_nodes(t, "+node1\r\n");
+   add_nodes(t, ":200\r\n");
+   constexpr node_view node1{type::simple_string, 1u, 0u, "node1"};
+   constexpr node_view node2{type::number, 1u, 0u, "200"};
+
+   // These methods are const
+   const auto& tconst = t;
+   auto it = tconst.begin();
+   auto end = tconst.end();
+
+   // Iteration using iterators
+   BOOST_TEST_NE(it, end);
+   BOOST_TEST_EQ(*it, node1);
+   BOOST_TEST_NE(++it, end);
+   BOOST_TEST_EQ(*it, node2);
+   BOOST_TEST_EQ(++it, end);
+
+   // Iteration using range for
+   std::vector<node_view> nodes;
+   for (const auto& n : t)
+      nodes.push_back(n);
+   constexpr std::array expected_nodes{node1, node2};
+   BOOST_TEST_ALL_EQ(nodes.begin(), nodes.end(), expected_nodes.begin(), expected_nodes.end());
+}
+
 // --- Comparison ---
 void test_comparison_different()
 {
@@ -1305,6 +1337,8 @@ int main()
    test_move_assign_source_empty();
    test_move_assign_both_empty();
    test_move_assign_tmp();
+
+   test_iterators();
 
    test_comparison_different();
    test_comparison_different_node_types();
