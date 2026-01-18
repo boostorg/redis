@@ -6,14 +6,12 @@
 
 #include <boost/redis/connection.hpp>
 
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/detached.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
-#include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <boost/asio/use_awaitable.hpp>
 
 #include <iostream>
 
@@ -62,13 +60,13 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    // to enable this behavior.
 
    // Loop to read Redis push messages.
-   for (error_code ec;;) {
+   while (conn->will_reconnect()) {
       // Wait for pushes
-      co_await conn->async_receive2(asio::redirect_error(ec));
+      auto [ec] = co_await conn->async_receive2(asio::as_tuple);
 
       // Check for errors and cancellations
-      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
-         std::cerr << "Error during receive2: " << ec << std::endl;
+      if (ec) {
+         std::cerr << "Error during receive: " << ec << std::endl;
          break;
       }
 

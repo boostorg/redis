@@ -117,15 +117,17 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
    // in resp. If the connection encounters a network error and reconnects to the server,
    // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
+   // You need to use specialized request::subscribe() function (instead of request::push)
+   // to enable this behavior.
 
    // Loop to read Redis push messages.
-   for (error_code ec;;) {
+   while (conn->will_reconnect()) {
       // Wait for pushes
-      co_await conn->async_receive2(asio::redirect_error(ec));
+      auto [ec] = co_await conn->async_receive2(asio::as_tuple);
 
       // Check for errors and cancellations
-      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
-         std::cerr << "Error during receive2: " << ec << std::endl;
+      if (ec) {
+         std::cerr << "Error during receive: " << ec << std::endl;
          break;
       }
 

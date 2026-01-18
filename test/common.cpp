@@ -7,12 +7,14 @@
 
 #include "common.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
 
 namespace net = boost::asio;
+using namespace std::chrono_literals;
 
 struct run_callback {
    std::shared_ptr<boost::redis::connection> conn;
@@ -55,6 +57,7 @@ boost::redis::config make_test_config()
 {
    boost::redis::config cfg;
    cfg.addr.host = get_server_hostname();
+   cfg.reconnect_wait_interval = 50ms;  // make tests involving reconnection faster
    return cfg;
 }
 

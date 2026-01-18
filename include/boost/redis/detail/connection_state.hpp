@@ -51,6 +51,7 @@ struct connection_state {
    request setup_req{};
    request ping_req{};
    subscription_tracker tracker{};
+   bool receive2_running{false}, receive2_cancelled{false};
 
    // Sentinel stuff
    lazy_random_engine eng{};

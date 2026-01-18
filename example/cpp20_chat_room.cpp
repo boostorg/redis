@@ -6,12 +6,12 @@
 
 #include <boost/redis/connection.hpp>
 
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/asio/read_until.hpp>
-#include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 
 #include <exception>
@@ -30,7 +30,6 @@ using boost::asio::co_spawn;
 using boost::asio::consign;
 using boost::asio::detached;
 using boost::asio::dynamic_buffer;
-using boost::asio::redirect_error;
 using boost::redis::config;
 using boost::redis::connection;
 using boost::redis::generic_flat_response;
@@ -61,13 +60,13 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
    req.subscribe({"channel"});
    co_await conn->async_exec(req);
 
-   for (error_code ec;;) {
+   while (conn->will_reconnect()) {
       // Wait for pushes
-      co_await conn->async_receive2(asio::redirect_error(ec));
+      auto [ec] = co_await conn->async_receive2(asio::as_tuple);
 
       // Check for errors and cancellations
-      if (ec && (ec != asio::experimental::error::channel_cancelled || !conn->will_reconnect())) {
-         std::cerr << "Error during receive2: " << ec << std::endl;
+      if (ec) {
+         std::cerr << "Error during receive: " << ec << std::endl;
          break;
       }
 
