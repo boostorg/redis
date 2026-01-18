@@ -1252,6 +1252,28 @@ void test_unchecked_access()
    BOOST_TEST_EQ(t.back(), n2);
 }
 
+// --- data ---
+void test_data()
+{
+   flat_tree t;
+   add_nodes(t, "*1\r\n+node1\r\n");
+
+   constexpr node_view expected_nodes[] = {
+      {type::array,         1u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "node1"},
+   };
+
+   BOOST_TEST_NE(t.data(), nullptr);
+   BOOST_TEST_ALL_EQ(t.data(), t.data() + 2u, std::begin(expected_nodes), std::end(expected_nodes));
+}
+
+// Empty ranges don't cause trouble
+void test_data_empty()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.data(), nullptr);
+}
+
 // The range should model contiguous range
 #ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
 static_assert(std::ranges::contiguous_range<flat_tree>);
@@ -1489,6 +1511,9 @@ int main()
    test_at_empty();
 
    test_unchecked_access();
+
+   test_data();
+   test_data_empty();
 
    test_comparison_different();
    test_comparison_different_node_types();
