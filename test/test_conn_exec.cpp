@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(exec_generic_flat_response)
    BOOST_TEST_REQUIRE(finished);
 
    BOOST_TEST(resp.has_value());
-   BOOST_TEST(resp->get_view().front().value == "PONG");
+   BOOST_TEST(resp.value().front().value == "PONG");
 }
 
 }  // namespace

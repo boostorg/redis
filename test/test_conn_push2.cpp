@@ -682,15 +682,15 @@ struct test_pubsub_state_restoration_impl {
    {
       // Checks for the expected subscriptions and patterns after restoration
       std::set<std::string_view> seen_channels, seen_patterns;
-      for (auto it = resp_push.get_view().begin(); it != resp_push.get_view().end();) {
+      for (auto it = resp_push.begin(); it != resp_push.end();) {
          // The root element should be a push
          BOOST_TEST_EQ(it->data_type, type::push);
          BOOST_TEST_GE(it->aggregate_size, 2u);
-         BOOST_TEST(++it != resp_push.get_view().end());
+         BOOST_TEST(++it != resp_push.end());
 
          // The next element should be the message type
          std::string_view msg_type = it->value;
-         BOOST_TEST(++it != resp_push.get_view().end());
+         BOOST_TEST(++it != resp_push.end());
 
          // The next element is the channel or pattern
          if (msg_type == "subscribe")
@@ -699,7 +699,7 @@ struct test_pubsub_state_restoration_impl {
             seen_patterns.insert(it->value);
 
          // Skip the rest of the nodes
-         while (it != resp_push.get_view().end() && it->depth != 0u)
+         while (it != resp_push.end() && it->depth != 0u)
             ++it;
       }
 

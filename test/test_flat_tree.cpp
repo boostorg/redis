@@ -11,18 +11,28 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert/source_location.hpp>
+#include <boost/config.hpp>  // for a safe #include <version>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/core/span.hpp>
 
 #include "print_node.hpp"
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <iostream>
+#include <iterator>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#if (__cpp_lib_ranges >= 201911L) && (__cpp_lib_concepts >= 202002L)
+#define BOOST_REDIS_TEST_RANGE_CONCEPTS
+#include <ranges>
+#endif
 
 using boost::redis::adapter::adapt2;
 using boost::redis::adapter::result;
@@ -70,11 +80,7 @@ void check_nodes(
    boost::span<const node_view> expected,
    boost::source_location loc = BOOST_CURRENT_LOCATION)
 {
-   if (!BOOST_TEST_ALL_EQ(
-          tree.get_view().begin(),
-          tree.get_view().end(),
-          expected.begin(),
-          expected.end()))
+   if (!BOOST_TEST_ALL_EQ(tree.begin(), tree.end(), expected.begin(), expected.end()))
       std::cerr << "Called from " << loc << std::endl;
 }
 
@@ -1090,6 +1096,233 @@ void test_move_assign_tmp()
    BOOST_TEST_EQ(t.get_total_msgs(), 2u);
 }
 
+// --- Iterators ---
+// We can obtain iterators using begin() and end() and use them to iterate
+void test_iterators()
+{
+   // Setup
+   flat_tree t;
+   add_nodes(t, "+node1\r\n");
+   add_nodes(t, ":200\r\n");
+   constexpr node_view node1{type::simple_string, 1u, 0u, "node1"};
+   constexpr node_view node2{type::number, 1u, 0u, "200"};
+
+   // These methods are const
+   const auto& tconst = t;
+   auto it = tconst.begin();
+   auto end = tconst.end();
+
+   // Iteration using iterators
+   BOOST_TEST_NE(it, end);
+   BOOST_TEST_EQ(*it, node1);
+   BOOST_TEST_NE(++it, end);
+   BOOST_TEST_EQ(*it, node2);
+   BOOST_TEST_EQ(++it, end);
+
+   // Iteration using range for
+   std::vector<node_view> nodes;
+   for (const auto& n : t)
+      nodes.push_back(n);
+   constexpr std::array expected_nodes{node1, node2};
+   BOOST_TEST_ALL_EQ(nodes.begin(), nodes.end(), expected_nodes.begin(), expected_nodes.end());
+}
+
+// Empty ranges don't cause trouble
+void test_iterators_empty()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.begin(), t.end());
+}
+
+// Tmp area is not included in the range
+// More or less tested with the add_nodes tests
+void test_iterators_tmp()
+{
+   parser p;
+   flat_tree t;
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+   BOOST_TEST_EQ(t.begin(), t.end());
+}
+
+// The iterator should be contiguous
+#ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
+static_assert(std::contiguous_iterator<flat_tree::iterator>);
+#endif
+
+// --- Reverse iterators ---
+// We can obtain iterators using rbegin() and rend() and use them to iterate
+void test_reverse_iterators()
+{
+   // Setup
+   flat_tree t;
+   add_nodes(t, "+node1\r\n");
+   add_nodes(t, ":200\r\n");
+
+   // These methods are const
+   const auto& tconst = t;
+
+   constexpr node_view expected_nodes[] = {
+      {type::number,        1u, 0u, "200"  },
+      {type::simple_string, 1u, 0u, "node1"},
+   };
+   BOOST_TEST_ALL_EQ(
+      tconst.rbegin(),
+      tconst.rend(),
+      std::begin(expected_nodes),
+      std::end(expected_nodes));
+}
+
+// Empty ranges don't cause trouble
+void test_reverse_iterators_empty()
+{
+   flat_tree t;
+   BOOST_TEST(t.rbegin() == t.rend());
+}
+
+// Tmp area is not included in the range
+void test_reverse_iterators_tmp()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   // Only the full message appears in the reversed range
+   constexpr node_view expected_nodes[] = {
+      {type::simple_string, 1u, 1u, "node1"},
+      {type::array,         1u, 0u, ""     },
+   };
+   BOOST_TEST_ALL_EQ(t.rbegin(), t.rend(), std::begin(expected_nodes), std::end(expected_nodes));
+}
+
+// --- at ---
+void test_at()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   // Nodes in the range can be accessed with at()
+   constexpr node_view n0{type::array, 1u, 0u, ""};
+   constexpr node_view n1{type::simple_string, 1u, 1u, "node1"};
+   BOOST_TEST_EQ(t.at(0u), n0);
+   BOOST_TEST_EQ(t.at(1u), n1);
+
+   // Nodes in the tmp area are not considered in range
+   BOOST_TEST_THROWS(t.at(2u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(3u), std::out_of_range);
+
+   // Indices out of range throw
+   BOOST_TEST_THROWS(t.at(4u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(5u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at((std::numeric_limits<std::size_t>::max)()), std::out_of_range);
+}
+
+// Empty ranges don't cause trouble
+void test_at_empty()
+{
+   flat_tree t;
+   BOOST_TEST_THROWS(t.at(0u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at(2u), std::out_of_range);
+   BOOST_TEST_THROWS(t.at((std::numeric_limits<std::size_t>::max)()), std::out_of_range);
+}
+
+// --- operator[], front, back ---
+void test_unchecked_access()
+{
+   flat_tree t;
+   add_nodes(t, "*2\r\n+node1\r\n+node2\r\n");
+
+   constexpr node_view n0{type::array, 2u, 0u, ""};
+   constexpr node_view n1{type::simple_string, 1u, 1u, "node1"};
+   constexpr node_view n2{type::simple_string, 1u, 1u, "node2"};
+
+   // operator []
+   BOOST_TEST_EQ(t[0u], n0);
+   BOOST_TEST_EQ(t[1u], n1);
+   BOOST_TEST_EQ(t[2u], n2);
+
+   // Front and back
+   BOOST_TEST_EQ(t.front(), n0);
+   BOOST_TEST_EQ(t.back(), n2);
+}
+
+// --- data ---
+void test_data()
+{
+   flat_tree t;
+   add_nodes(t, "*1\r\n+node1\r\n");
+
+   constexpr node_view expected_nodes[] = {
+      {type::array,         1u, 0u, ""     },
+      {type::simple_string, 1u, 1u, "node1"},
+   };
+
+   BOOST_TEST_NE(t.data(), nullptr);
+   BOOST_TEST_ALL_EQ(t.data(), t.data() + 2u, std::begin(expected_nodes), std::end(expected_nodes));
+}
+
+// Empty ranges don't cause trouble
+void test_data_empty()
+{
+   flat_tree t;
+   BOOST_TEST_EQ(t.data(), nullptr);
+}
+
+// --- size and empty ---
+void test_size()
+{
+   flat_tree t;
+   add_nodes(t, "*1\r\n+node1\r\n");
+
+   BOOST_TEST_EQ(t.size(), 2u);
+   BOOST_TEST_NOT(t.empty());
+}
+
+void test_size_empty()
+{
+   flat_tree t;
+
+   BOOST_TEST_EQ(t.size(), 0u);
+   BOOST_TEST(t.empty());
+}
+
+// Tmp area not taken into account
+void test_size_tmp()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one full message and a partial one
+   add_nodes(t, "*1\r\n+node1\r\n");
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   BOOST_TEST_EQ(t.size(), 2u);
+   BOOST_TEST_NOT(t.empty());
+}
+
+void test_size_tmp_only()
+{
+   parser p;
+   flat_tree t;
+
+   // Add one partial message
+   BOOST_TEST_NOT(parse_checked(t, p, "*2\r\n+hello\r\n"));
+
+   BOOST_TEST_EQ(t.size(), 0u);
+   BOOST_TEST(t.empty());
+}
+
+// The range should model contiguous range
+#ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
+static_assert(std::ranges::contiguous_range<flat_tree>);
+#endif
+
 // --- Comparison ---
 void test_comparison_different()
 {
@@ -1309,6 +1542,27 @@ int main()
    test_move_assign_source_empty();
    test_move_assign_both_empty();
    test_move_assign_tmp();
+
+   test_iterators();
+   test_iterators_empty();
+   test_iterators_tmp();
+
+   test_reverse_iterators();
+   test_reverse_iterators_empty();
+   test_reverse_iterators_tmp();
+
+   test_at();
+   test_at_empty();
+
+   test_unchecked_access();
+
+   test_data();
+   test_data_empty();
+
+   test_size();
+   test_size_empty();
+   test_size_tmp();
+   test_size_tmp_only();
 
    test_comparison_different();
    test_comparison_different_node_types();

@@ -72,7 +72,7 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value().get_view())
+      for (auto const& elem : resp.value())
          std::cout << elem.value << "\n";
 
       std::cout << std::endl;

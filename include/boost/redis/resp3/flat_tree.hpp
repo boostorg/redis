@@ -15,6 +15,7 @@
 #include <boost/core/span.hpp>
 
 #include <cstddef>
+#include <iterator>
 #include <memory>
 
 namespace boost::redis {
@@ -45,8 +46,12 @@ struct flat_buffer {
  * to obtain how many responses this object contains.
  *
  * Objects are typically created by the user and passed to @ref connection::async_exec
- * to be used as response containers. Call @ref get_view to access the actual RESP3 nodes.
- * Once populated, `flat_tree` can't be modified, except for @ref clear and assignment.
+ * to be used as response containers. Once populated, they can be used as a const range
+ * of @ref resp3::node_view objects. The usual random access range methods (like @ref at, @ref size or
+ * @ref front) are provided. Once populated, `flat_tree` can't be modified,
+ * except for @ref clear and assignment.
+ *
+ * `flat_tree` models `std::ranges::contiguous_range`.
  *
  * A `flat_tree` is conceptually similar to a pair of `std::vector` objects, one holding
  * @ref resp3::node_view objects, and another owning the the string data that these views
@@ -54,6 +59,22 @@ struct flat_buffer {
  */
 class flat_tree {
 public:
+   /**
+    * @brief The type of the iterators returned by @ref begin and @ref end.
+    *
+    * It is guaranteed to be a contiguous iterator. While this is currently a pointer,
+    * users shouldn't rely on this fact, as the exact implementation may change between releases.
+    */
+   using iterator = const node_view*;
+
+   /**
+    * @brief The type of the iterators returned by @ref rbegin and @ref rend.
+    *
+    * As with @ref iterator, users should treat this type as an unspecified
+    * contiguous iterator type rather than assuming a specific type.
+    */
+   using reverse_iterator = std::reverse_iterator<iterator>;
+
    /**
     * @brief Default constructor.
     *
@@ -70,7 +91,7 @@ public:
     * Constructs a tree by taking ownership of the nodes in `other`.
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `other` remain valid.
+    * Iterators, pointers and references to the nodes and strings in `other` remain valid.
     *
     * @par Exception safety
     * No-throw guarantee.
@@ -95,8 +116,8 @@ public:
     * `other` is left in a valid but unspecified state.
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `other` remain valid.
-    * References to the nodes and strings in `*this` are invalidated.
+    * Iterators, pointers and references to the nodes and strings in `other` remain valid.
+    * Iterators, pointers and references to the nodes and strings in `*this` are invalidated.
     *
     * @par Exception safety
     * No-throw guarantee.
@@ -110,16 +131,137 @@ public:
     * After the copy, `*this` and `other` have independent lifetimes (usual copy semantics).
     *
     * @par Object lifetimes
-    * References to the nodes and strings in `*this` are invalidated.
+    * Iterators, pointers and references to the nodes and strings in `*this` are invalidated.
     *
     * @par Exception safety
     * Basic guarantee. Memory allocations might throw.
     */
    flat_tree& operator=(const flat_tree& other);
 
-   friend bool operator==(flat_tree const&, flat_tree const&);
+   /**
+    * @brief Returns an iterator to the first element of the node range.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns An iterator to the first node.
+    */
+   iterator begin() const noexcept { return data(); }
 
-   friend bool operator!=(flat_tree const&, flat_tree const&);
+   /**
+    * @brief Returns an iterator past the last element in the node range.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns An iterator past the last element in the node range.
+    */
+   iterator end() const noexcept { return data() + size(); }
+
+   /**
+    * @brief Returns an iterator to the first element of the reversed node range.
+    *
+    * Allows iterating the range of nodes in reverse order.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns An iterator to the first node of the reversed range.
+    */
+   reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
+
+   /**
+    * @brief Returns an iterator past the last element of the reversed node range.
+    *
+    * Allows iterating the range of nodes in reverse order.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns An iterator past the last element of the reversed node range.
+    */
+   reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
+
+   /**
+    * @brief Returns a reference to the node at the specified position (checked access).
+    *
+    * @par Exception safety
+    * Strong guarantee. Throws `std::out_of_range` if `i >= size()`.
+    *
+    * @param i Position of the node to return.
+    * @returns A reference to the node at position `i`.
+    */
+   const node_view& at(std::size_t i) const;
+
+   /**
+    * @brief Returns a reference to the node at the specified position (unchecked access).
+    *
+    * @par Precondition
+    * `i < size()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @param i Position of the node to return.
+    * @returns A reference to the node at position `i`.
+    */
+   const node_view& operator[](std::size_t i) const noexcept { return get_view()[i]; }
+
+   /**
+    * @brief Returns a reference to the first node.
+    *
+    * @par Precondition
+    * `!empty()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A reference to the first node.
+    */
+   const node_view& front() const noexcept { return get_view().front(); }
+
+   /**
+    * @brief Returns a reference to the last node.
+    *
+    * @par Precondition
+    * `!empty()`.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A reference to the last node.
+    */
+   const node_view& back() const noexcept { return get_view().back(); }
+
+   /**
+    * @brief Returns a pointer to the underlying node storage.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A pointer to the underlying node array.
+    */
+   const node_view* data() const noexcept { return view_tree_.data(); }
+
+   /**
+    * @brief Checks whether the tree is empty.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns `true` if the tree contains no nodes, `false` otherwise.
+    */
+   bool empty() const noexcept { return size() == 0u; }
+
+   /**
+    * @brief Returns the number of nodes in the tree.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns The number of nodes.
+    */
+   std::size_t size() const noexcept { return node_tmp_offset_; }
 
    /** @brief Reserves capacity for incoming data.
     *
@@ -142,7 +284,7 @@ public:
    /** @brief Clears the tree so it contains no nodes.
     * 
     * Calling this function removes every node, making
-    * @ref get_view return empty and @ref get_total_msgs
+    * the range contain no nodes, and @ref get_total_msgs
     * return zero. It does not modify the object's capacity.
     * 
     * To re-use a `flat_tree` for several requests,
@@ -189,17 +331,6 @@ public:
     */
    auto data_capacity() const noexcept -> std::size_t { return data_.capacity; }
 
-   /** @brief Returns a vector with the nodes in the tree.
-    *
-    * This is the main way to access the contents of the tree.
-    *
-    * @par Exception safety
-    * No-throw guarantee.
-    *
-    * @returns The nodes in the tree.
-    */
-   span<const node_view> get_view() const noexcept { return {view_tree_.data(), node_tmp_offset_}; }
-
    /** @brief Returns the number of memory reallocations that took place in the data buffer.
     *
     * This function returns how many reallocations in the data buffer were performed and
@@ -226,6 +357,7 @@ public:
 private:
    template <class> friend class adapter::detail::general_aggregate;
 
+   span<const node_view> get_view() const noexcept { return {data(), size()}; }
    void notify_init();
    void notify_done();
 
