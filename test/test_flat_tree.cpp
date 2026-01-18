@@ -1232,22 +1232,30 @@ void test_at_empty()
    BOOST_TEST_THROWS(t.at((std::numeric_limits<std::size_t>::max)()), std::out_of_range);
 }
 
+// --- operator[], front, back ---
+void test_unchecked_access()
+{
+   flat_tree t;
+   add_nodes(t, "*2\r\n+node1\r\n+node2\r\n");
+
+   constexpr node_view n0{type::array, 2u, 0u, ""};
+   constexpr node_view n1{type::simple_string, 1u, 1u, "node1"};
+   constexpr node_view n2{type::simple_string, 1u, 1u, "node2"};
+
+   // operator []
+   BOOST_TEST_EQ(t[0u], n0);
+   BOOST_TEST_EQ(t[1u], n1);
+   BOOST_TEST_EQ(t[2u], n2);
+
+   // Front and back
+   BOOST_TEST_EQ(t.front(), n0);
+   BOOST_TEST_EQ(t.back(), n2);
+}
+
 // The range should model contiguous range
 #ifdef BOOST_REDIS_TEST_RANGE_CONCEPTS
 static_assert(std::ranges::contiguous_range<flat_tree>);
 #endif
-
-// --- operator[] ---
-void test_operator_subscript()
-{
-   flat_tree t;
-   add_nodes(t, "*1\r\n+node1\r\n");
-
-   constexpr node_view n0{type::array, 1u, 0u, ""};
-   constexpr node_view n1{type::simple_string, 1u, 1u, "node1"};
-   BOOST_TEST_EQ(t[0u], n0);
-   BOOST_TEST_EQ(t[1u], n1);
-}
 
 // --- Comparison ---
 void test_comparison_different()
@@ -1480,7 +1488,7 @@ int main()
    test_at();
    test_at_empty();
 
-   test_operator_subscript();
+   test_unchecked_access();
 
    test_comparison_different();
    test_comparison_different_node_types();
