@@ -122,38 +122,46 @@ public:
    flat_tree& operator=(const flat_tree& other);
 
    /**
-    * @brief Returns an iterator to the beginning of the node range.
+    * @brief Returns an iterator to the first element of the node range.
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns An iterator to the first node.
     */
    iterator begin() const noexcept { return data(); }
 
    /**
-    * @brief Returns an iterator to the end of the node range.
+    * @brief Returns an iterator past the last element in the node range.
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns An iterator past the last element in the node range.
     */
    iterator end() const noexcept { return data() + size(); }
 
    /**
-    * @brief Returns an iterator to the beginning of the reversed node range.
+    * @brief Returns an iterator to the first element of the reversed node range.
     *
     * Allows iterating the range of nodes in reverse order.
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns An iterator to the first node of the reversed range.
     */
    reverse_iterator rbegin() const noexcept { return reverse_iterator{end()}; }
 
    /**
-    * @brief Returns an iterator to the beginning of the reversed node range.
+    * @brief Returns an iterator past the last element of the reversed node range.
     *
     * Allows iterating the range of nodes in reverse order.
     *
     * @par Exception safety
     * No-throw guarantee.
+    *
+    * @returns An iterator past the last element of the reversed node range.
     */
    reverse_iterator rend() const noexcept { return reverse_iterator{begin()}; }
 
