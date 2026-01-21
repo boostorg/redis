@@ -5,6 +5,8 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/type.hpp>
 
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/awaitable.hpp>
@@ -14,10 +16,12 @@
 #include <boost/asio/signal_set.hpp>
 
 #include <iostream>
+#include <span>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
 namespace asio = boost::asio;
+namespace resp3 = boost::redis::resp3;
 using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_flat_response;
@@ -72,10 +76,14 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value())
-         std::cout << elem.value << "\n";
-
-      std::cout << std::endl;
+      for (std::span<const resp3::node_view> message : resp.value().messages()) {
+         if (
+            message.size() == 4u && message[0].data_type == resp3::type::push &&
+            message[1].value == "message") {
+            std::cout << "Channel: " << message[2].value << ", message: " << message[3].value
+                      << "\n";
+         }
+      }
 
       resp.value().clear();
    }

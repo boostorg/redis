@@ -22,6 +22,7 @@
 #include <boost/redis/impl/sentinel_resolve_fsm.ipp>
 #include <boost/redis/impl/subscription_tracker.ipp>
 #include <boost/redis/impl/writer_fsm.ipp>
+#include <boost/redis/resp3/impl/messages_view.ipp>
 #include <boost/redis/resp3/impl/parser.ipp>
 #include <boost/redis/resp3/impl/serialization.ipp>
 #include <boost/redis/resp3/impl/type.ipp>

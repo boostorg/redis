@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_RESP3_FLAT_TREE_HPP
 #define BOOST_REDIS_RESP3_FLAT_TREE_HPP
 
+#include <boost/redis/resp3/messages_view.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 
@@ -353,6 +354,13 @@ public:
     * @returns The number of complete RESP3 messages contained in this object.
     */
    std::size_t get_total_msgs() const noexcept { return total_msgs_; }
+
+   messages_view messages() const noexcept
+   {
+      return messages_view{
+         {begin(), end()}
+      };
+   }
 
 private:
    template <class> friend class adapter::detail::general_aggregate;
