@@ -50,10 +50,12 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
 {
    const auto ec = elm.get_error();
    if (ec) {
-      if (st.diagnostic.empty()) {
-         log_info(st.logger, "Setup request execution: ", ec);
+      if (ec == error::resp3_hello) {
+         // This is the most common case
+         log_info(st.logger, "Setup request execution: ", st.diagnostic);
       } else {
-         log_info(st.logger, "Setup request execution: ", ec, " (", st.diagnostic, ")");
+         // Something else went wrong (e.g. network error while running the request)
+         log_info(st.logger, "Setup request execution: ", ec, ": ", st.diagnostic);
       }
    } else {
       log_info(st.logger, "Setup request execution: success");

@@ -14,6 +14,7 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/logger.hpp>
@@ -88,8 +89,11 @@ writer_action writer_fsm::resume(
                if (ec) {
                   if (ec == asio::error::operation_aborted) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
+                  } else if (ec == error::resp3_hello) {
+                     // This is already logged in the setup adapter
+                     log_debug(st.logger, "Writer task: setup request error");
                   } else {
-                     log_debug(st.logger, "Writer task error: ", ec);
+                     log_info(st.logger, "Error writing data to the server: ", ec);
                   }
                   return ec;
                }
