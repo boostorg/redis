@@ -29,7 +29,7 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
-            log_info(st.logger, "Error preparing the read buffer: ", ec);
+            log_err(st.logger, "Error preparing the read buffer: ", ec);
             return {ec};
          }
 
@@ -55,7 +55,7 @@ reader_fsm::action reader_fsm::resume(
          // Log what we read
          log_debug(st.logger, "Reader task: ", bytes_read, " bytes read");
          if (ec) {
-            log_info(st.logger, "Error while reading from the server: ", ec);
+            log_err(st.logger, "Error while reading from the server: ", ec);
          }
 
          // Process the bytes read, even if there was an error
@@ -80,7 +80,7 @@ reader_fsm::action reader_fsm::resume(
                   // This is already logged in the setup adapter
                   log_debug(st.logger, "Error while processing message: setup request error");
                } else {
-                  log_info(st.logger, "Error while processing message: ", ec);
+                  log_err(st.logger, "Error while processing message: ", ec);
                }
                return ec;
             }
@@ -101,7 +101,7 @@ reader_fsm::action reader_fsm::resume(
                // Check for other errors.
                // We should't get any in the real world, but just in case.
                if (ec) {
-                  log_info(st.logger, "Error notifying push receiver: ", ec);
+                  log_err(st.logger, "Error notifying push receiver: ", ec);
                   return ec;
                }
             } else {

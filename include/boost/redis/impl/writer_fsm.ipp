@@ -40,7 +40,7 @@ inline void process_ping_node(
    }
 
    if (ec) {
-      log_info(lgr, "Health checker: server answered ping with an error: ", nd.value);
+      log_err(lgr, "Health checker: server answered ping with an error: ", nd.value);
    }
 }
 
@@ -93,7 +93,7 @@ writer_action writer_fsm::resume(
                      // This is already logged in the setup adapter
                      log_debug(st.logger, "Writer task: setup request error");
                   } else {
-                     log_info(st.logger, "Error writing data to the server: ", ec);
+                     log_err(st.logger, "Error writing data to the server: ", ec);
                   }
                   return ec;
                }

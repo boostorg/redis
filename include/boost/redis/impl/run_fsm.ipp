@@ -52,10 +52,10 @@ inline void on_setup_done(const multiplexer::elem& elm, connection_state& st)
    if (ec) {
       if (ec == error::resp3_hello) {
          // This is the most common case, and the only one that generates a string diagnostic
-         log_info(st.logger, "Setup request execution: ", st.diagnostic);
+         log_err(st.logger, "Setup request execution failed: ", st.diagnostic);
       } else {
          // Something else went wrong (e.g. network error while running the request).
-         log_info(st.logger, "Setup request execution failed: ", ec);
+         log_err(st.logger, "Setup request execution failed: ", ec);
       }
    } else {
       log_info(st.logger, "Setup request execution: success");
@@ -146,7 +146,7 @@ run_action run_fsm::resume(
 
          if (ec) {
             // There was an error. Skip to the reconnection loop
-            log_info(
+            log_err(
                st.logger,
                "Failed to connect to Redis server at ",
                get_server_address(st),
