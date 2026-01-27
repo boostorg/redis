@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/pubsub_messages.hpp>
 
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/awaitable.hpp>
@@ -22,8 +23,10 @@ using namespace std::chrono_literals;
 using boost::redis::request;
 using boost::redis::generic_flat_response;
 using boost::redis::config;
-using boost::system::error_code;
 using boost::redis::connection;
+using boost::redis::pubsub_messages;
+using boost::redis::pubsub_message;
+using boost::system::error_code;
 using asio::signal_set;
 
 /* This example will subscribe and read pushes indefinitely.
@@ -72,10 +75,10 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value())
-         std::cout << elem.value << "\n";
-
-      std::cout << std::endl;
+      for (pubsub_message elem : pubsub_messages{resp.value()}) {
+         std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
+                   << "\n";
+      }
 
       resp.value().clear();
    }

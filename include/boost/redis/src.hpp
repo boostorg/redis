@@ -13,6 +13,7 @@
 #include <boost/redis/impl/ignore.ipp>
 #include <boost/redis/impl/logger.ipp>
 #include <boost/redis/impl/multiplexer.ipp>
+#include <boost/redis/impl/pubsub_messages.ipp>
 #include <boost/redis/impl/read_buffer.ipp>
 #include <boost/redis/impl/reader_fsm.ipp>
 #include <boost/redis/impl/receive_fsm.ipp>
