@@ -55,7 +55,7 @@ reader_fsm::action reader_fsm::resume(
          // Log what we read
          log_debug(st.logger, "Reader task: ", bytes_read, " bytes read");
          if (ec) {
-            log_err(st.logger, "Error while reading from the server: ", ec);
+            log_err(st.logger, "Error reading data from the server: ", ec);
          }
 
          // Process the bytes read, even if there was an error
@@ -78,9 +78,9 @@ reader_fsm::action reader_fsm::resume(
                // debugging.
                if (ec == error::resp3_hello) {
                   // This is already logged in the setup adapter
-                  log_debug(st.logger, "Error while processing message: setup request error");
+                  log_debug(st.logger, "Error processing message: setup request error");
                } else {
-                  log_err(st.logger, "Error while processing message: ", ec);
+                  log_err(st.logger, "Error processing message: ", ec);
                }
                return ec;
             }

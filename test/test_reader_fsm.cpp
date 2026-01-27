@@ -252,8 +252,9 @@ void test_read_error()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::debug, "Reader task: issuing read"        },
-      {logger::level::debug, "Reader task: 11 bytes read, error: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::debug, "Reader task: issuing read"  },
+      {logger::level::debug, "Reader task: 11 bytes read" },
+      {logger::level::err,   "Error reading data from the server: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -275,8 +276,9 @@ void test_read_timeout()
    // Check logging
    fix.check_log({
       // clang-format off
-      {logger::level::debug, "Reader task: issuing read"        },
-      {logger::level::debug, "Reader task: 0 bytes read, error: Pong timeout. [boost.redis:19]"},
+      {logger::level::debug, "Reader task: issuing read" },
+      {logger::level::debug, "Reader task: 0 bytes read" },
+      {logger::level::err,   "Error reading data from the server: Pong timeout. [boost.redis:19]"},
       // clang-format on
    });
 }
@@ -302,8 +304,8 @@ void test_parse_error()
    fix.check_log({
       {logger::level::debug, "Reader task: issuing read"},
       {logger::level::debug, "Reader task: 4 bytes read"},
-      {logger::level::debug,
-       "Reader task: error processing message: Can't convert string to number (maybe forgot to "
+      {logger::level::err,
+       "Error processing message: Can't convert string to number (maybe forgot to "
        "upgrade to RESP3?). [boost.redis:2]"            },
    });
 }
@@ -334,7 +336,7 @@ void test_push_deliver_error()
       // clang-format off
       {logger::level::debug, "Reader task: issuing read"               },
       {logger::level::debug, "Reader task: 11 bytes read"               },
-      {logger::level::debug, "Reader task: error notifying push receiver: Expected field value is empty. [boost.redis:5]"},
+      {logger::level::err,   "Error notifying push receiver: Expected field value is empty. [boost.redis:5]"},
       // clang-format on
    });
 }
@@ -362,8 +364,8 @@ void test_max_read_buffer_size()
       {logger::level::debug, "Reader task: issuing read"               },
       {logger::level::debug, "Reader task: 4 bytes read"               },
       {logger::level::debug, "Reader task: incomplete message received"},
-      {logger::level::debug,
-       "Reader task: error in prepare_read: Reading data from the socket would exceed the maximum "
+      {logger::level::err,
+       "Error preparing the read buffer: Reading data from the socket would exceed the maximum "
        "size allowed of the read buffer. [boost.redis:26]"             },
    });
 }
