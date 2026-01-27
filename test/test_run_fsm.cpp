@@ -676,6 +676,50 @@ void test_setup_request_server_error()
    });
 }
 
+// If the setup request finishes with another error (e.g. network error), we log it
+void test_setup_request_other_error()
+{
+   // Setup
+   fixture fix;
+   fix.st.diagnostic = "leftover";  // simulate a leftover from previous runs
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+   fix.st.cfg.reconnect_wait_interval = 0s;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued.
+   // Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
+
+   // Simulate a read error
+   read(fix.st.mpx, "*malformed\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error::not_a_number);
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // This will cause the writer to exit
+   act = fix.fsm.resume(fix.st, error::not_a_number, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::not_a_number));
+
+   // Check log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"},
+      {logger::level::info, "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"        },
+      {logger::level::err,  "Setup request execution failed: Can't convert string to number (maybe forgot to upgrade to RESP3?). [boost.redis:2]" },
+      // clang-format on
+   });
+}
+
 // When using Sentinel, reconnection works normally
 void test_sentinel_reconnection()
 {
@@ -845,6 +889,7 @@ int main()
    test_setup_request_success();
    test_setup_request_empty();
    test_setup_request_server_error();
+   test_setup_request_other_error();
 
    test_sentinel_reconnection();
    test_sentinel_resolve_error();
