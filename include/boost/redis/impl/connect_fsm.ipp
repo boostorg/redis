@@ -91,7 +91,7 @@ connect_action connect_fsm::resume(
 
    // Log it
    if (ec) {
-      log_err(*lgr_, "Connect: hostname resolution failed: ", ec);
+      log_info(*lgr_, "Connect: hostname resolution failed: ", ec);
    } else {
       log_debug(*lgr_, "Connect: hostname resolution results: ", resolver_results);
    }
@@ -111,7 +111,7 @@ connect_action connect_fsm::resume(
 
    // Log it
    if (ec) {
-      log_err(*lgr_, "Connect: TCP connect failed: ", ec);
+      log_info(*lgr_, "Connect: TCP connect failed: ", ec);
    } else {
       log_debug(*lgr_, "Connect: TCP connect succeeded. Selected endpoint: ", selected_endpoint);
    }
@@ -143,7 +143,7 @@ connect_action connect_fsm::resume(
 
          // Log it
          if (ec) {
-            log_err(*lgr_, "Connect: UNIX socket connect failed: ", ec);
+            log_info(*lgr_, "Connect: UNIX socket connect failed: ", ec);
          } else {
             log_debug(*lgr_, "Connect: UNIX socket connect succeeded");
          }
@@ -195,7 +195,7 @@ connect_action connect_fsm::resume(
 
             // Log it
             if (ec) {
-               log_err(*lgr_, "Connect: SSL handshake failed: ", ec);
+               log_info(*lgr_, "Connect: SSL handshake failed: ", ec);
             } else {
                log_debug(*lgr_, "Connect: SSL handshake succeeded");
             }
