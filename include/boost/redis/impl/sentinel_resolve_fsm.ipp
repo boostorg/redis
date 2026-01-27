@@ -37,7 +37,7 @@ void log_sentinel_error(connection_state& st, std::size_t current_idx, const Arg
    st.diagnostic += "\n  ";
    std::size_t size_before = st.diagnostic.size();
    format_log_args(st.diagnostic, "Sentinel at ", st.sentinels[current_idx], ": ", args...);
-   log_err(st.logger, std::string_view{st.diagnostic}.substr(size_before));
+   log_info(st.logger, std::string_view{st.diagnostic}.substr(size_before));
 }
 
 sentinel_action sentinel_resolve_fsm::resume(
