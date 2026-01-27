@@ -11,6 +11,7 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/error.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/type.hpp>
 
@@ -135,7 +136,7 @@ struct sentinel_response {
 //   * The node array originates from parsing a valid RESP3 message.
 //     E.g. we won't check that the first node has depth 0.
 inline system::error_code parse_sentinel_response(
-   span<const resp3::node_view> nodes,
+   const resp3::flat_tree& tree,
    role server_role,
    sentinel_response& out)
 {
@@ -156,27 +157,29 @@ inline system::error_code parse_sentinel_response(
    out.sentinels.clear();
    out.replicas.clear();
 
-   // Find the first root node of interest. It's the 2nd or 3rd, starting with the end
-   auto find_first = [nodes, server_role] {
-      const std::size_t expected_roots = server_role == role::master ? 2u : 3u;
-      std::size_t roots_seen = 0u;
-      for (auto it = nodes.rbegin();; ++it) {
-         BOOST_ASSERT(it != nodes.rend());
-         if (it->depth == 0u && ++roots_seen == expected_roots)
-            return &*it;
-      }
-   };
-   const resp3::node_view* lib_first = find_first();
+   // User-supplied commands are before the ones added by us.
+   // Find out how many responses should we skip
+   const std::size_t num_lib_msgs = server_role == role::master ? 2u : 3u;
+   BOOST_ASSERT(tree.get_total_msgs() >= num_lib_msgs);
+   const std::size_t num_user_msgs = tree.get_total_msgs() - num_lib_msgs;
 
    // Iterators
-   const resp3::node_view* it = nodes.begin();
-   const resp3::node_view* last = nodes.end();
+   const resp3::node_view* it = tree.begin();
+   const resp3::node_view* last = tree.end();
    ignore_unused(last);
 
    // Go through all the responses to user-supplied requests checking for errors
-   for (; it != lib_first; ++it) {
-      if (auto ec = check_errors(*it))
-         return ec;
+   BOOST_ASSERT(it != last);
+   BOOST_ASSERT(it->depth == 0u);
+   for (std::size_t i = 0u; i < num_user_msgs; ++i) {
+      while (true) {
+         if (auto ec = check_errors(*it))
+            return ec;
+         ++it;
+         BOOST_ASSERT(it != last);
+         if (it->depth == 0u)
+            break;
+      }
    }
 
    // SENTINEL GET-MASTER-ADDR-BY-NAME
