@@ -53,7 +53,7 @@ inline system::error_code parse_server_list(
    const auto& root = tree.at(index);
    BOOST_ASSERT(root.depth == 0u);
    if (root.data_type != resp3::type::array)
-      return {error::expects_resp3_array};
+      return error::expects_resp3_array;
    const std::size_t num_servers = root.aggregate_size;
    ++index;
 
@@ -64,7 +64,7 @@ inline system::error_code parse_server_list(
       const auto& server_node = tree.at(index);
       BOOST_ASSERT(server_node.depth == 1u);
       if (server_node.data_type != resp3::type::map)
-         return {error::expects_resp3_map};
+         return error::expects_resp3_map;
       const std::size_t num_key_values = server_node.aggregate_size;
       ++index;
 
@@ -76,7 +76,7 @@ inline system::error_code parse_server_list(
          const auto& key_node = tree.at(index);
          BOOST_ASSERT(key_node.depth == 2u);
          if (key_node.data_type != resp3::type::blob_string)
-            return {error::expects_resp3_string};
+            return error::expects_resp3_string;
          const std::string_view key = key_node.value;
          ++index;
 
@@ -84,7 +84,7 @@ inline system::error_code parse_server_list(
          const auto& value_node = tree.at(index);
          BOOST_ASSERT(value_node.depth == 2u);
          if (value_node.data_type != resp3::type::blob_string)
-            return {error::expects_resp3_string};
+            return error::expects_resp3_string;
 
          // Record it
          if (key == "ip") {
@@ -100,7 +100,7 @@ inline system::error_code parse_server_list(
 
       // Check that the response actually contained the fields we wanted
       if (!ip_seen || !port_seen)
-         return {error::empty_field};
+         return error::empty_field;
    }
 
    // Done
@@ -126,10 +126,8 @@ struct sentinel_response {
 // This means that we can't use generic_response, since its adapter errors on error nodes.
 // SENTINEL GET-MASTER-ADDR-BY-NAME is sent even when connecting to replicas
 //    for better diagnostics when the master name is unknown.
-// Preconditions:
-//   * There are at least 2 (master)/3 (replica) root nodes.
-//   * The node array originates from parsing a valid RESP3 message.
-//     E.g. we won't check that the first node has depth 0.
+// Note that the tree should originate from a valid RESP3 message
+//   (i.e. we won't check that the first node has depth 0.)
 inline system::error_code parse_sentinel_response(
    const resp3::flat_tree& tree,
    role server_role,
@@ -155,7 +153,8 @@ inline system::error_code parse_sentinel_response(
    // User-supplied commands are before the ones added by us.
    // Find out how many responses should we skip
    const std::size_t num_lib_msgs = server_role == role::master ? 2u : 3u;
-   BOOST_ASSERT(tree.get_total_msgs() >= num_lib_msgs);  // TODO
+   if (tree.get_total_msgs() < num_lib_msgs)
+      return error::incompatible_size;
    const std::size_t num_user_msgs = tree.get_total_msgs() - num_lib_msgs;
 
    // Index-based access
@@ -184,21 +183,21 @@ inline system::error_code parse_sentinel_response(
    // If the root node is NULL, Sentinel doesn't know about this master.
    // We use resp3_null to signal this fact. This doesn't reach the end user.
    if (root_node.data_type == resp3::type::null) {
-      return {error::resp3_null};
+      return error::resp3_null;
    }
 
    // If the root node is an array, an IP and port follow
    if (root_node.data_type != resp3::type::array)
-      return {error::expects_resp3_array};
+      return error::expects_resp3_array;
    if (root_node.aggregate_size != 2u)
-      return {error::incompatible_size};
+      return error::incompatible_size;
    ++index;
 
    // IP
    const auto& ip_node = tree.at(index);
    BOOST_ASSERT(ip_node.depth == 1u);
    if (ip_node.data_type != resp3::type::blob_string)
-      return {error::expects_resp3_string};
+      return error::expects_resp3_string;
    out.master_addr.host = ip_node.value;
    ++index;
 
@@ -206,7 +205,7 @@ inline system::error_code parse_sentinel_response(
    const auto& port_node = tree.at(index);
    BOOST_ASSERT(port_node.depth == 1u);
    if (port_node.data_type != resp3::type::blob_string)
-      return {error::expects_resp3_string};
+      return error::expects_resp3_string;
    out.master_addr.port = port_node.value;
    ++index;
 
