@@ -123,6 +123,54 @@ inline system::error_code parse_server_list(
    return system::error_code();
 }
 
+// Parses the output of SENTINEL GET-MASTER-ADDR-BY-NAME
+inline system::error_code parse_get_master_addr_by_name(
+   const resp3::flat_tree& tree,
+   std::size_t& index,
+   std::string& diag,
+   address& out)
+{
+   const auto& root_node = tree.at(index);
+   BOOST_ASSERT(root_node.depth == 0u);
+
+   // Check for errors
+   if (auto ec = sentinel_check_errors(root_node, diag))
+      return ec;
+
+   // If the root node is NULL, Sentinel doesn't know about this master.
+   // We use resp3_null to signal this fact. This doesn't reach the end user.
+   // If this is the case, SENTINEL REPLICAS and SENTINEL SENTINELS will fail.
+   // We exit here so the diagnostic is clean.
+   if (root_node.data_type == resp3::type::null) {
+      return error::resp3_null;
+   }
+
+   // If the root node is an array, an IP and port follow
+   if (root_node.data_type != resp3::type::array)
+      return error::expects_resp3_array;
+   if (root_node.aggregate_size != 2u)
+      return error::incompatible_size;
+   ++index;
+
+   // IP
+   const auto& ip_node = tree.at(index);
+   BOOST_ASSERT(ip_node.depth == 1u);
+   if (ip_node.data_type != resp3::type::blob_string)
+      return error::expects_resp3_string;
+   out.host = ip_node.value;
+   ++index;
+
+   // Port
+   const auto& port_node = tree.at(index);
+   BOOST_ASSERT(port_node.depth == 1u);
+   if (port_node.data_type != resp3::type::blob_string)
+      return error::expects_resp3_string;
+   out.port = port_node.value;
+   ++index;
+
+   return system::error_code();
+}
+
 // The output type of parse_sentinel_response
 struct sentinel_response {
    std::string diagnostic;         // In case the server returned an error
@@ -178,51 +226,16 @@ inline system::error_code parse_sentinel_response(
    }
 
    // SENTINEL GET-MASTER-ADDR-BY-NAME
-
-   // Check for errors
-   const auto& root_node = tree.at(index);
-   if (auto ec = sentinel_check_errors(root_node, out.diagnostic))
+   if (auto ec = parse_get_master_addr_by_name(tree, index, out.diagnostic, out.master_addr))
       return ec;
 
-   // If the root node is NULL, Sentinel doesn't know about this master.
-   // We use resp3_null to signal this fact. This doesn't reach the end user.
-   // If this is the case, SENTINEL REPLICAS and SENTINEL SENTINELS will fail.
-   // We exit here so the diagnostic is clean.
-   if (root_node.data_type == resp3::type::null) {
-      return error::resp3_null;
-   }
-
-   // If the root node is an array, an IP and port follow
-   if (root_node.data_type != resp3::type::array)
-      return error::expects_resp3_array;
-   if (root_node.aggregate_size != 2u)
-      return error::incompatible_size;
-   ++index;
-
-   // IP
-   const auto& ip_node = tree.at(index);
-   BOOST_ASSERT(ip_node.depth == 1u);
-   if (ip_node.data_type != resp3::type::blob_string)
-      return error::expects_resp3_string;
-   out.master_addr.host = ip_node.value;
-   ++index;
-
-   // Port
-   const auto& port_node = tree.at(index);
-   BOOST_ASSERT(port_node.depth == 1u);
-   if (port_node.data_type != resp3::type::blob_string)
-      return error::expects_resp3_string;
-   out.master_addr.port = port_node.value;
-   ++index;
-
+   // SENTINEL REPLICAS
    if (server_role == role::replica) {
-      // SENTINEL REPLICAS
       if (auto ec = parse_server_list(tree, index, out.diagnostic, out.replicas))
          return ec;
    }
 
    // SENTINEL SENTINELS
-
    if (auto ec = parse_server_list(tree, index, out.diagnostic, out.sentinels))
       return ec;
 
