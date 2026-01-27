@@ -53,11 +53,10 @@ constexpr auto to_milliseconds(std::chrono::steady_clock::duration d)
    return std::chrono::duration_cast<std::chrono::milliseconds>(d).count();
 }
 
-// Creates a vector of nodes from a set of RESP3 messages.
+// Creates a collection of nodes from a set of RESP3 messages.
 // Using the raw RESP values ensures that the correct
 // node tree is built, which is not always obvious
-// TODO: rename this
-resp3::flat_tree nodes_from_resp3(
+resp3::flat_tree tree_from_resp3(
    const std::vector<std::string_view>& msgs,
    source_location loc = BOOST_CURRENT_LOCATION);
 

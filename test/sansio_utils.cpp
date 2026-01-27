@@ -75,7 +75,7 @@ logger log_fixture::make_logger()
    });
 }
 
-resp3::flat_tree nodes_from_resp3(const std::vector<std::string_view>& msgs, source_location loc)
+resp3::flat_tree tree_from_resp3(const std::vector<std::string_view>& msgs, source_location loc)
 {
    resp3::flat_tree res;
    any_adapter adapter{res};
