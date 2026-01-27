@@ -150,6 +150,9 @@ inline system::error_code parse_sentinel_response(
    out.sentinels.clear();
    out.replicas.clear();
 
+   // Index-based access
+   std::size_t index = 0;
+
    // User-supplied commands are before the ones added by us.
    // Find out how many responses should we skip
    const std::size_t num_lib_msgs = server_role == role::master ? 2u : 3u;
@@ -157,19 +160,17 @@ inline system::error_code parse_sentinel_response(
       return error::incompatible_size;
    const std::size_t num_user_msgs = tree.get_total_msgs() - num_lib_msgs;
 
-   // Index-based access
-   std::size_t index = 0;
-
    // Go through all the responses to user-supplied requests checking for errors
    BOOST_ASSERT(tree.at(index).depth == 0u);
-   for (std::size_t i = 0u; i < num_user_msgs; ++i) {
-      while (true) {
-         if (auto ec = check_errors(tree.at(index)))
-            return ec;
-         ++index;
-         if (tree.at(index).depth == 0u)
-            break;
-      }
+   for (std::size_t remaining_roots = num_user_msgs + 1u;; ++index) {
+      // Exit at node N+1
+      const auto& node = tree.at(index);
+      if (node.depth == 0u && --remaining_roots == 0u)
+         break;
+
+      // This is a user-supplied message. Check for errors
+      if (auto ec = check_errors(node))
+         return ec;
    }
 
    // SENTINEL GET-MASTER-ADDR-BY-NAME
