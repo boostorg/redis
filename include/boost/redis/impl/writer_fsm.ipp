@@ -89,9 +89,6 @@ writer_action writer_fsm::resume(
                if (ec) {
                   if (ec == asio::error::operation_aborted) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
-                  } else if (ec == error::resp3_hello) {
-                     // This is already logged in the setup adapter
-                     log_debug(st.logger, "Writer task: setup request error");
                   } else {
                      log_err(st.logger, "Error writing data to the server: ", ec);
                   }
