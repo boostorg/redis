@@ -43,15 +43,31 @@ inline void compose_sentinel_request(config& cfg)
    // Note that we don't care about request flags because this is a one-time request
 }
 
+// Helper
+inline system::error_code sentinel_check_errors(const resp3::node_view& nd, std::string& diag)
+{
+   switch (nd.data_type) {
+      case resp3::type::simple_error: diag = nd.value; return error::resp3_simple_error;
+      case resp3::type::blob_error:   diag = nd.value; return error::resp3_blob_error;
+      default:                        return system::error_code();
+   }
+};
+
 // Parses a list of replicas or sentinels
 inline system::error_code parse_server_list(
    const resp3::flat_tree& tree,
    std::size_t& index,
+   std::string& diag,
    std::vector<address>& out)
 {
-   // The root node must be an array
    const auto& root = tree.at(index);
    BOOST_ASSERT(root.depth == 0u);
+
+   // If the command failed, this will be an error
+   if (auto ec = sentinel_check_errors(root, diag))
+      return ec;
+
+   // The root node must be an array
    if (root.data_type != resp3::type::array)
       return error::expects_resp3_array;
    const std::size_t num_servers = root.aggregate_size;
@@ -133,18 +149,6 @@ inline system::error_code parse_sentinel_response(
    role server_role,
    sentinel_response& out)
 {
-   auto check_errors = [&out](const resp3::node_view& nd) {
-      switch (nd.data_type) {
-         case resp3::type::simple_error:
-            out.diagnostic = nd.value;
-            return system::error_code(error::resp3_simple_error);
-         case resp3::type::blob_error:
-            out.diagnostic = nd.value;
-            return system::error_code(error::resp3_blob_error);
-         default: return system::error_code();
-      }
-   };
-
    // Clear the output
    out.diagnostic.clear();
    out.sentinels.clear();
@@ -169,7 +173,7 @@ inline system::error_code parse_sentinel_response(
          break;
 
       // This is a user-supplied message. Check for errors
-      if (auto ec = check_errors(node))
+      if (auto ec = sentinel_check_errors(node, out.diagnostic))
          return ec;
    }
 
@@ -177,11 +181,13 @@ inline system::error_code parse_sentinel_response(
 
    // Check for errors
    const auto& root_node = tree.at(index);
-   if (auto ec = check_errors(root_node))
+   if (auto ec = sentinel_check_errors(root_node, out.diagnostic))
       return ec;
 
    // If the root node is NULL, Sentinel doesn't know about this master.
    // We use resp3_null to signal this fact. This doesn't reach the end user.
+   // If this is the case, SENTINEL REPLICAS and SENTINEL SENTINELS will fail.
+   // We exit here so the diagnostic is clean.
    if (root_node.data_type == resp3::type::null) {
       return error::resp3_null;
    }
@@ -211,28 +217,13 @@ inline system::error_code parse_sentinel_response(
 
    if (server_role == role::replica) {
       // SENTINEL REPLICAS
-
-      // This request fails if Sentinel doesn't know about this master.
-      // However, that's not the case if we got here.
-      // Check for other errors.
-      if (auto ec = check_errors(tree.at(index)))
-         return ec;
-
-      // Actual parsing
-      if (auto ec = parse_server_list(tree, index, out.replicas))
+      if (auto ec = parse_server_list(tree, index, out.diagnostic, out.replicas))
          return ec;
    }
 
    // SENTINEL SENTINELS
 
-   // This request fails if Sentinel doesn't know about this master.
-   // However, that's not the case if we got here.
-   // Check for other errors.
-   if (auto ec = check_errors(tree.at(index)))
-      return ec;
-
-   // Actual parsing
-   if (auto ec = parse_server_list(tree, index, out.sentinels))
+   if (auto ec = parse_server_list(tree, index, out.diagnostic, out.sentinels))
       return ec;
 
    // Done
