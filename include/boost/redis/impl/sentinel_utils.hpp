@@ -174,7 +174,6 @@ inline system::error_code parse_sentinel_response(
    }
 
    // SENTINEL GET-MASTER-ADDR-BY-NAME
-   // TODO: move
 
    // Check for errors
    const auto& root_node = tree.at(index);
