@@ -16,7 +16,6 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <boost/assert.hpp>
-#include <boost/core/ignore_unused.hpp>
 #include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -46,60 +45,57 @@ inline void compose_sentinel_request(config& cfg)
 
 // Parses a list of replicas or sentinels
 inline system::error_code parse_server_list(
-   const resp3::node_view*& first,
-   const resp3::node_view* last,
+   const resp3::flat_tree& tree,
+   std::size_t& index,
    std::vector<address>& out)
 {
-   const auto* it = first;
-   ignore_unused(last);
-
    // The root node must be an array
-   BOOST_ASSERT(it != last);
-   BOOST_ASSERT(it->depth == 0u);
-   if (it->data_type != resp3::type::array)
+   const auto& root = tree.at(index);
+   BOOST_ASSERT(root.depth == 0u);
+   if (root.data_type != resp3::type::array)
       return {error::expects_resp3_array};
-   const std::size_t num_servers = it->aggregate_size;
-   ++it;
+   const std::size_t num_servers = root.aggregate_size;
+   ++index;
 
    // Each element in the array represents a server
    out.resize(num_servers);
    for (std::size_t i = 0u; i < num_servers; ++i) {
       // A server is a map (resp3) or array (resp2, currently unsupported)
-      BOOST_ASSERT(it != last);
-      BOOST_ASSERT(it->depth == 1u);
-      if (it->data_type != resp3::type::map)
+      const auto& server_node = tree.at(index);
+      BOOST_ASSERT(server_node.depth == 1u);
+      if (server_node.data_type != resp3::type::map)
          return {error::expects_resp3_map};
-      const std::size_t num_key_values = it->aggregate_size;
-      ++it;
+      const std::size_t num_key_values = server_node.aggregate_size;
+      ++index;
 
       // The server object is composed by a set of key/value pairs.
       // Skip everything except for the ones we care for.
       bool ip_seen = false, port_seen = false;
       for (std::size_t j = 0; j < num_key_values; ++j) {
          // Key. It should be a string
-         BOOST_ASSERT(it != last);
-         BOOST_ASSERT(it->depth == 2u);
-         if (it->data_type != resp3::type::blob_string)
+         const auto& key_node = tree.at(index);
+         BOOST_ASSERT(key_node.depth == 2u);
+         if (key_node.data_type != resp3::type::blob_string)
             return {error::expects_resp3_string};
-         const std::string_view key = it->value;
-         ++it;
+         const std::string_view key = key_node.value;
+         ++index;
 
          // Value. All values seem to be strings, too.
-         BOOST_ASSERT(it != last);
-         BOOST_ASSERT(it->depth == 2u);
-         if (it->data_type != resp3::type::blob_string)
+         const auto& value_node = tree.at(index);
+         BOOST_ASSERT(value_node.depth == 2u);
+         if (value_node.data_type != resp3::type::blob_string)
             return {error::expects_resp3_string};
 
          // Record it
          if (key == "ip") {
             ip_seen = true;
-            out[i].host = it->value;
+            out[i].host = tree.at(index).value;
          } else if (key == "port") {
             port_seen = true;
-            out[i].port = it->value;
+            out[i].port = tree.at(index).value;
          }
 
-         ++it;
+         ++index;
       }
 
       // Check that the response actually contained the fields we wanted
@@ -108,7 +104,6 @@ inline system::error_code parse_server_list(
    }
 
    // Done
-   first = it;
    return system::error_code();
 }
 
@@ -160,62 +155,60 @@ inline system::error_code parse_sentinel_response(
    // User-supplied commands are before the ones added by us.
    // Find out how many responses should we skip
    const std::size_t num_lib_msgs = server_role == role::master ? 2u : 3u;
-   BOOST_ASSERT(tree.get_total_msgs() >= num_lib_msgs);
+   BOOST_ASSERT(tree.get_total_msgs() >= num_lib_msgs);  // TODO
    const std::size_t num_user_msgs = tree.get_total_msgs() - num_lib_msgs;
 
-   // Iterators
-   const resp3::node_view* it = tree.begin();
-   const resp3::node_view* last = tree.end();
-   ignore_unused(last);
+   // Index-based access
+   std::size_t index = 0;
 
    // Go through all the responses to user-supplied requests checking for errors
-   BOOST_ASSERT(it != last);
-   BOOST_ASSERT(it->depth == 0u);
+   BOOST_ASSERT(tree.at(index).depth == 0u);
    for (std::size_t i = 0u; i < num_user_msgs; ++i) {
       while (true) {
-         if (auto ec = check_errors(*it))
+         if (auto ec = check_errors(tree.at(index)))
             return ec;
-         ++it;
-         BOOST_ASSERT(it != last);
-         if (it->depth == 0u)
+         ++index;
+         if (tree.at(index).depth == 0u)
             break;
       }
    }
 
    // SENTINEL GET-MASTER-ADDR-BY-NAME
+   // TODO: move
 
    // Check for errors
-   if (auto ec = check_errors(*it))
+   const auto& root_node = tree.at(index);
+   if (auto ec = check_errors(root_node))
       return ec;
 
    // If the root node is NULL, Sentinel doesn't know about this master.
    // We use resp3_null to signal this fact. This doesn't reach the end user.
-   if (it->data_type == resp3::type::null) {
+   if (root_node.data_type == resp3::type::null) {
       return {error::resp3_null};
    }
 
    // If the root node is an array, an IP and port follow
-   if (it->data_type != resp3::type::array)
+   if (root_node.data_type != resp3::type::array)
       return {error::expects_resp3_array};
-   if (it->aggregate_size != 2u)
+   if (root_node.aggregate_size != 2u)
       return {error::incompatible_size};
-   ++it;
+   ++index;
 
    // IP
-   BOOST_ASSERT(it != last);
-   BOOST_ASSERT(it->depth == 1u);
-   if (it->data_type != resp3::type::blob_string)
+   const auto& ip_node = tree.at(index);
+   BOOST_ASSERT(ip_node.depth == 1u);
+   if (ip_node.data_type != resp3::type::blob_string)
       return {error::expects_resp3_string};
-   out.master_addr.host = it->value;
-   ++it;
+   out.master_addr.host = ip_node.value;
+   ++index;
 
    // Port
-   BOOST_ASSERT(it != last);
-   BOOST_ASSERT(it->depth == 1u);
-   if (it->data_type != resp3::type::blob_string)
+   const auto& port_node = tree.at(index);
+   BOOST_ASSERT(port_node.depth == 1u);
+   if (port_node.data_type != resp3::type::blob_string)
       return {error::expects_resp3_string};
-   out.master_addr.port = it->value;
-   ++it;
+   out.master_addr.port = port_node.value;
+   ++index;
 
    if (server_role == role::replica) {
       // SENTINEL REPLICAS
@@ -223,11 +216,11 @@ inline system::error_code parse_sentinel_response(
       // This request fails if Sentinel doesn't know about this master.
       // However, that's not the case if we got here.
       // Check for other errors.
-      if (auto ec = check_errors(*it))
+      if (auto ec = check_errors(tree.at(index)))
          return ec;
 
       // Actual parsing
-      if (auto ec = parse_server_list(it, last, out.replicas))
+      if (auto ec = parse_server_list(tree, index, out.replicas))
          return ec;
    }
 
@@ -236,11 +229,11 @@ inline system::error_code parse_sentinel_response(
    // This request fails if Sentinel doesn't know about this master.
    // However, that's not the case if we got here.
    // Check for other errors.
-   if (auto ec = check_errors(*it))
+   if (auto ec = check_errors(tree.at(index)))
       return ec;
 
    // Actual parsing
-   if (auto ec = parse_server_list(it, last, out.sentinels))
+   if (auto ec = parse_server_list(tree, index, out.sentinels))
       return ec;
 
    // Done
