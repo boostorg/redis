@@ -688,7 +688,40 @@ void test_errors()
          },
          "",
          error::empty_field
-      }
+      },
+      {
+         "not_enough_messages_1",
+         role::master,
+         {},
+         "",
+         error::incompatible_size
+      },
+      {
+         "not_enough_messages_2",
+         role::master,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+         },
+         "",
+         error::incompatible_size
+      },
+      {
+         "not_enough_messages_replica_1",
+         role::replica,
+         {},
+         "",
+         error::incompatible_size
+      },
+      {
+         "not_enough_messages_replica_2",
+         role::replica,
+         {
+            "*2\r\n$9\r\nlocalhost\r\n$4\r\n6380\r\n",
+            "*0\r\n",
+         },
+         "",
+         error::incompatible_size
+      },
 
       // clang-format on
    };
