@@ -89,10 +89,10 @@ inline system::error_code parse_server_list(
          // Record it
          if (key == "ip") {
             ip_seen = true;
-            out[i].host = tree.at(index).value;
+            out[i].host = value_node.value;
          } else if (key == "port") {
             port_seen = true;
-            out[i].port = tree.at(index).value;
+            out[i].port = value_node.value;
          }
 
          ++index;
