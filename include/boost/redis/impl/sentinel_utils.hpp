@@ -45,8 +45,8 @@ inline void compose_sentinel_request(config& cfg)
 
 // Parses a list of replicas or sentinels
 inline system::error_code parse_server_list(
-   const resp3::node*& first,
-   const resp3::node* last,
+   const resp3::node_view*& first,
+   const resp3::node_view* last,
    std::vector<address>& out)
 {
    const auto* it = first;
@@ -135,11 +135,11 @@ struct sentinel_response {
 //   * The node array originates from parsing a valid RESP3 message.
 //     E.g. we won't check that the first node has depth 0.
 inline system::error_code parse_sentinel_response(
-   span<const resp3::node> nodes,
+   span<const resp3::node_view> nodes,
    role server_role,
    sentinel_response& out)
 {
-   auto check_errors = [&out](const resp3::node& nd) {
+   auto check_errors = [&out](const resp3::node_view& nd) {
       switch (nd.data_type) {
          case resp3::type::simple_error:
             out.diagnostic = nd.value;
@@ -166,11 +166,11 @@ inline system::error_code parse_sentinel_response(
             return &*it;
       }
    };
-   const resp3::node* lib_first = find_first();
+   const resp3::node_view* lib_first = find_first();
 
    // Iterators
-   const resp3::node* it = nodes.begin();
-   const resp3::node* last = nodes.end();
+   const resp3::node_view* it = nodes.begin();
+   const resp3::node_view* last = nodes.end();
    ignore_unused(last);
 
    // Go through all the responses to user-supplied requests checking for errors

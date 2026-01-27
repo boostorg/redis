@@ -8,6 +8,7 @@
 #define BOOST_REDIS_TEST_SANSIO_UTILS_HPP
 
 #include <boost/redis/logger.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/resp3/node.hpp>
 
 #include <boost/assert/source_location.hpp>
@@ -55,7 +56,8 @@ constexpr auto to_milliseconds(std::chrono::steady_clock::duration d)
 // Creates a vector of nodes from a set of RESP3 messages.
 // Using the raw RESP values ensures that the correct
 // node tree is built, which is not always obvious
-std::vector<resp3::node> nodes_from_resp3(
+// TODO: rename this
+resp3::flat_tree nodes_from_resp3(
    const std::vector<std::string_view>& msgs,
    source_location loc = BOOST_CURRENT_LOCATION);
 
