@@ -14,7 +14,7 @@
 #include <boost/redis/detail/subscription_tracker.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
-#include <boost/redis/resp3/node.hpp>
+#include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
 #include <random>
@@ -56,7 +56,7 @@ struct connection_state {
    // Sentinel stuff
    lazy_random_engine eng{};
    std::vector<address> sentinels{};
-   std::vector<resp3::node> sentinel_resp_nodes{};  // for parsing
+   resp3::flat_tree sentinel_resp_nodes{};  // for parsing
 };
 
 }  // namespace boost::redis::detail
