@@ -65,3 +65,26 @@ void boost::redis::request::add_pubsub_arg(detail::pubsub_change_type type, std:
    std::size_t offset = payload_.size() - value.size() - 2u;
    pubsub_changes_.push_back({type, offset, value.size()});
 }
+
+void boost::redis::request::hello()
+{
+   push("HELLO", 3);
+}
+
+void boost::redis::request::hello(std::string_view username, std::string_view password)
+{
+   push("HELLO", 3, "AUTH", username, password);
+}
+
+void boost::redis::request::hello_setname(std::string_view client_name)
+{
+   push("HELLO", 3, "SETNAME", client_name);
+}
+
+void boost::redis::request::hello_setname(
+   std::string_view username,
+   std::string_view password,
+   std::string_view client_name)
+{
+   push("HELLO", 3, "AUTH", username, password, "SETNAME", client_name);
+}
