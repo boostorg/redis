@@ -724,12 +724,46 @@ public:
          patterns_end);
    }
 
+   /** @brief Appends a HELLO 3 command to the end of the request.
+    *
+    * Equivalent to adding the Redis command `HELLO 3`.
+    */
    void hello();
 
+   /** @brief Appends a HELLO 3 command with AUTH to the end of the request.
+    *
+    * Equivalent to the adding the following Redis command:
+    * @code
+    * HELLO 3 AUTH <username> <password>
+    * @endcode
+    *
+    * @param username The ACL username.
+    * @param password The password for the user.
+    */
    void hello(std::string_view username, std::string_view password);
 
+   /** @brief Appends a HELLO 3 command with SETNAME to the end of the request.
+    *
+    * Equivalent to adding the following Redis command:
+    * @code
+    * HELLO 3 SETNAME client_name
+    * @endcode
+    *
+    * @param client_name The client name (visible in CLIENT LIST).
+    */
    void hello_setname(std::string_view client_name);
 
+   /** @brief Appends a HELLO 3 command with AUTH and SETNAME to the end of the request.
+    *
+    * Equivalent to adding the following Redis command:
+    * @code
+    * HELLO 3 AUTH <username> <password> SETNAME <client_name>
+    * @endcode
+    *
+    * @param username The ACL username.
+    * @param password The password for the user.
+    * @param client_name The client name (visible in CLIENT LIST).
+    */
    void hello_setname(
       std::string_view username,
       std::string_view password,
