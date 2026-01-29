@@ -12,7 +12,7 @@ Boost.Redis supports connecting to servers that require authentication.
 To achieve it, you must send a
 https://redis.io/commands/hello/[HELLO] command with the appropriate
 `AUTH` parameters during connection establishment. Boost.Redis allows you
-to customize this handshake by using a _setup request_: a request that
+to customize this handshake by using a "setup request": a request that
 is run automatically before any other request,
 every time a physical connection to the server is established.
 
