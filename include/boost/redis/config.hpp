@@ -164,7 +164,7 @@ struct config {
     */
    std::string unix_socket;
 
-   /** @brief Username used for authentication during connection establishment.
+   /** @brief (Deprecated) Username used for authentication during connection establishment.
     * 
     * If @ref use_setup is false (the default), during connection establishment,
     * authentication is performed by sending a `HELLO` command.
@@ -176,10 +176,20 @@ struct config {
     *
     * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure authorization for Sentinels.
+    *
+    * @par Deprecated
+    * This setting is deprecated and will be removed in a subsequent release.
+    * Please set @ref setup, instead:
+    *
+    * @code
+    * cfg.use_setup = true;
+    * cfg.setup.clear();
+    * cfg.setup.hello("my_username", "my_password");
+    * @endcode
     */
    std::string username = "default";
 
-   /** @brief Password used for authentication during connection establishment.
+   /** @brief (Deprecated) Password used for authentication during connection establishment.
     * 
     * If @ref use_setup is false (the default), during connection establishment,
     * authentication is performed by sending a `HELLO` command.
@@ -191,10 +201,20 @@ struct config {
     *
     * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure authorization for Sentinels.
+    *
+    * @par Deprecated
+    * This setting is deprecated and will be removed in a subsequent release.
+    * Please set @ref setup, instead:
+    *
+    * @code
+    * cfg.use_setup = true;
+    * cfg.setup.clear();
+    * cfg.setup.hello("my_username", "my_password");
+    * @endcode
     */
    std::string password;
 
-   /** @brief Client name parameter to use during connection establishment.
+   /** @brief (Deprecated) Client name parameter to use during connection establishment.
     * 
     * If @ref use_setup is false (the default), during connection establishment,
     * a `HELLO` command is sent. If this field is not empty, the `HELLO` command
@@ -202,10 +222,20 @@ struct config {
     *
     * When using Sentinel, this setting applies to masters and replicas.
     * Use @ref sentinel_config::setup to configure this value for Sentinels.
+    *
+    * @par Deprecated
+    * This setting is deprecated and will be removed in a subsequent release.
+    * Please set @ref setup, instead:
+    *
+    * @code
+    * cfg.use_setup = true;
+    * cfg.setup.clear();
+    * cfg.setup.hello_setname("my_client_name");
+    * @endcode
     */
    std::string clientname = "Boost.Redis";
 
-   /** @brief Database index to pass to the `SELECT` command during connection establishment.
+   /** @brief (Deprecated) Database index to pass to the `SELECT` command during connection establishment.
     * 
     * If @ref use_setup is false (the default), and this field is set to a
     * non-empty optional, and its value is different than zero,
@@ -213,6 +243,15 @@ struct config {
     * database index. By default, no `SELECT` command is sent.
     *
     * When using Sentinel, this setting applies to masters and replicas.
+    *
+    * @par Deprecated
+    * This setting is deprecated and will be removed in a subsequent release.
+    * Please set @ref setup, instead:
+    *
+    * @code
+    * cfg.use_setup = true;
+    * cfg.setup.push("SELECT", 4); // select database index 4
+    * @endcode
     */
    std::optional<int> database_index = 0;
 
