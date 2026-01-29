@@ -34,7 +34,9 @@ request make_hello_request()
 
 }  // namespace boost::redis::detail
 
-void boost::redis::request::append(const request& other)
+namespace boost::redis {
+
+void request::append(const request& other)
 {
    // Remember the old payload size, to update offsets
    std::size_t old_offset = payload_.size();
@@ -55,7 +57,7 @@ void boost::redis::request::append(const request& other)
    }
 }
 
-void boost::redis::request::add_pubsub_arg(detail::pubsub_change_type type, std::string_view value)
+void request::add_pubsub_arg(detail::pubsub_change_type type, std::string_view value)
 {
    // Add the argument
    resp3::add_bulk(payload_, value);
@@ -66,25 +68,24 @@ void boost::redis::request::add_pubsub_arg(detail::pubsub_change_type type, std:
    pubsub_changes_.push_back({type, offset, value.size()});
 }
 
-void boost::redis::request::hello()
-{
-   push("HELLO", 3);
-}
+void request::hello() { push("HELLO", 3); }
 
-void boost::redis::request::hello(std::string_view username, std::string_view password)
+void request::hello(std::string_view username, std::string_view password)
 {
    push("HELLO", 3, "AUTH", username, password);
 }
 
-void boost::redis::request::hello_setname(std::string_view client_name)
+void request::hello_setname(std::string_view client_name)
 {
    push("HELLO", 3, "SETNAME", client_name);
 }
 
-void boost::redis::request::hello_setname(
+void request::hello_setname(
    std::string_view username,
    std::string_view password,
    std::string_view client_name)
 {
    push("HELLO", 3, "AUTH", username, password, "SETNAME", client_name);
 }
+
+}  // namespace boost::redis
