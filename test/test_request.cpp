@@ -467,6 +467,42 @@ void test_mix_pubsub_regular()
    check_pubsub_changes(req, expected_changes);
 }
 
+// --- hello ---
+void test_hello()
+{
+   request req;
+   req.hello();
+   BOOST_TEST_EQ(req.payload(), "*2\r\n$5\r\nHELLO\r\n$1\r\n3\r\n");
+}
+
+void test_hello_auth()
+{
+   request req;
+   req.hello("user", "pass");
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*5\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$4\r\nuser\r\n$4\r\npass\r\n");
+}
+
+void test_hello_setname()
+{
+   request req;
+   req.hello_setname("myclient");
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*4\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$7\r\nSETNAME\r\n$8\r\nmyclient\r\n");
+}
+
+void test_hello_setname_auth()
+{
+   request req;
+   req.hello_setname("user", "pass", "myclient");
+   BOOST_TEST_EQ(
+      req.payload(),
+      "*7\r\n$5\r\nHELLO\r\n$1\r\n3\r\n$4\r\nAUTH\r\n$4\r\nuser\r\n$4\r\npass\r\n"
+      "$7\r\nSETNAME\r\n$8\r\nmyclient\r\n");
+}
+
 // --- append ---
 void test_append()
 {
@@ -702,6 +738,11 @@ int main()
    test_punsubscribe_initializer_list();
 
    test_mix_pubsub_regular();
+
+   test_hello();
+   test_hello_auth();
+   test_hello_setname();
+   test_hello_setname_auth();
 
    test_append();
    test_append_no_response();
