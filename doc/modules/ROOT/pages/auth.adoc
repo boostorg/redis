@@ -1,0 +1,38 @@
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+= Authentication
+
+If your server needs authentication, you can use setup requests:
+
+```
+config cfg;
+cfg.use_setup = true; // required for backwards compatibility
+cfg.setup.clear(); // by default, setup contains a HELLO 3. Remove it
+cfg.setup.hello("my_username", "my_password"); // Replace it by a HELLO 3 with an AUTH clause
+
+// run normally
+conn.async_run(cfg, asio::detached);
+
+```
+
+cfg.setup contains a request that is executed every time a connection to
+the server is established.
+
+Authentication is only a particular instance of what this mechanism can achieve.
+Any other command that sets up the connection might be included here.
+For example, to select a database index (TODO: link to the command)
+
+```
+config cfg;
+cfg.use_setup = true;
+cfg.push("SELECT", 42);
+```
+
+
+
