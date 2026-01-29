@@ -724,6 +724,23 @@ public:
          patterns_end);
    }
 
+   void hello() { push("HELLO", 3); }
+
+   void hello(std::string_view username, std::string_view password)
+   {
+      push("HELLO", 3, "AUTH", username, password);
+   }
+
+   void hello_setname(std::string_view client_name) { push("HELLO", 3, "SETNAME", client_name); }
+
+   void hello_setname(
+      std::string_view username,
+      std::string_view password,
+      std::string_view client_name)
+   {
+      push("HELLO", 3, "AUTH", username, password, "SETNAME", client_name);
+   }
+
 private:
    void check_cmd(std::string_view cmd)
    {

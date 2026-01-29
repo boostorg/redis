@@ -28,7 +28,7 @@ auto has_response(std::string_view cmd) -> bool
 request make_hello_request()
 {
    request req;
-   req.push("HELLO", "3");
+   req.hello();
    return req;
 }
 
