@@ -746,7 +746,7 @@ public:
     *
     * Equivalent to adding the following Redis command:
     * @code
-    * HELLO 3 SETNAME client_name
+    * HELLO 3 SETNAME <client_name>
     * @endcode
     *
     * @param client_name The client name (visible in CLIENT LIST).
