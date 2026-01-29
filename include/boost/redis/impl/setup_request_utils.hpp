@@ -53,13 +53,13 @@ inline void compose_setup_request(
 
       // Gather everything we can in a HELLO command
       if (send_auth && send_setname)
-         req.push("HELLO", "3", "AUTH", cfg.username, cfg.password, "SETNAME", cfg.clientname);
+         req.hello_setname(cfg.username, cfg.password, cfg.clientname);
       else if (send_auth)
-         req.push("HELLO", "3", "AUTH", cfg.username, cfg.password);
+         req.hello(cfg.username, cfg.password);
       else if (send_setname)
-         req.push("HELLO", "3", "SETNAME", cfg.clientname);
+         req.hello_setname(cfg.clientname);
       else
-         req.push("HELLO", "3");
+         req.hello();
 
       // SELECT is independent of HELLO
       if (cfg.database_index && cfg.database_index.value() != 0)
