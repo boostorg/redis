@@ -12,7 +12,7 @@ Boost.Redis supports connecting to servers that require authentication.
 To achieve it, you must send a
 https://redis.io/commands/hello/[HELLO] command with the appropriate
 `AUTH` parameters during connection establishment. Boost.Redis allows you
-to customize this handshake by using a "setup request": a request that
+to customize this handshake by using a _setup request_: a request that
 is run automatically before any other request,
 every time a physical connection to the server is established.
 
@@ -30,7 +30,7 @@ cfg.use_setup = true;
 cfg.setup.clear();   // Remove the default HELLO 3
 cfg.setup.hello("my_username", "my_password");
 
-conn.async_run(cfg, asio::detached);
+co_await conn.async_run(cfg);
 ----
 
 Authentication is just one use of this mechanism.
@@ -44,6 +44,6 @@ config cfg;
 cfg.use_setup = true;
 cfg.setup.push("SELECT", 42); // select the logical database 42 after the default HELLO 3
 
-conn.async_run(cfg, asio::detached);
+co_await conn.async_run(cfg);
 ----
 
