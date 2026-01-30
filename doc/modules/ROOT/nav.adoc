@@ -2,6 +2,7 @@
 * xref:requests_responses.adoc[]
 * xref:cancellation.adoc[]
 * xref:serialization.adoc[]
+* xref:auth.adoc[]
 * xref:logging.adoc[]
 * xref:sentinel.adoc[]
 * xref:benchmarks.adoc[]
