@@ -65,7 +65,7 @@ read_buffer::consume(std::size_t size)
    BOOST_ASSERT(consumed_ <= prepared_begin_);
 
    auto rotated = 0u;
-   if (consumed_ >= 0 && size > 0u) {
+   if (consumed_ >= 1024u && size > 0u) {
       buffer_.erase(buffer_.begin(), buffer_.begin() + consumed_);
       rotated = buffer_.size();
 
