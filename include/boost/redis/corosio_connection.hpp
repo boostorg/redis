@@ -13,6 +13,7 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/exec_one_fsm.hpp>
+#include <boost/redis/detail/flow_controller.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
 #include <boost/redis/detail/receive_fsm.hpp>
@@ -81,7 +82,7 @@ class corosio_redis_stream {
 
 public:
    // I/O
-   capy::io_task<void> connect(const connect_params& params, buffered_logger& l);
+   capy::io_task<> connect(const connect_params& params, buffered_logger& l);
 
    template <class ConstBufferSequence>
    capy::io_task<std::size_t> write_some(const ConstBufferSequence& buffers);
@@ -104,6 +105,7 @@ struct corosio_connection_impl {
    // receive_channel_type receive_channel_;
    asio::cancellation_signal run_signal_;
    connection_state st_;
+   flow_controller controller_;
 
    corosio_connection_impl(capy::execution_context& ex, logger&& lgr)
    : stream_{ex}
@@ -201,47 +203,37 @@ struct corosio_connection_impl {
    }
 };
 
-template <class Executor>
-struct receive2_op {
-   connection_impl<Executor>* conn_;
-   receive_fsm fsm_{};
+inline capy::io_task<> receive2(corosio_connection_impl& conn)
+{
+   // Setup
+   receive_fsm fsm;
+   system::error_code ec;
 
-   void drain_receive_channel()
-   {
-      // We don't expect any errors here. The only errors
-      // that might appear in the channel are due to cancellations,
-      // and these don't make sense with try_receive
-      auto f = [](system::error_code, std::size_t) { };
-      while (conn_->receive_channel_.try_receive(f))
-         ;
-   }
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t /* push_bytes */ = 0u)
-   {
-      receive_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+   while (true) {
+      receive_action act = fsm.resume(
+         conn.st_,
+         ec,
+         token_to_cancel(co_await capy::this_coro::stop_token));
 
       switch (act.type) {
-         case receive_action::action_type::setup_cancellation:
-            self.reset_cancellation_state(asio::enable_total_cancellation());
-            (*this)(self);  // this action does not require yielding
-            return;
+         case receive_action::action_type::setup_cancellation: break;  // not required here
          case receive_action::action_type::wait:
-            conn_->receive_channel_.async_receive(std::move(self));
-            return;
-         case receive_action::action_type::drain_channel:
-            drain_receive_channel();
-            (*this)(self);  // this action does not require yielding
-            return;
-         case receive_action::action_type::immediate:
-            asio::async_immediate(self.get_io_executor(), std::move(self));
-            return;
-         case receive_action::action_type::done: self.complete(act.ec); return;
+         {
+            auto [controller_ec] = co_await conn.controller_.take();
+            ec = controller_ec;
+            break;
+         }
+         case receive_action::action_type::drain_channel: break;  // not required
+         case receive_action::action_type::immediate:     break;  // not required
+         case receive_action::action_type::done:          co_return {act.ec};
       }
    }
-};
+}
 
-capy::io_task<> async_exec_one(corosio_connection_impl& conn, const request& req, any_adapter resp)
+inline capy::io_task<> async_exec_one(
+   corosio_connection_impl& conn,
+   const request& req,
+   any_adapter resp)
 {
    exec_one_fsm fsm{std::move(resp), req.get_expected_responses()};
    system::error_code ec;
@@ -277,6 +269,44 @@ capy::io_task<> async_exec_one(corosio_connection_impl& conn, const request& req
    }
 }
 
+inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
+{
+   // Setup
+   sentinel_resolve_fsm fsm;
+   system::error_code ec;
+
+   while (true) {
+      sentinel_action act = fsm.resume(
+         conn.st_,
+         ec,
+         token_to_cancel(co_await capy::this_coro::stop_token));
+
+      switch (act.get_type()) {
+         case sentinel_action::type::done: co_return {act.error()};
+         case sentinel_action::type::connect:
+         {
+            auto [connect_ec] = co_await conn.stream_.connect(
+               make_sentinel_connect_params(conn.st_.cfg, act.connect_addr()),
+               conn.st_.logger);
+            ec = connect_ec;
+            break;
+         }
+         case sentinel_action::type::request:
+         {
+            auto [exec_ec] = co_await async_exec_one(
+               conn,
+               conn.st_.cfg.sentinel.setup,
+               make_sentinel_adapter(conn.st_),
+               asio::cancel_after(
+                  conn->reconnect_timer_,  // should be safe to re-use this
+                  conn->st_.cfg.sentinel.request_timeout,
+                  std::move(self)));
+            break;
+         }
+      }
+   }
+}
+
 template <class Executor>
 struct sentinel_resolve_op {
    connection_impl<Executor>* conn_;
@@ -288,30 +318,7 @@ struct sentinel_resolve_op {
 
    template <class Self>
    void operator()(Self& self, system::error_code ec = {})
-   {
-      auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
-      sentinel_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
-
-      switch (act.get_type()) {
-         case sentinel_action::type::done: self.complete(act.error()); return;
-         case sentinel_action::type::connect:
-            conn->stream_.async_connect(
-               make_sentinel_connect_params(conn->st_.cfg, act.connect_addr()),
-               conn->st_.logger,
-               std::move(self));
-            return;
-         case sentinel_action::type::request:
-            async_exec_one(
-               *conn,
-               conn->st_.cfg.sentinel.setup,
-               make_sentinel_adapter(conn->st_),
-               asio::cancel_after(
-                  conn->reconnect_timer_,  // should be safe to re-use this
-                  conn->st_.cfg.sentinel.request_timeout,
-                  std::move(self)));
-            return;
-      }
-   }
+   { }
 };
 
 template <class Executor, class CompletionToken>
@@ -740,14 +747,7 @@ public:
     *
     * @param token Completion token.
     */
-   template <class CompletionToken = asio::default_completion_token_t<executor_type>>
-   auto async_receive2(CompletionToken&& token = {})
-   {
-      return asio::async_compose<CompletionToken, void(system::error_code)>(
-         detail::receive2_op<Executor>{impl_.get()},
-         token,
-         *impl_);
-   }
+   capy::task<> receive(CompletionToken&& token = {}) { return detail::receive2(*impl_); }
 
    /** @brief Executes commands on the Redis server asynchronously.
     *
