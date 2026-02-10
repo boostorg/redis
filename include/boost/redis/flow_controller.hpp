@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_SEMAPHORE_HPP
-#define BOOST_REDIS_SEMAPHORE_HPP
+#ifndef BOOST_REDIS_FLOW_CONTROLLER_HPP
+#define BOOST_REDIS_FLOW_CONTROLLER_HPP
 
 #include <boost/capy/error.hpp>
 #include <boost/capy/ex/async_event.hpp>
@@ -17,27 +17,26 @@
 
 namespace boost::redis::detail {
 
-class semaphore {
+class flow_controller {
    std::size_t pending_bytes_{};
    std::size_t max_bytes_;
    capy::async_event bytes_available_;
    capy::async_event room_available_;
 
 public:
-   semaphore(std::size_t max_bytes) noexcept
+   flow_controller(std::size_t max_bytes) noexcept
    : max_bytes_(max_bytes)
    {
       assert(max_bytes != 0u);
    }
 
-   /** Waits until at least one byte has been put in the semaphore. */
+   /** Waits until at least one byte has been put in the flow controller. */
    capy::io_task<> take()
    {
       while (pending_bytes_ == 0u) {
-         // TODO: update this when cancellation is implemented for events
-         if ((co_await capy::this_coro::stop_token).stop_requested())
-            co_return {capy::error::canceled};
-         co_await bytes_available_.wait();
+         auto [ec] = co_await bytes_available_.wait();
+         if (ec)
+            co_return {ec};
       }
       pending_bytes_ = 0u;
       bytes_available_.clear();
@@ -48,10 +47,9 @@ public:
    capy::io_task<> wait_for_space()
    {
       while (pending_bytes_ >= max_bytes_) {
-         // TODO: update this when cancellation is implemented for events
-         if ((co_await capy::this_coro::stop_token).stop_requested())
-            co_return {capy::error::canceled};
-         co_await room_available_.wait();
+         auto [ec] = co_await bytes_available_.wait();
+         if (ec)
+            co_return {ec};
       }
       co_return {};
    }
@@ -67,4 +65,4 @@ public:
 
 }  // namespace boost::redis::detail
 
-#endif  // BOOST_REDIS_SEMAPHORE_HPP
+#endif  // BOOST_REDIS_FLOW_CONTROLLER_HPP
