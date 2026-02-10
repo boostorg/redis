@@ -44,7 +44,11 @@
 #include <boost/capy/write.hpp>
 #include <boost/config.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/corosio/resolver.hpp>
+#include <boost/corosio/resolver_results.hpp>
+#include <boost/corosio/tcp_socket.hpp>
 #include <boost/corosio/timer.hpp>
+#include <boost/corosio/tls_stream.hpp>
 #include <boost/system/detail/error_code.hpp>
 
 #include <array>
@@ -73,20 +77,107 @@ inline asio::cancellation_type_t token_to_cancel(std::stop_token tok)
                                : asio::cancellation_type_t::none;
 }
 
-// TODO: actually implement
+template <class... Types>
+inline capy::io_task<Types...> cancel_at(
+   capy::io_task<Types...> task,
+   corosio::timer& timer,
+   std::chrono::steady_clock::time_point timeout)
+{
+   timer.expires_at(timeout);
+   auto [winner_index, result] = co_await capy::when_any(std::move(task), timer.wait());
+   if (winner_index == 0u)
+      co_return std::move(result);
+   else
+      co_return {make_error_code(asio::error::operation_aborted)};
+}
+
+template <class... Types>
+inline capy::io_task<Types...> cancel_after(
+   capy::io_task<Types...> task,
+   corosio::timer& timer,
+   std::chrono::steady_clock::duration timeout)
+{
+   return cancel_at(std::move(task), timer, std::chrono::steady_clock::now() + timeout);
+}
+
 class corosio_redis_stream {
-   //    asio::ssl::context ssl_ctx_;
-   //    asio::ip::basic_resolver<asio::ip::tcp, Executor> resolv_;
-   //    asio::ssl::stream<asio::basic_stream_socket<asio::ip::tcp, Executor>> stream_;
-   // #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-   //    asio::basic_stream_socket<asio::local::stream_protocol, Executor> unix_socket_;
-   // #endif
-   //    typename asio::steady_timer::template rebind_executor<Executor>::other timer_;
+   // TODO: UNIX sockets
+   corosio::tcp_socket socket_;
+   std::unique_ptr<corosio::tls_stream> stream_;
+   corosio::timer timer_;
+   corosio::resolver resolv_;
    redis_stream_state st_;
 
 public:
+   explicit corosio_redis_stream(capy::execution_context& ctx)
+   : socket_(ctx)
+   , stream_(nullptr)  // TODO
+   , timer_(ctx)
+   , resolv_(ctx)
+   { }
+
    // I/O
-   capy::io_task<> connect(const connect_params& params, buffered_logger& l);
+   capy::io_task<> connect(const connect_params& params, buffered_logger& l)
+   {
+      connect_fsm fsm{l};
+      system::error_code ec;
+      corosio::resolver_results endpoints;
+
+      auto act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+
+      while (true) {
+         switch (act.type) {
+            case connect_action_type::unix_socket_close:
+               BOOST_ASSERT(false);
+               co_return {system::error_code(asio::error::operation_not_supported)};
+            case connect_action_type::unix_socket_connect:
+               BOOST_ASSERT(false);
+               co_return {system::error_code(asio::error::operation_not_supported)};
+            case connect_action_type::tcp_resolve:
+            {
+               auto result = co_await cancel_after(
+                  [&] -> capy::io_task<corosio::resolver_results> {
+                     co_return co_await resolv_.resolve(
+                        params.addr.tcp_address().host,
+                        params.addr.tcp_address().port);
+                  }(),
+                  timer_,
+                  params.resolve_timeout);
+               ec = result.ec;
+               endpoints = std::move(result.t1);
+               act = fsm.resume(ec, endpoints, st_, asio::cancellation_type_t::none);
+               break;
+            }
+            case connect_action_type::ssl_stream_reset:
+               stream_->reset();
+               act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+               break;
+            case connect_action_type::ssl_handshake:
+               ec = (co_await cancel_after(
+                        stream_->handshake(corosio::tls_stream::handshake_type::client),
+                        timer_,
+                        params.ssl_handshake_timeout))
+                       .ec;
+               act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+               break;
+            case connect_action_type::done: co_return {act.ec};
+            case connect_action_type::tcp_connect:
+            {
+               // TODO: range connect
+               auto result = co_await cancel_after(
+                  [&] -> capy::io_task<> {
+                     co_return co_await socket_.connect(*endpoints.begin());
+                  }(),
+                  timer_,
+                  params.connect_timeout);
+               ec = result.ec;
+               act = fsm.resume(ec, *endpoints.begin(), st_, asio::cancellation_type_t::none);
+               break;
+            }
+            default: BOOST_ASSERT(false);
+         }
+      }
+   }
 
    template <class ConstBufferSequence>
    capy::io_task<std::size_t> write_some(const ConstBufferSequence& buffers);
@@ -241,29 +332,6 @@ inline capy::io_task<> async_exec_one(
          }
       }
    }
-}
-
-template <class... Types>
-inline capy::io_task<Types...> cancel_at(
-   capy::io_task<Types...> task,
-   corosio::timer& timer,
-   std::chrono::steady_clock::time_point timeout)
-{
-   timer.expires_at(timeout);
-   auto [winner_index, result] = co_await capy::when_any(std::move(task), timer.wait());
-   if (winner_index == 0u)
-      co_return std::move(result);
-   else
-      co_return {make_error_code(asio::error::operation_aborted)};
-}
-
-template <class... Types>
-inline capy::io_task<Types...> cancel_after(
-   capy::io_task<Types...> task,
-   corosio::timer& timer,
-   std::chrono::steady_clock::duration timeout)
-{
-   return cancel_at(std::move(task), timer, std::chrono::steady_clock::now() + timeout);
 }
 
 inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
