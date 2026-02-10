@@ -30,14 +30,18 @@
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
+#include <boost/capy/buffers/make_buffer.hpp>
 #include <boost/capy/ex/async_event.hpp>
 #include <boost/capy/ex/execution_context.hpp>
 #include <boost/capy/ex/this_coro.hpp>
 #include <boost/capy/io_result.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
+#include <boost/capy/write.hpp>
 #include <boost/config.hpp>
+#include <boost/core/ignore_unused.hpp>
 #include <boost/corosio/timer.hpp>
+#include <boost/system/detail/error_code.hpp>
 
 #include <array>
 #include <chrono>
@@ -77,13 +81,13 @@ class corosio_redis_stream {
 
 public:
    // I/O
-   capy::io_task<void> async_connect(const connect_params& params, buffered_logger& l);
+   capy::io_task<void> connect(const connect_params& params, buffered_logger& l);
 
    template <class ConstBufferSequence>
-   capy::io_task<std::size_t> async_write_some(const ConstBufferSequence& buffers);
+   capy::io_task<std::size_t> write_some(const ConstBufferSequence& buffers);
 
    template <class MutableBufferSequence>
-   capy::io_task<std::size_t> async_read_some(const MutableBufferSequence& buffers);
+   capy::io_task<std::size_t> read_some(const MutableBufferSequence& buffers);
 };
 
 struct corosio_connection_impl {
@@ -180,8 +184,13 @@ struct corosio_connection_impl {
             case exec_action_type::setup_cancellation: break;  // ignored, not required by capy
             case exec_action_type::immediate:          break;  // ignored, not required by capy
             case exec_action_type::notify_writer:      writer_event_.set(); break;
-            case exec_action_type::wait_for_response:  co_await request_done.wait(); break;
-            case exec_action_type::done:               co_return {act.error()};
+            case exec_action_type::wait_for_response:
+            {
+               auto [ec] = co_await request_done.wait();
+               ignore_unused(ec);  // TODO: we should likely use this
+               break;
+            }
+            case exec_action_type::done: co_return {act.error()};
          }
       }
    }
@@ -232,52 +241,40 @@ struct receive2_op {
    }
 };
 
-template <class Executor>
-struct exec_one_op {
-   connection_impl<Executor>* conn_;
-   const request* req_;
-   exec_one_fsm fsm_;
+capy::io_task<> async_exec_one(corosio_connection_impl& conn, const request& req, any_adapter resp)
+{
+   exec_one_fsm fsm{std::move(resp), req.get_expected_responses()};
+   system::error_code ec;
+   std::size_t bytes = 0u;
 
-   explicit exec_one_op(connection_impl<Executor>& conn, const request& req, any_adapter resp)
-   : conn_(&conn)
-   , req_(&req)
-   , fsm_(std::move(resp), req.get_expected_responses())
-   { }
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
-   {
-      exec_one_action act = fsm_.resume(
-         conn_->st_.mpx.get_read_buffer(),
+   while (true) {
+      exec_one_action act = fsm.resume(
+         conn.st_.mpx.get_read_buffer(),
          ec,
-         bytes_written,
-         self.get_cancellation_state().cancelled());
+         bytes,
+         token_to_cancel(co_await capy::this_coro::stop_token));
 
       switch (act.type) {
-         case exec_one_action_type::done: self.complete(act.ec); return;
+         case exec_one_action_type::done: co_return {ec};
          case exec_one_action_type::write:
-            asio::async_write(conn_->stream_, asio::buffer(req_->payload()), std::move(self));
-            return;
+         {
+            auto [write_ec, write_bytes] = co_await capy::write(
+               conn.stream_,
+               capy::make_buffer(req.payload()));
+            ec = write_ec;
+            bytes = write_bytes;
+            break;
+         }
          case exec_one_action_type::read_some:
-            conn_->stream_.async_read_some(
-               conn_->st_.mpx.get_read_buffer().get_prepared(),
-               std::move(self));
-            return;
+         {
+            auto [read_ec, read_bytes] = co_await conn.stream_.read_some(
+               conn.st_.mpx.get_read_buffer().get_prepared());
+            ec = read_ec;
+            bytes = read_bytes;
+            break;
+         }
       }
    }
-};
-
-template <class Executor, class CompletionToken>
-auto async_exec_one(
-   connection_impl<Executor>& conn,
-   const request& req,
-   any_adapter resp,
-   CompletionToken&& token)
-{
-   return asio::async_compose<CompletionToken, void(system::error_code)>(
-      exec_one_op<Executor>{conn, req, std::move(resp)},
-      token,
-      conn);
 }
 
 template <class Executor>
