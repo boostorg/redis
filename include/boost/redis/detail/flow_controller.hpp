@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
-#ifndef BOOST_REDIS_FLOW_CONTROLLER_HPP
-#define BOOST_REDIS_FLOW_CONTROLLER_HPP
+#ifndef BOOST_REDIS_DETAIL_FLOW_CONTROLLER_HPP
+#define BOOST_REDIS_DETAIL_FLOW_CONTROLLER_HPP
 
 #include <boost/capy/error.hpp>
 #include <boost/capy/ex/async_event.hpp>
