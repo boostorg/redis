@@ -124,7 +124,7 @@ public:
       system::error_code ec;
       corosio::resolver_results endpoints;
 
-      auto act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+      auto act = fsm.resume(ec, st_);
 
       while (true) {
          switch (act.type) {
@@ -146,12 +146,12 @@ public:
                   params.resolve_timeout);
                ec = result.ec;
                endpoints = std::move(result.t1);
-               act = fsm.resume(ec, endpoints, st_, asio::cancellation_type_t::none);
+               act = fsm.resume(ec, endpoints, st_);
                break;
             }
             case connect_action_type::ssl_stream_reset:
                stream_->reset();
-               act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+               act = fsm.resume(ec, st_);
                break;
             case connect_action_type::ssl_handshake:
                ec = (co_await cancel_after(
@@ -159,7 +159,7 @@ public:
                         timer_,
                         params.ssl_handshake_timeout))
                        .ec;
-               act = fsm.resume(ec, st_, asio::cancellation_type_t::none);
+               act = fsm.resume(ec, st_);
                break;
             case connect_action_type::done: co_return {act.ec};
             case connect_action_type::tcp_connect:
@@ -172,7 +172,7 @@ public:
                   timer_,
                   params.connect_timeout);
                ec = result.ec;
-               act = fsm.resume(ec, *endpoints.begin(), st_, asio::cancellation_type_t::none);
+               act = fsm.resume(ec, *endpoints.begin(), st_);
                break;
             }
             default: BOOST_ASSERT(false);

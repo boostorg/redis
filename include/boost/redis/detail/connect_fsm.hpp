@@ -9,9 +9,12 @@
 #ifndef BOOST_REDIS_CONNECT_FSM_HPP
 #define BOOST_REDIS_CONNECT_FSM_HPP
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/corosio/endpoint.hpp>
+#include <boost/corosio/resolver_results.hpp>
 #include <boost/system/error_code.hpp>
+
+#include <span>
 
 // Sans-io algorithm for redis_stream::async_connect, as a finite state machine
 
@@ -69,20 +72,15 @@ public:
 
    connect_action resume(
       system::error_code ec,
-      const asio::ip::tcp::resolver::results_type& resolver_results,
-      redis_stream_state& st,
-      asio::cancellation_type_t cancel_state);
+      std::span<const corosio::resolver_entry> resolver_results,
+      redis_stream_state& st);
 
    connect_action resume(
       system::error_code ec,
-      const asio::ip::tcp::endpoint& selected_endpoint,
-      redis_stream_state& st,
-      asio::cancellation_type_t cancel_state);
+      const corosio::endpoint& selected_endpoint,
+      redis_stream_state& st);
 
-   connect_action resume(
-      system::error_code ec,
-      redis_stream_state& st,
-      asio::cancellation_type_t cancel_state);
+   connect_action resume(system::error_code ec, redis_stream_state& st);
 
 };  // namespace boost::redis::detail
 
