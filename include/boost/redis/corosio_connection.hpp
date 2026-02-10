@@ -32,6 +32,7 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/capy/buffers.hpp>
 #include <boost/capy/buffers/make_buffer.hpp>
 #include <boost/capy/error.hpp>
 #include <boost/capy/ex/async_event.hpp>
@@ -179,11 +180,27 @@ public:
       }
    }
 
-   template <class ConstBufferSequence>
-   capy::io_task<std::size_t> write_some(const ConstBufferSequence& buffers);
+   template <capy::ConstBufferSequence BuffType>
+   capy::io_task<std::size_t> write_some(const BuffType& buffers)
+   {
+      switch (st_.type) {
+         case transport_type::tcp:         co_return co_await socket_.write_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_->write_some(buffers);
+         case transport_type::unix_socket:
+         default:                          BOOST_ASSERT(false); co_return {};
+      }
+   }
 
-   template <class MutableBufferSequence>
-   capy::io_task<std::size_t> read_some(const MutableBufferSequence& buffers);
+   template <capy::MutableBufferSequence BuffType>
+   capy::io_task<std::size_t> read_some(const BuffType& buffers)
+   {
+      switch (st_.type) {
+         case transport_type::tcp:         co_return co_await socket_.read_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_->read_some(buffers);
+         case transport_type::unix_socket:
+         default:                          BOOST_ASSERT(false); co_return {};
+      }
+   }
 };
 
 struct corosio_connection_impl {
