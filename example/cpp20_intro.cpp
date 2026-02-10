@@ -4,28 +4,20 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/config.hpp>
+#include <boost/redis/corosio_connection.hpp>
 
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/consign.hpp>
-#include <boost/asio/detached.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
 
 #include <iostream>
 
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+namespace capy = boost::capy;
+using namespace boost::redis;
 
-namespace asio = boost::asio;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::config;
-using boost::redis::connection;
-
-// Called from the main function (see main.cpp)
-auto co_main(config cfg) -> asio::awaitable<void>
+capy::task<void> run_request(connection& conn)
 {
-   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor);
-   conn->async_run(cfg, asio::consign(asio::detached, conn));
-
    // A request containing only a ping command.
    request req;
    req.push("PING", "Hello world");
@@ -34,10 +26,18 @@ auto co_main(config cfg) -> asio::awaitable<void>
    response<std::string> resp;
 
    // Executes the request.
-   co_await conn->async_exec(req, resp);
-   conn->cancel();
-
-   std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec)
+      co_return;
+   std::cout << "PING value: " << std::get<0>(resp).value() << std::endl;
 }
 
-#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)
+capy::task<void> co_main()
+{
+   // Create a connection
+   connection conn{(co_await capy::this_coro::executor).context()};
+
+   auto r = co_await capy::when_any(run_request(conn), conn.run(config{}));
+
+   static_cast<void>(r);
+}
