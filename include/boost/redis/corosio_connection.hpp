@@ -45,10 +45,12 @@
 #include <boost/capy/write.hpp>
 #include <boost/config.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/corosio/openssl_stream.hpp>
 #include <boost/corosio/resolver.hpp>
 #include <boost/corosio/resolver_results.hpp>
 #include <boost/corosio/tcp_socket.hpp>
 #include <boost/corosio/timer.hpp>
+#include <boost/corosio/tls_context.hpp>
 #include <boost/corosio/tls_stream.hpp>
 #include <boost/system/detail/error_code.hpp>
 
@@ -87,7 +89,7 @@ inline capy::io_task<Types...> cancel_at(
    timer.expires_at(timeout);
    auto [winner_index, result] = co_await capy::when_any(std::move(task), timer.wait());
    if (winner_index == 0u)
-      co_return std::move(result);
+      co_return std::get<0>(std::move(result));
    else
       co_return {make_error_code(asio::error::operation_aborted)};
 }
@@ -104,15 +106,15 @@ inline capy::io_task<Types...> cancel_after(
 class corosio_redis_stream {
    // TODO: UNIX sockets
    corosio::tcp_socket socket_;
-   std::unique_ptr<corosio::tls_stream> stream_;
+   corosio::openssl_stream stream_;  // TODO: make this configurable
    corosio::timer timer_;
    corosio::resolver resolv_;
    redis_stream_state st_;
 
 public:
-   explicit corosio_redis_stream(capy::execution_context& ctx)
+   explicit corosio_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
    : socket_(ctx)
-   , stream_(nullptr)  // TODO
+   , stream_(&socket_, std::move(tls_ctx))
    , timer_(ctx)
    , resolv_(ctx)
    { }
@@ -150,12 +152,12 @@ public:
                break;
             }
             case connect_action_type::ssl_stream_reset:
-               stream_->reset();
+               stream_.reset();
                act = fsm.resume(ec, st_);
                break;
             case connect_action_type::ssl_handshake:
                ec = (co_await cancel_after(
-                        stream_->handshake(corosio::tls_stream::handshake_type::client),
+                        stream_.handshake(corosio::tls_stream::handshake_type::client),
                         timer_,
                         params.ssl_handshake_timeout))
                        .ec;
@@ -185,7 +187,7 @@ public:
    {
       switch (st_.type) {
          case transport_type::tcp:         co_return co_await socket_.write_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_->write_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_.write_some(buffers);
          case transport_type::unix_socket:
          default:                          BOOST_ASSERT(false); co_return {};
       }
@@ -196,7 +198,7 @@ public:
    {
       switch (st_.type) {
          case transport_type::tcp:         co_return co_await socket_.read_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_->read_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_.read_some(buffers);
          case transport_type::unix_socket:
          default:                          BOOST_ASSERT(false); co_return {};
       }
@@ -204,10 +206,6 @@ public:
 };
 
 struct corosio_connection_impl {
-   // using receive_channel_type = asio::experimental::channel<
-   //    Executor,
-   //    void(system::error_code, std::size_t)>;
-
    capy::async_event run_cancelled_event_;
    corosio_redis_stream stream_;
    corosio::timer writer_timer_;     // timer used for write timeouts
@@ -215,18 +213,20 @@ struct corosio_connection_impl {
    corosio::timer reader_timer_;     // timer used for read timeouts
    corosio::timer reconnect_timer_;  // to wait the reconnection period
    corosio::timer ping_timer_;       // to wait between pings
-   // receive_channel_type receive_channel_;
-   asio::cancellation_signal run_signal_;
-   connection_state st_;
    flow_controller controller_;
+   connection_state st_;
 
-   corosio_connection_impl(capy::execution_context& ex, logger&& lgr)
-   : stream_{ex}
-   , writer_timer_{ex}
-   , writer_cv_{ex}
-   , reader_timer_{ex}
-   , reconnect_timer_{ex}
-   , ping_timer_{ex}  // , receive_channel_{ex, 256}
+   corosio_connection_impl(
+      capy::execution_context& ctx,
+      corosio::tls_context&& ssl_ctx,
+      logger&& lgr)
+   : stream_{ctx, std::move(ssl_ctx)}
+   , writer_timer_{ctx}
+   , writer_cv_{ctx}
+   , reader_timer_{ctx}
+   , reconnect_timer_{ctx}
+   , ping_timer_{ctx}
+   , controller_{1024u * 1024u * 16u}  // 16MB, TODO: make it configurable
    , st_{{std::move(lgr)}}
    {
       set_receive_adapter(any_adapter{ignore});
@@ -342,7 +342,7 @@ inline capy::io_task<> async_exec_one(
          case exec_one_action_type::read_some:
          {
             auto [read_ec, read_bytes] = co_await conn.stream_.read_some(
-               conn.st_.mpx.get_read_buffer().get_prepared());
+               capy::make_buffer(conn.st_.mpx.get_read_buffer().get_prepared()));
             ec = read_ec;
             bytes = read_bytes;
             break;
@@ -513,14 +513,11 @@ public:
    *             and higher are logged to `stderr`.
    */
    explicit connection(
-      capy::execution_context& ex,
-      asio::ssl::context ctx = asio::ssl::context{asio::ssl::context::tlsv12_client},
+      capy::execution_context& ctx,
+      corosio::tls_context ssl_ctx = {},
       logger lgr = {})
    : impl_(
-        std::make_unique<detail::connection_impl<Executor>>(
-           std::move(ex),
-           std::move(ctx),
-           std::move(lgr)))
+        std::make_unique<detail::corosio_connection_impl>(ctx, std::move(ssl_ctx), std::move(lgr)))
    { }
 
    /** @brief Constructor from an executor and a logger.
@@ -532,11 +529,8 @@ public:
     *
     * An SSL context with default settings will be created.
     */
-   connection(capy::execution_context& ex, logger lgr)
-   : connection(
-        std::move(ex),
-        asio::ssl::context{asio::ssl::context::tlsv12_client},
-        std::move(lgr))
+   connection(capy::execution_context& ctx, logger lgr)
+   : connection(ctx, {}, std::move(lgr))
    { }
 
    /** @brief Starts the underlying connection operations.

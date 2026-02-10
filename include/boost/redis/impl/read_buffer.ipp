@@ -37,7 +37,7 @@ void read_buffer::commit(std::size_t read_size)
 auto read_buffer::get_prepared() noexcept -> span_type
 {
    auto const size = buffer_.size();
-   return make_span(buffer_.data() + append_buf_begin_, size - append_buf_begin_);
+   return span_type(buffer_.data() + append_buf_begin_, size - append_buf_begin_);
 }
 
 auto read_buffer::get_commited() const noexcept -> std::string_view
@@ -51,8 +51,7 @@ void read_buffer::clear()
    append_buf_begin_ = 0;
 }
 
-read_buffer::consume_result
-read_buffer::consume(std::size_t size)
+read_buffer::consume_result read_buffer::consume(std::size_t size)
 {
    // For convenience, if the requested size is larger than the
    // committed buffer we cap it to the maximum.

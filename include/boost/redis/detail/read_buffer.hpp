@@ -11,6 +11,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
+#include <span>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -19,7 +20,7 @@ namespace boost::redis::detail {
 
 class read_buffer {
 public:
-   using span_type = span<char>;
+   using span_type = std::span<char>;
 
    struct consume_result {
       std::size_t consumed;
