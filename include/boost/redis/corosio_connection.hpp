@@ -30,6 +30,7 @@
 #include <boost/redis/usage.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/buffers/make_buffer.hpp>
 #include <boost/capy/ex/async_event.hpp>
@@ -38,6 +39,7 @@
 #include <boost/capy/io_result.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
 #include <boost/capy/write.hpp>
 #include <boost/config.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -50,6 +52,7 @@
 #include <memory>
 #include <stop_token>
 #include <string>
+#include <system_error>
 #include <utility>
 
 namespace boost::redis {
@@ -269,6 +272,18 @@ inline capy::io_task<> async_exec_one(
    }
 }
 
+inline capy::io_task<> cancel_after(
+   capy::io_task<> task,
+   corosio::timer& timer,
+   std::chrono::steady_clock::duration timeout)
+{
+   timer.expires_after(timeout);
+   auto [winner_index, result] = co_await capy::when_any(std::move(task), timer.wait());
+   co_return {
+      winner_index == 0u ? std::get<capy::io_result<>>(result).ec
+                         : std::error_code(make_error_code(asio::error::operation_aborted))};
+}
+
 inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
 {
    // Setup
@@ -293,41 +308,15 @@ inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
          }
          case sentinel_action::type::request:
          {
-            auto [exec_ec] = co_await async_exec_one(
-               conn,
-               conn.st_.cfg.sentinel.setup,
-               make_sentinel_adapter(conn.st_),
-               asio::cancel_after(
-                  conn->reconnect_timer_,  // should be safe to re-use this
-                  conn->st_.cfg.sentinel.request_timeout,
-                  std::move(self)));
+            auto [request_ec] = co_await cancel_after(
+               async_exec_one(conn, conn.st_.cfg.sentinel.setup, make_sentinel_adapter(conn.st_)),
+               conn.reconnect_timer_,
+               conn.st_.cfg.sentinel.request_timeout);
+            ec = request_ec;
             break;
          }
       }
    }
-}
-
-template <class Executor>
-struct sentinel_resolve_op {
-   connection_impl<Executor>* conn_;
-   sentinel_resolve_fsm fsm_;
-
-   explicit sentinel_resolve_op(connection_impl<Executor>& conn)
-   : conn_(&conn)
-   { }
-
-   template <class Self>
-   void operator()(Self& self, system::error_code ec = {})
-   { }
-};
-
-template <class Executor, class CompletionToken>
-auto async_sentinel_resolve(connection_impl<Executor>& conn, CompletionToken&& token)
-{
-   return asio::async_compose<CompletionToken, void(system::error_code)>(
-      sentinel_resolve_op<Executor>{conn},
-      token,
-      conn);
 }
 
 template <class Executor>
