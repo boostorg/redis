@@ -3,6 +3,8 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/logger.hpp>
 
+#include <boost/capy/task.hpp>
+
 #include <chrono>
 #include <string>
 #include <string_view>
@@ -24,3 +26,5 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
 // void create_user(std::string_view port, std::string_view username, std::string_view password);
 
 boost::redis::logger make_string_logger(std::string& to);
+
+void run_coroutine_test(boost::capy::task<void> test);

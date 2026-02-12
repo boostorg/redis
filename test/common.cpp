@@ -1,6 +1,8 @@
 #include <boost/redis/config.hpp>
 
+#include <boost/capy/ex/run_async.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/corosio/io_context.hpp>
 
 #include "common.hpp"
 
@@ -57,4 +59,12 @@ boost::redis::logger make_string_logger(std::string& to)
          to += msg;
          to += '\n';
       }};
+}
+
+void run_coroutine_test(boost::capy::task<void> test)
+{
+   // TODO: test timeout
+   boost::corosio::io_context ctx;
+   boost::capy::run_async(ctx.get_executor())(std::move(test));
+   ctx.run();
 }
