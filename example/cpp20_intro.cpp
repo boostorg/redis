@@ -5,7 +5,7 @@
  */
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/corosio_connection.hpp>
+#include <boost/redis/connection.hpp>
 
 #include <boost/capy/ex/run_async.hpp>
 #include <boost/capy/io_task.hpp>

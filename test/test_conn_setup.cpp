@@ -7,7 +7,7 @@
 //
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/corosio_connection.hpp>
+#include <boost/redis/connection.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 
