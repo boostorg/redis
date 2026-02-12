@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <string_view>
+#include <utility>
 
 using namespace std::chrono_literals;
 
@@ -63,8 +64,18 @@ boost::redis::logger make_string_logger(std::string& to)
 
 void run_coroutine_test(boost::capy::task<void> test)
 {
-   // TODO: test timeout
+   // Set a timeout to the tests, so they don't hang on error
+   bool finished = false;
+   auto wrapper_fn = [test = std::move(test), &finished]() mutable -> boost::capy::task<void> {
+      co_await std::move(test);
+      finished = true;
+   };
+
+   // Actually run the test
    boost::corosio::io_context ctx;
-   boost::capy::run_async(ctx.get_executor())(std::move(test));
-   ctx.run();
+   boost::capy::run_async(ctx.get_executor())(wrapper_fn());
+   ctx.run_for(test_timeout);
+
+   // Check that it finished
+   BOOST_TEST(finished);
 }
