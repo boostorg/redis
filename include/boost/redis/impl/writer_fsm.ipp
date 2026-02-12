@@ -19,7 +19,7 @@
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/cond.hpp>
 #include <boost/system/error_code.hpp>
@@ -81,7 +81,7 @@ writer_action writer_fsm::resume(
 
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
-                  ec = asio::error::operation_aborted;
+                  ec = capy::error::canceled;
                else if (ec == capy::cond::canceled)
                   ec = error::write_timeout;
 
@@ -107,7 +107,7 @@ writer_action writer_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Writer task: cancelled (2).");
-            return system::error_code(asio::error::operation_aborted);
+            return system::error_code(capy::error::canceled);
          }
 
          // If we weren't notified, it's because there is no data and we should send a health check

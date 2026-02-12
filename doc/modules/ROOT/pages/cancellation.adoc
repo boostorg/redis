@@ -52,7 +52,7 @@ error after sending the request, but before receiving a response?
 
 In this situation there is no way to know if the request was processed by the server or not.
 By default, the library will consider the request as failed,
-and `async_exec` will complete with an `asio::error::operation_aborted`
+and `async_exec` will complete with an `capy::error::canceled`
 error code.
 
 Some requests can be executed several times and result in the same outcome

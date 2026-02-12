@@ -12,7 +12,7 @@
 #include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/capy/cond.hpp>
 
 namespace boost::redis::detail {
@@ -43,10 +43,10 @@ reader_fsm::action reader_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Reader task: cancelled (1)");
-            return system::error_code(asio::error::operation_aborted);
+            return system::error_code(capy::error::canceled);
          }
 
-         // Translate timeout errors caused by operation_aborted to more legible ones.
+         // Translate timeout errors caused by canceled to more legible ones.
          // A timeout here means that we didn't receive data in time.
          // Note that cancellation is already handled by the above statement.
          if (ec == capy::cond::canceled) {
@@ -92,7 +92,7 @@ reader_fsm::action reader_fsm::resume(
                // Check for cancellations
                if (is_terminal_cancel(cancel_state)) {
                   log_debug(st.logger, "Reader task: cancelled (2)");
-                  return system::error_code(asio::error::operation_aborted);
+                  return system::error_code(capy::error::canceled);
                }
 
                // Check for other errors

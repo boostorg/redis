@@ -10,6 +10,7 @@
 #include <boost/core/ignore_unused.hpp>
 
 #include <cstddef>
+#include <system_error>
 #include <utility>
 
 namespace boost::redis {
@@ -40,7 +41,7 @@ capy::io_task<Types...> cancel_at(
    if (winner_index == 0u)
       co_return std::get<0>(std::move(result));
    else
-      co_return {make_error_code(asio::error::operation_aborted)};
+      co_return {make_error_code(capy::error::canceled)};
 }
 
 template <class... Types>
@@ -64,10 +65,10 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
       switch (act.type) {
          case connect_action_type::unix_socket_close:
             BOOST_ASSERT(false);
-            co_return {system::error_code(asio::error::operation_not_supported)};
+            co_return {std::make_error_code(std::errc::operation_not_supported)};
          case connect_action_type::unix_socket_connect:
             BOOST_ASSERT(false);
-            co_return {system::error_code(asio::error::operation_not_supported)};
+            co_return {std::make_error_code(std::errc::operation_not_supported)};
          case connect_action_type::tcp_resolve:
          {
             auto result = co_await cancel_after(

@@ -29,11 +29,10 @@
 #include <boost/redis/usage.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/buffers.hpp>
 #include <boost/capy/buffers/make_buffer.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/capy/ex/async_event.hpp>
 #include <boost/capy/ex/execution_context.hpp>
 #include <boost/capy/ex/this_coro.hpp>
