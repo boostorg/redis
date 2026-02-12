@@ -21,6 +21,7 @@
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/capy/cond.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -81,12 +82,12 @@ writer_action writer_fsm::resume(
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
                   ec = asio::error::operation_aborted;
-               else if (ec == asio::error::operation_aborted)
+               else if (ec == capy::cond::canceled)
                   ec = error::write_timeout;
 
                // Check for errors
                if (ec) {
-                  if (ec == asio::error::operation_aborted) {
+                  if (ec == capy::cond::canceled) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
                   } else {
                      log_debug(st.logger, "Writer task error: ", ec);

@@ -76,7 +76,7 @@ inline std::chrono::steady_clock::time_point compute_expiry(
 
 inline asio::cancellation_type_t token_to_cancel(std::stop_token tok)
 {
-   return tok.stop_requested() ? asio::cancellation_type_t::partial
+   return tok.stop_requested() ? asio::cancellation_type_t::terminal
                                : asio::cancellation_type_t::none;
 }
 
@@ -167,6 +167,7 @@ public:
             case connect_action_type::tcp_connect:
             {
                // TODO: range connect
+               socket_.open();
                auto result = co_await cancel_after(
                   [&] -> capy::io_task<> {
                      co_return co_await socket_.connect(*endpoints.begin());
