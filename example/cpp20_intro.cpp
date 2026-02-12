@@ -7,14 +7,18 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/corosio_connection.hpp>
 
+#include <boost/capy/ex/run_async.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
 #include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
 
+#include <exception>
 #include <iostream>
 
 namespace capy = boost::capy;
 using namespace boost::redis;
+namespace corosio = boost::corosio;
 
 capy::task<void> run_request(connection& conn)
 {
@@ -40,4 +44,20 @@ capy::task<void> co_main()
    auto r = co_await capy::when_any(run_request(conn), conn.run(config{}));
 
    static_cast<void>(r);
+}
+
+struct handler {
+   void operator()() { std::cout << "Done\n"; }
+   void operator()(std::exception_ptr exc)
+   {
+      if (exc)
+         std::rethrow_exception(exc);
+   }
+};
+
+int main()
+{
+   corosio::io_context ctx;
+   capy::run_async(ctx.get_executor())(co_main());
+   ctx.run();
 }
