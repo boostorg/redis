@@ -5,7 +5,7 @@
  */
 
 #include <boost/redis/impl/connect_fsm.ipp>
-// #include <boost/redis/impl/connection.ipp>
+#include <boost/redis/impl/connection.ipp>
 #include <boost/redis/impl/error.ipp>
 #include <boost/redis/impl/exec_fsm.ipp>
 #include <boost/redis/impl/exec_one_fsm.ipp>
