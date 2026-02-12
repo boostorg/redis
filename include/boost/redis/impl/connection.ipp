@@ -100,6 +100,7 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
          case connect_action_type::tcp_connect:
          {
             // TODO: range connect
+            socket_.close();
             socket_.open();
             auto result = co_await cancel_after(
                [&] -> capy::io_task<> {
@@ -351,6 +352,7 @@ inline capy::io_task<> reader(corosio_connection_impl& conn)
                ec = notify_ec;
             else
                conn.controller_.put(act.push_size());
+            break;
          }
          case reader_fsm::action::type::done: co_return {act.error()};
       }
