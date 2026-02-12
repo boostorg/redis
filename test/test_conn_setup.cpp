@@ -8,6 +8,8 @@
 
 #include <boost/redis/config.hpp>
 #include <boost/redis/corosio_connection.hpp>
+#include <boost/redis/error.hpp>
+#include <boost/redis/logger.hpp>
 
 #include <boost/capy/cond.hpp>
 #include <boost/capy/error.hpp>
@@ -19,12 +21,19 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/corosio/io_context.hpp>
 
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <system_error>
 
 namespace asio = boost::asio;
 namespace redis = boost::redis;
+
+// Declarations from common.cpp (avoid including common.hpp to prevent asio connection conflict)
+boost::redis::config make_test_config();
+std::string get_server_hostname();
+std::string_view find_client_info(std::string_view client_info, std::string_view key);
+boost::redis::logger make_string_logger(std::string& to);
 using namespace redis;
 using namespace std::chrono_literals;
 namespace capy = boost::capy;
@@ -96,211 +105,167 @@ capy::task<> test_auth_success()
    co_await capy::when_any(request_fn(), run_fn());
 }
 
-// // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
-// void test_auth_failure()
-// {
-//    // Setup
-//    std::string logs;
-//    asio::io_context ioc;
-//    redis::connection conn{ioc, make_string_logger(logs)};
+// Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
+capy::task<> test_auth_failure()
+{
+   // Setup
+   std::string logs;
+   redis::connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
 
-//    // Disable reconnection so the hello error causes the connection to exit
-//    auto cfg = make_test_config();
-//    cfg.username = "myuser";
-//    cfg.password = "wrongpass";  // wrong
-//    cfg.reconnect_wait_interval = 0s;
+   // Disable reconnection so the hello error causes the connection to exit
+   auto cfg = make_test_config();
+   cfg.username = "myuser";
+   cfg.password = "wrongpass";  // wrong
+   cfg.reconnect_wait_interval = 0s;
 
-//    bool run_finished = false;
+   auto [ec] = co_await conn.run(cfg);
+   BOOST_TEST_EQ(ec, std::error_code(redis::error::resp3_hello));
 
-//    conn.async_run(cfg, [&](error_code ec) {
-//       run_finished = true;
-//       BOOST_TEST_EQ(ec, redis::error::resp3_hello);
-//    });
+   // Check the log
+   if (!BOOST_TEST_NE(logs.find("WRONGPASS"), std::string::npos)) {
+      std::cerr << "Log was: \n" << logs << std::endl;
+   }
+}
 
-//    ioc.run_for(test_timeout);
+capy::task<> test_database_index()
+{
+   // Setup
+   redis::connection conn{(co_await capy::this_coro::executor).context()};
 
-//    BOOST_TEST(run_finished);
+   auto request_fn = [&] -> capy::task<void> {
+      redis::request req;
+      req.push("CLIENT", "INFO");
+      redis::response<std::string> resp;
 
-//    // Check the log
-//    if (!BOOST_TEST_NE(logs.find("WRONGPASS"), std::string::npos)) {
-//       std::cerr << "Log was: \n" << logs << std::endl;
-//    }
-// }
+      auto [ec] = co_await conn.exec(req, resp);
 
-// void test_database_index()
-// {
-//    // Setup
-//    asio::io_context ioc;
-//    redis::connection conn(ioc);
+      BOOST_TEST_EQ(ec, std::error_code());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "2");
+   };
 
-//    // Use a non-default database index
-//    auto cfg = make_test_config();
-//    cfg.database_index = 2;
+   auto run_fn = [&] -> capy::task<void> {
+      // Use a non-default database index
+      auto cfg = make_test_config();
+      cfg.database_index = 2;
+      auto [ec] = co_await conn.run(cfg);
+      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+   };
 
-//    redis::request req;
-//    req.push("CLIENT", "INFO");
+   co_await capy::when_any(request_fn(), run_fn());
+}
 
-//    redis::response<std::string> resp;
+// The user configured an empty setup request. No request should be sent
+capy::task<> test_setup_empty()
+{
+   // Setup
+   redis::connection conn{(co_await capy::this_coro::executor).context()};
 
-//    bool exec_finished = false, run_finished = false;
+   auto request_fn = [&] -> capy::task<void> {
+      redis::request req;
+      req.push("CLIENT", "INFO");
+      redis::response<std::string> resp;
 
-//    conn.async_exec(req, resp, [&](error_code ec, std::size_t n) {
-//       BOOST_TEST_EQ(ec, error_code());
-//       std::clog << "async_exec has completed: " << n << std::endl;
-//       conn.cancel();
-//       exec_finished = true;
-//    });
+      auto [ec] = co_await conn.exec(req, resp);
 
-//    conn.async_run(cfg, {}, [&run_finished](error_code) {
-//       std::clog << "async_run has exited." << std::endl;
-//       run_finished = true;
-//    });
+      BOOST_TEST_EQ(ec, std::error_code());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
+   };
 
-//    ioc.run_for(test_timeout);
-//    BOOST_TEST(exec_finished);
-//    BOOST_TEST(run_finished);
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "2");
-// }
+   auto run_fn = [&] -> capy::task<void> {
+      auto cfg = make_test_config();
+      cfg.use_setup = true;
+      cfg.setup.clear();
+      auto [ec] = co_await conn.run(cfg);
+      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+   };
 
-// // The user configured an empty setup request. No request should be sent
-// void test_setup_empty()
-// {
-//    // Setup
-//    asio::io_context ioc;
-//    redis::connection conn(ioc);
+   co_await capy::when_any(request_fn(), run_fn());
+}
 
-//    auto cfg = make_test_config();
-//    cfg.use_setup = true;
-//    cfg.setup.clear();
+// We can use the setup member to run commands at startup
+capy::task<> test_setup_hello()
+{
+   // Setup
+   redis::connection conn{(co_await capy::this_coro::executor).context()};
 
-//    redis::request req;
-//    req.push("CLIENT", "INFO");
+   auto request_fn = [&] -> capy::task<void> {
+      redis::request req;
+      req.push("CLIENT", "INFO");
+      redis::response<std::string> resp;
 
-//    redis::response<std::string> resp;
+      auto [ec] = co_await conn.exec(req, resp);
 
-//    bool exec_finished = false, run_finished = false;
+      BOOST_TEST_EQ(ec, std::error_code());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "3");  // using RESP3
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "user"), "myuser");
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
+   };
 
-//    conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-//       BOOST_TEST_EQ(ec, error_code());
-//       conn.cancel();
-//       exec_finished = true;
-//    });
+   auto run_fn = [&] -> capy::task<void> {
+      auto cfg = make_test_config();
+      cfg.use_setup = true;
+      cfg.setup.clear();
+      cfg.setup.push("HELLO", "3", "AUTH", "myuser", "mypass");
+      cfg.setup.push("SELECT", 8);
+      auto [ec] = co_await conn.run(cfg);
+      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+   };
 
-//    conn.async_run(cfg, {}, [&run_finished](error_code) {
-//       run_finished = true;
-//    });
+   co_await capy::when_any(request_fn(), run_fn());
+}
 
-//    ioc.run_for(test_timeout);
-//    BOOST_TEST(exec_finished);
-//    BOOST_TEST(run_finished);
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
-// }
+// Running a pipeline without a HELLO is okay (regression check: we set the priority flag)
+capy::task<> test_setup_no_hello()
+{
+   // Setup
+   redis::connection conn{(co_await capy::this_coro::executor).context()};
 
-// // We can use the setup member to run commands at startup
-// void test_setup_hello()
-// {
-//    // Setup
-//    asio::io_context ioc;
-//    redis::connection conn(ioc);
+   auto request_fn = [&] -> capy::task<void> {
+      redis::request req;
+      req.push("CLIENT", "INFO");
+      redis::response<std::string> resp;
 
-//    auto cfg = make_test_config();
-//    cfg.use_setup = true;
-//    cfg.setup.clear();
-//    cfg.setup.push("HELLO", "3", "AUTH", "myuser", "mypass");
-//    cfg.setup.push("SELECT", 8);
+      auto [ec] = co_await conn.exec(req, resp);
 
-//    redis::request req;
-//    req.push("CLIENT", "INFO");
+      BOOST_TEST_EQ(ec, std::error_code());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
+   };
 
-//    redis::response<std::string> resp;
+   auto run_fn = [&] -> capy::task<void> {
+      auto cfg = make_test_config();
+      cfg.use_setup = true;
+      cfg.setup.clear();
+      cfg.setup.push("SELECT", 8);
+      auto [ec] = co_await conn.run(cfg);
+      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+   };
 
-//    bool exec_finished = false, run_finished = false;
+   co_await capy::when_any(request_fn(), run_fn());
+}
 
-//    conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-//       BOOST_TEST_EQ(ec, error_code());
-//       conn.cancel();
-//       exec_finished = true;
-//    });
+// Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
+capy::task<> test_setup_failure()
+{
+   // Setup
+   std::string logs;
+   redis::connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
 
-//    conn.async_run(cfg, {}, [&run_finished](error_code) {
-//       run_finished = true;
-//    });
+   // Disable reconnection so the hello error causes the connection to exit
+   auto cfg = make_test_config();
+   cfg.use_setup = true;
+   cfg.setup.clear();
+   cfg.setup.push("GET", "two", "args");  // GET only accepts one arg, so this will fail
+   cfg.reconnect_wait_interval = 0s;
 
-//    ioc.run_for(test_timeout);
-//    BOOST_TEST(exec_finished);
-//    BOOST_TEST(run_finished);
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "3");  // using RESP3
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "user"), "myuser");
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
-// }
+   auto [ec] = co_await conn.run(cfg);
+   BOOST_TEST_EQ(ec, std::error_code(redis::error::resp3_hello));
 
-// // Running a pipeline without a HELLO is okay (regression check: we set the priority flag)
-// void test_setup_no_hello()
-// {
-//    // Setup
-//    asio::io_context ioc;
-//    redis::connection conn(ioc);
-
-//    auto cfg = make_test_config();
-//    cfg.use_setup = true;
-//    cfg.setup.clear();
-//    cfg.setup.push("SELECT", 8);
-
-//    redis::request req;
-//    req.push("CLIENT", "INFO");
-
-//    redis::response<std::string> resp;
-
-//    bool exec_finished = false, run_finished = false;
-
-//    conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-//       BOOST_TEST_EQ(ec, error_code());
-//       conn.cancel();
-//       exec_finished = true;
-//    });
-
-//    conn.async_run(cfg, {}, [&run_finished](error_code) {
-//       run_finished = true;
-//    });
-
-//    ioc.run_for(test_timeout);
-//    BOOST_TEST(exec_finished);
-//    BOOST_TEST(run_finished);
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP3
-//    BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
-// }
-
-// // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
-// void test_setup_failure()
-// {
-//    // Setup
-//    std::string logs;
-//    asio::io_context ioc;
-//    redis::connection conn{ioc, make_string_logger(logs)};
-
-//    // Disable reconnection so the hello error causes the connection to exit
-//    auto cfg = make_test_config();
-//    cfg.use_setup = true;
-//    cfg.setup.clear();
-//    cfg.setup.push("GET", "two", "args");  // GET only accepts one arg, so this will fail
-//    cfg.reconnect_wait_interval = 0s;
-
-//    bool run_finished = false;
-
-//    conn.async_run(cfg, [&](error_code ec) {
-//       run_finished = true;
-//       BOOST_TEST_EQ(ec, redis::error::resp3_hello);
-//    });
-
-//    ioc.run_for(test_timeout);
-
-//    BOOST_TEST(run_finished);
-
-//    // Check the log
-//    if (!BOOST_TEST_NE(logs.find("wrong number of arguments"), std::string::npos)) {
-//       std::cerr << "Log was:\n" << logs << std::endl;
-//    }
-// }
+   // Check the log
+   if (!BOOST_TEST_NE(logs.find("wrong number of arguments"), std::string::npos)) {
+      std::cerr << "Log was:\n" << logs << std::endl;
+   }
+}
 
 }  // namespace
 
@@ -309,13 +274,12 @@ int main()
    run_coroutine_test(create_user("6379", "myuser", "mypass"));
 
    run_coroutine_test(test_auth_success());
-
-   // run_coroutine_test(test_auth_failure());
-   // run_coroutine_test(test_database_index());
-   // run_coroutine_test(test_setup_empty());
-   // run_coroutine_test(test_setup_hello());
-   // run_coroutine_test(test_setup_no_hello());
-   // run_coroutine_test(test_setup_failure());
+   run_coroutine_test(test_auth_failure());
+   run_coroutine_test(test_database_index());
+   run_coroutine_test(test_setup_empty());
+   run_coroutine_test(test_setup_hello());
+   run_coroutine_test(test_setup_no_hello());
+   run_coroutine_test(test_setup_failure());
 
    return boost::report_errors();
 }
