@@ -9,7 +9,6 @@
 #ifndef BOOST_REDIS_CONNECT_FSM_HPP
 #define BOOST_REDIS_CONNECT_FSM_HPP
 
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/corosio/endpoint.hpp>
 #include <boost/corosio/resolver_results.hpp>
 #include <boost/system/error_code.hpp>

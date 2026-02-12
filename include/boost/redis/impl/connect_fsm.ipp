@@ -11,7 +11,6 @@
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/assert.hpp>
 #include <boost/corosio/resolver_results.hpp>
 

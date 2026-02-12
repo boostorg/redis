@@ -21,7 +21,7 @@
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
-#include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
+// #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
 #include <boost/system/error_code.hpp>
 
 namespace boost::redis::detail {
