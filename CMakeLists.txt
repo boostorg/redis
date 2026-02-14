@@ -78,6 +78,11 @@ if (BOOST_REDIS_MAIN_PROJECT)
     json
     endian
     compat
+    url
+    filesystem
+    scope
+    capy
+    corosio
   )
 
   foreach(dep IN LISTS deps)
@@ -90,6 +95,8 @@ if (BOOST_REDIS_MAIN_PROJECT)
     INTERFACE
       Boost::system
       Boost::asio
+      Boost::capy
+      Boost::corosio
       Threads::Threads
       OpenSSL::Crypto
       OpenSSL::SSL
@@ -118,6 +125,9 @@ else()
       Boost::mp11
       Boost::system
       Boost::throw_exception
+      Boost::capy
+      Boost::corosio
+      boost_corosio_openssl
       Threads::Threads
       OpenSSL::Crypto
       OpenSSL::SSL
@@ -130,7 +140,7 @@ if (BOOST_REDIS_MAIN_PROJECT)
 endif()
 
 # Most tests require a running Redis server, so we only run them if we're the main project
-if(BOOST_REDIS_MAIN_PROJECT AND BUILD_TESTING)
+# if(BOOST_REDIS_MAIN_PROJECT AND BUILD_TESTING)
   # Tests and common utilities
   add_subdirectory(test)
 
@@ -139,4 +149,4 @@ if(BOOST_REDIS_MAIN_PROJECT AND BUILD_TESTING)
 
   # Examples
   add_subdirectory(example)
-endif()
+# endif()

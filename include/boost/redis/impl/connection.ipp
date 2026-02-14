@@ -41,7 +41,7 @@ capy::io_task<Types...> cancel_at(
    if (winner_index == 0u)
       co_return std::get<0>(std::move(result));
    else
-      co_return {make_error_code(capy::error::canceled)};
+      co_return {capy::error::canceled};
 }
 
 template <class... Types>

@@ -29,7 +29,7 @@ macro(make_test TEST_NAME)
     Boost::unit_test_framework
   )
   target_compile_definitions(${EXE_NAME} PRIVATE BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
-  add_test(${EXE_NAME} ${EXE_NAME})
+  add_test(NAME ${EXE_NAME} COMMAND ${EXE_NAME})
 endmacro()
 
 # Unit tests
