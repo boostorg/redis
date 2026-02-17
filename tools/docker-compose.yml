@@ -16,7 +16,7 @@ services:
               --unixsocket /tmp/redis-socks/redis.sock \
               --unixsocketperm 777'
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
       - /tmp/redis-socks:/tmp/redis-socks
 
   redis-replica-1:
@@ -36,7 +36,7 @@ services:
         "--tls-auth-clients", "no",
       ]
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
 
 
   redis-replica-2:
@@ -56,7 +56,7 @@ services:
         "--tls-auth-clients", "no",
       ]
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
 
 
   sentinel-1:
@@ -80,7 +80,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
 
 
   sentinel-2:
@@ -104,7 +104,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
 
   sentinel-3:
     container_name: sentinel-3
@@ -127,7 +127,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - /tmp/boost-redis-tls:/tls
+      - /opt/ci-tls:/tls
 
 
   builder:
@@ -137,5 +137,5 @@ services:
     tty: true
     volumes:
       - ../:/boost-redis
-      - /tmp/boost-redis-tls:/tmp/boost-redis-tls
+      - /opt/ci-tls:/opt/ci-tls
       - /tmp/redis-socks:/tmp/redis-socks

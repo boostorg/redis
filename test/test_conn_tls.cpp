@@ -33,7 +33,7 @@ namespace {
 // Should be in /tmp/
 std::string load_ca_certificate()
 {
-   auto ca_path = safe_getenv("BOOST_REDIS_CA_PATH", "/tmp/boost-redis-tls/ca.crt");
+   auto ca_path = safe_getenv("BOOST_REDIS_CA_PATH", "/opt/ci-tls/ca.crt");
    std::ifstream f(ca_path);
    if (!f) {
       throw boost::system::system_error(
@@ -45,7 +45,7 @@ std::string load_ca_certificate()
    return std::string(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
 }
 
-static config make_tls_config()
+config make_tls_config()
 {
    config cfg;
    cfg.use_ssl = true;
