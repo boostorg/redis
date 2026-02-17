@@ -7,9 +7,15 @@
 #
 
 # Generates the ca and certificates used for CI testing.
-# Run this in the directory where you want the certificates to be generated.
 
 set -e
+
+out_dir=/tmp/boost-redis-tls/
+
+# Clean up results from previous runs
+rm -rf $out_dir
+mkdir $out_dir
+cd $out_dir
 
 # CA private key
 openssl genpkey -algorithm RSA -out ca.key -pkeyopt rsa_keygen_bits:2048

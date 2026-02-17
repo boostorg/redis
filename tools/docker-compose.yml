@@ -9,14 +9,14 @@ services:
               --replica-announce-ip localhost \
               --port 6379 \
               --tls-port 16379 \
-              --tls-cert-file /docker/tls/server.crt \
-              --tls-key-file /docker/tls/server.key \
-              --tls-ca-cert-file /docker/tls/ca.crt \
+              --tls-cert-file /tls/server.crt \
+              --tls-key-file /tls/server.key \
+              --tls-ca-cert-file /tls/ca.crt \
               --tls-auth-clients no \
               --unixsocket /tmp/redis-socks/redis.sock \
               --unixsocketperm 777'
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
       - /tmp/redis-socks:/tmp/redis-socks
 
   redis-replica-1:
@@ -30,13 +30,13 @@ services:
         "--replicaof", "localhost", "6379",
         "--port", "6380",
         "--tls-port", "16380",
-        "--tls-cert-file", "/docker/tls/server.crt",
-        "--tls-key-file", "/docker/tls/server.key",
-        "--tls-ca-cert-file", "/docker/tls/ca.crt",
+        "--tls-cert-file", "/tls/server.crt",
+        "--tls-key-file", "/tls/server.key",
+        "--tls-ca-cert-file", "/tls/ca.crt",
         "--tls-auth-clients", "no",
       ]
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
 
 
   redis-replica-2:
@@ -50,13 +50,13 @@ services:
         "--replicaof", "localhost", "6379",
         "--port", "6381",
         "--tls-port", "16381",
-        "--tls-cert-file", "/docker/tls/server.crt",
-        "--tls-key-file", "/docker/tls/server.key",
-        "--tls-ca-cert-file", "/docker/tls/ca.crt",
+        "--tls-cert-file", "/tls/server.crt",
+        "--tls-key-file", "/tls/server.key",
+        "--tls-ca-cert-file", "/tls/ca.crt",
         "--tls-auth-clients", "no",
       ]
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
 
 
   sentinel-1:
@@ -67,9 +67,9 @@ services:
       sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
         port 26379
         tls-port 36379
-        tls-cert-file /docker/tls/server.crt
-        tls-key-file /docker/tls/server.key
-        tls-ca-cert-file /docker/tls/ca.crt
+        tls-cert-file /tls/server.crt
+        tls-key-file /tls/server.key
+        tls-ca-cert-file /tls/ca.crt
         tls-auth-clients no
         sentinel resolve-hostnames yes
         sentinel announce-hostnames yes
@@ -80,7 +80,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
 
 
   sentinel-2:
@@ -91,9 +91,9 @@ services:
       sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
         port 26380
         tls-port 36380
-        tls-cert-file /docker/tls/server.crt
-        tls-key-file /docker/tls/server.key
-        tls-ca-cert-file /docker/tls/ca.crt
+        tls-cert-file /tls/server.crt
+        tls-key-file /tls/server.key
+        tls-ca-cert-file /tls/ca.crt
         tls-auth-clients no
         sentinel resolve-hostnames yes
         sentinel announce-hostnames yes
@@ -104,7 +104,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
 
   sentinel-3:
     container_name: sentinel-3
@@ -114,9 +114,9 @@ services:
       sh -c 'cat << EOF > /etc/sentinel.conf && redis-sentinel /etc/sentinel.conf
         port 26381
         tls-port 36381
-        tls-cert-file /docker/tls/server.crt
-        tls-key-file /docker/tls/server.key
-        tls-ca-cert-file /docker/tls/ca.crt
+        tls-cert-file /tls/server.crt
+        tls-key-file /tls/server.key
+        tls-ca-cert-file /tls/ca.crt
         tls-auth-clients no
         sentinel resolve-hostnames yes
         sentinel announce-hostnames yes
@@ -127,7 +127,7 @@ services:
         sentinel parallel-syncs mymaster 1
       EOF'
     volumes:
-      - ./docker:/docker
+      - /tmp/boost-redis-tls:/tls
 
 
   builder:
@@ -137,4 +137,5 @@ services:
     tty: true
     volumes:
       - ../:/boost-redis
+      - /tmp/boost-redis-tls:/tmp/boost-redis-tls
       - /tmp/redis-socks:/tmp/redis-socks
