@@ -235,8 +235,6 @@ jobs:
     
     - name: Generate TLS certificates
       run: |
-        mkdir /opt/ci-tls
-        cd /opt/ci-tls
         ./tools/gen-certificates.sh
     
     - name: Set up the required containers
