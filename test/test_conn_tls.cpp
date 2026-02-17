@@ -33,13 +33,13 @@ namespace {
 // Should be in /tmp/
 std::string load_ca_certificate()
 {
-   constexpr const char* ca_path = "/tmp/boost-redis-tls/ca.crt";
+   auto ca_path = safe_getenv("BOOST_REDIS_CA_PATH", "/tmp/boost-redis-tls/ca.crt");
    std::ifstream f(ca_path);
    if (!f) {
       throw boost::system::system_error(
          errno,
          boost::system::system_category(),
-         "Failed to open CA certificate file");
+         "Failed to open CA certificate file '" + ca_path + "'");
    }
 
    return std::string(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
