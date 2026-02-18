@@ -37,7 +37,7 @@ void run(
    conn->async_run(cfg, run_callback{conn, op, ec});
 }
 
-static std::string safe_getenv(const char* name, const char* default_value)
+std::string safe_getenv(const char* name, const char* default_value)
 {
    // MSVC doesn't like getenv
 #ifdef BOOST_MSVC
