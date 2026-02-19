@@ -120,11 +120,57 @@ void test_pmessage_empty_fields()
 
 // --- Message skipping (valid, expected messages we don't care about) ---
 
-// Pushes in RESP2 used to be arrays. We don't support these
+// Anything that is not a RESP3 push is skipped.
+// Concretely, pushes in RESP2 used to be arrays. We don't support these
 void test_skip_resp2_push()
 {
    auto nodes = tree_from_resp3({
       "*3\r\n$7\r\nmessage\r\n$5\r\nfirst\r\n$5\r\nValue\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Might happen if a SUBSCRIBE call fails
+void test_skip_simple_error()
+{
+   auto nodes = tree_from_resp3({
+      "-ERR foo\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Might happen when using MONITOR
+void test_skip_simple_string()
+{
+   auto nodes = tree_from_resp3({
+      "+MONITOR output\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Edge case: other RESP3 types are skipped
+void test_skip_other_message_type()
+{
+   auto nodes = tree_from_resp3({
+      "%1\r\n$3\r\nkey\r\n$5\r\nvalue\r\n",
       ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
    });
    push_parser p{nodes};
@@ -157,6 +203,9 @@ int main()
    test_pmessage_empty_fields();
 
    test_skip_resp2_push();
+   test_skip_simple_error();
+   test_skip_simple_string();
+   test_skip_other_message_type();
 
    test_empty();
 
