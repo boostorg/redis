@@ -7,7 +7,6 @@
 //
 
 #include <boost/redis/pubsub_messages.hpp>
-#include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/type.hpp>
 
 #include <algorithm>
@@ -105,17 +104,14 @@ inline bool try_parse_pubsub_message(
 
 }  // namespace detail
 
-void pubsub_messages::iterator::advance()
+void pubsub_generator::advance() noexcept
 {
-   while (current_) {
-      // If we found a message, we're done
-      if (detail::try_parse_pubsub_message(current_, end_, msg_))
+   while (current_ != end_) {
+      if (detail::try_parse_pubsub_message(current_, end_, cached_)) {
          return;
-
-      // If we just reached the end without a valid message, the range is exhausted
-      if (current_ == end_)
-         current_ = nullptr;
+      }
    }
+   done_ = true;
 }
 
 }  // namespace boost::redis

@@ -13,6 +13,7 @@
 
 #include <boost/core/span.hpp>
 
+#include <iterator>
 #include <string_view>
 
 namespace boost::redis {
@@ -29,98 +30,93 @@ struct pubsub_message {
    std::string_view payload;
 };
 
-/// A range of pubsub messages parsed from RESP3 nodes.
+/// Parses pubsub messages from a sequence of RESP3 nodes.
 ///
-/// This class provides a range-based interface for iterating over pubsub messages
-/// stored in a container of RESP3 nodes (e.g., a @ref resp3::flat_tree).
-/// Non-pubsub messages (like subscribe confirmations) are automatically skipped.
+/// Non-pubsub messages (e.g. subscribe confirmations) are skipped.
+/// The current message is cached; use advance(), done(), and current(),
+/// or the range interface. The generator must remain alive for the duration of iteration.
 ///
-/// @par Example
+/// @par Example (advance / done / current)
 /// @code
-/// resp3::flat_tree tree;
-/// // ... populate tree ...
-/// for (const auto& msg : pubsub_messages(tree)) {
+/// pubsub_generator gen(tree);
+/// while (!gen.done()) {
+///    std::cout << "Channel: " << gen.current().channel << ", Payload: " << gen.current().payload << "\n";
+///    gen.advance();
+/// }
+/// @endcode
+///
+/// @par Example (range)
+/// @code
+/// pubsub_generator gen(tree);
+/// for (const pubsub_message& msg : gen) {
 ///    std::cout << "Channel: " << msg.channel << ", Payload: " << msg.payload << "\n";
 /// }
 /// @endcode
-class pubsub_messages {
-   span<const resp3::node_view> nodes_;
+class pubsub_generator {
+   const resp3::node_view* current_{};
+   const resp3::node_view* end_{};
+   pubsub_message cached_{};
+   bool done_{false};
 
 public:
-   /// The iterator type.
-   /// Forward iterator for parsing pubsub messages from a range of RESP3 nodes.
    class iterator {
-      const resp3::node_view* current_{};
-      const resp3::node_view* end_{};
-      pubsub_message msg_{};
+      pubsub_generator* gen_{};
 
-      friend class pubsub_messages;
+      friend class pubsub_generator;
 
-      void advance();
-
-      iterator(const resp3::node_view* first, const resp3::node_view* last) noexcept
-      : current_{first}
-      , end_{last}
-      {
-         advance();
-      }
+      explicit iterator(pubsub_generator* gen) noexcept
+      : gen_{gen}
+      { }
 
    public:
       using value_type = pubsub_message;
       using difference_type = std::ptrdiff_t;
-      using pointer = pubsub_message;
-      using reference = pubsub_message;
-      using iterator_category = std::forward_iterator_tag;
+      using reference = pubsub_message const&;
+      using pointer = pubsub_message const*;
+      using iterator_category = std::input_iterator_tag;
 
-      /// Constructs an end iterator.
       iterator() = default;
 
-      /// Returns a reference to the current pubsub message.
-      reference operator*() const noexcept { return msg_; }
+      reference operator*() const noexcept { return gen_->current(); }
+      pointer operator->() const noexcept { return &gen_->current(); }
 
-      pointer operator->() const noexcept { return msg_; }
-
-      /// Advances to the next pubsub message.
       iterator& operator++() noexcept
       {
-         advance();
+         BOOST_ASSERT(gen_);
+         gen_->advance();
+         if (gen_->done())
+            gen_ = nullptr;
          return *this;
       }
 
-      /// Advances to the next pubsub message (postfix).
-      iterator operator++(int) noexcept
+      void operator++(int) noexcept { ++*this; }
+
+      friend bool operator==(const iterator& a, const iterator& b) noexcept
       {
-         auto tmp = *this;
-         ++*this;
-         return tmp;
+         return a.gen_ == b.gen_;
       }
 
-      /// Compares two iterators for equality.
-      friend bool operator==(const iterator& lhs, const iterator& rhs) noexcept
-      {
-         return lhs.current_ == rhs.current_;
-      }
-
-      /// Compares two iterators for inequality.
-      friend bool operator!=(const iterator& lhs, const iterator& rhs) noexcept
-      {
-         return !(lhs == rhs);
-      }
+      friend bool operator!=(const iterator& a, const iterator& b) noexcept { return !(a == b); }
    };
 
-   /// Constructs a range from a span of nodes.
-   explicit pubsub_messages(span<const resp3::node_view> nodes) noexcept
-   : nodes_{nodes}
-   { }
-
-   /// Returns an iterator to the first pubsub message.
-   iterator begin() const noexcept
+   explicit pubsub_generator(span<const resp3::node_view> nodes) noexcept
+   : current_{nodes.data()}
+   , end_{nodes.data() + nodes.size()}
    {
-      return iterator(nodes_.data(), nodes_.data() + nodes_.size());
+      advance();
    }
 
-   /// Returns an iterator past the last pubsub message.
-   iterator end() const noexcept { return iterator(); }
+   /// Advances to the next pubsub message (or to done if none left).
+   void advance() noexcept;
+
+   /// True when there is no current message (before first or after last).
+   bool done() const noexcept { return done_; }
+
+   /// Current message. Undefined if done().
+   pubsub_message const& current() const noexcept { return cached_; }
+
+   iterator begin() noexcept { return iterator(this); }
+   iterator end() noexcept { return iterator(); }
 };
 
 }  // namespace boost::redis

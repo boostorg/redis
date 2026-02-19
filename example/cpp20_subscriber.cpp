@@ -24,7 +24,7 @@ using boost::redis::request;
 using boost::redis::generic_flat_response;
 using boost::redis::config;
 using boost::redis::connection;
-using boost::redis::pubsub_messages;
+using boost::redis::pubsub_generator;
 using boost::redis::pubsub_message;
 using boost::system::error_code;
 using asio::signal_set;
@@ -75,7 +75,7 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (pubsub_message elem : pubsub_messages{resp.value()}) {
+      for (pubsub_message const& elem : pubsub_generator(resp.value())) {
          std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
                    << "\n";
       }
