@@ -181,6 +181,69 @@ void test_skip_other_message_type()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
+// The push first field is not 'message' or 'pmessage' (e.g. subscribe confirmations)
+void test_skip_subscribe_confirmations()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$9\r\nsubscribe\r\n$6\r\nmychan\r\n:1\r\n",
+      ">3\r\n$11\r\nunsubscribe\r\n$6\r\nmychan\r\n:1\r\n",
+      ">3\r\n$10\r\npsubscribe\r\n$5\r\np*tt*\r\n:1\r\n",
+      ">3\r\n$12\r\npunsubscribe\r\n$5\r\np*tt*\r\n:1\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Message type string, but with an unknown value (not 'message' or 'pmessage')
+void test_skip_unknown_message_type()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$7\r\nunknown\r\n$4\r\nchan\r\n$4\r\nbody\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Message type is an empty string
+void test_skip_empty_message_type()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$0\r\n\r\n$4\r\nchan\r\n$4\r\nbody\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Message type is not a string (e.g. array)
+void test_skip_non_string_message_type()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n$5\r\nworld\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
 // --- Edge cases ---
 void test_empty()
 {
@@ -206,6 +269,10 @@ int main()
    test_skip_simple_error();
    test_skip_simple_string();
    test_skip_other_message_type();
+   test_skip_subscribe_confirmations();
+   test_skip_unknown_message_type();
+   test_skip_empty_message_type();
+   test_skip_non_string_message_type();
 
    test_empty();
 
