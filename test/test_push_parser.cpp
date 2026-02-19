@@ -79,7 +79,7 @@ void test_one_pmessage()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-void test_messages_pmessages()
+void test_mixed_valid()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$7\r\nmessage\r\n$3\r\nch1\r\n$4\r\nmsg1\r\n",
@@ -390,6 +390,49 @@ void test_skip_pmessage_payload_not_string()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
+// --- Mixes of valid and skipped messages ---
+void test_only_skipped()
+{
+   auto nodes = tree_from_resp3({
+      "+foo\r\n",
+   });
+   push_parser p{nodes};
+   std::vector<push_view> expected;
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), expected.begin(), expected.end());
+}
+
+void test_valid_skipped()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      "-ERR foo\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_valid_skipped_mix()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$7\r\nmessage\r\n$3\r\nch1\r\n$4\r\nmsg1\r\n",
+      "+MONITOR\r\n",
+      ">3\r\n$9\r\nsubscribe\r\n$4\r\nchan\r\n:1\r\n",
+      ">3\r\n$7\r\nmessage\r\n$3\r\nch2\r\n$4\r\nmsg2\r\n",
+      ">3\r\n$7\r\nmessage\r\n$3\r\nch3\r\n$4\r\nmsg3\r\n",
+      "%1\r\n$3\r\nkey\r\n$5\r\nvalue\r\n",
+   });
+   push_parser p{nodes};
+   const push_view expected[] = {
+      {"ch1", std::nullopt, "msg1"},
+      {"ch2", std::nullopt, "msg2"},
+      {"ch3", std::nullopt, "msg3"},
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
 // --- Edge cases ---
 void test_empty()
 {
@@ -407,7 +450,7 @@ int main()
    test_one_message();
    test_several_messages();
    test_one_pmessage();
-   test_messages_pmessages();
+   test_mixed_valid();
    test_message_empty_fields();
    test_pmessage_empty_fields();
 
@@ -430,6 +473,10 @@ int main()
    test_skip_pmessage_channel_not_string();
    test_skip_message_payload_not_string();
    test_skip_pmessage_payload_not_string();
+
+   test_only_skipped();
+   test_valid_skipped();
+   test_valid_skipped_mix();
 
    test_empty();
 
