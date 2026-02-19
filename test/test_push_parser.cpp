@@ -122,7 +122,7 @@ void test_pmessage_empty_fields()
 
 // Anything that is not a RESP3 push is skipped.
 // Concretely, pushes in RESP2 used to be arrays. We don't support these
-void test_skip_resp2_push()
+void test_skip_type_array()
 {
    auto nodes = tree_from_resp3({
       "*3\r\n$7\r\nmessage\r\n$5\r\nfirst\r\n$5\r\nValue\r\n",
@@ -137,7 +137,7 @@ void test_skip_resp2_push()
 }
 
 // Might happen if a SUBSCRIBE call fails
-void test_skip_simple_error()
+void test_skip_type_simple_error()
 {
    auto nodes = tree_from_resp3({
       "-ERR foo\r\n",
@@ -152,7 +152,7 @@ void test_skip_simple_error()
 }
 
 // Might happen when using MONITOR
-void test_skip_simple_string()
+void test_skip_type_simple_string()
 {
    auto nodes = tree_from_resp3({
       "+MONITOR output\r\n",
@@ -167,7 +167,7 @@ void test_skip_simple_string()
 }
 
 // Edge case: other RESP3 types are skipped
-void test_skip_other_message_type()
+void test_skip_type_other()
 {
    auto nodes = tree_from_resp3({
       "%1\r\n$3\r\nkey\r\n$5\r\nvalue\r\n",
@@ -182,7 +182,7 @@ void test_skip_other_message_type()
 }
 
 // The push first field is not 'message' or 'pmessage' (e.g. subscribe confirmations)
-void test_skip_subscribe_confirmations()
+void test_skip_msgtype_subscribe_confirmations()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$9\r\nsubscribe\r\n$6\r\nmychan\r\n:1\r\n",
@@ -200,7 +200,7 @@ void test_skip_subscribe_confirmations()
 }
 
 // Message type string, but with an unknown value (not 'message' or 'pmessage')
-void test_skip_unknown_message_type()
+void test_skip_msgtype_unknown()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$7\r\nunknown\r\n$4\r\nchan\r\n$4\r\nbody\r\n",
@@ -215,7 +215,7 @@ void test_skip_unknown_message_type()
 }
 
 // Message type is an empty string
-void test_skip_empty_message_type()
+void test_skip_msgtype_empty()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$0\r\n\r\n$4\r\nchan\r\n$4\r\nbody\r\n",
@@ -230,7 +230,7 @@ void test_skip_empty_message_type()
 }
 
 // Message type is not a string (e.g. array)
-void test_skip_non_string_message_type()
+void test_skip_msgtype_not_string()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n$5\r\nworld\r\n",
@@ -244,87 +244,24 @@ void test_skip_non_string_message_type()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-// Push has type 'message'/'pmessage' but wrong push size
-void test_skip_message_size_1()
+// The message ends before the message type
+void test_skip_msgtype_eof()
 {
    auto nodes = tree_from_resp3({
-      ">1\r\n$7\r\nmessage\r\n",
+      ">0\r\n",  // end of message manifests as another message starting
       ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">0\r\n",  // end of message manifests as the end of the range
    });
    push_parser p{nodes};
+
    constexpr push_view expected[] = {
       {"second", std::nullopt, "Hello"}
    };
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-void test_skip_message_push_size_2()
-{
-   auto nodes = tree_from_resp3({
-      ">2\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n",
-      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
-   });
-   push_parser p{nodes};
-   constexpr push_view expected[] = {
-      {"second", std::nullopt, "Hello"}
-   };
-   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
-}
-
-void test_skip_message_push_size_4()
-{
-   auto nodes = tree_from_resp3({
-      ">4\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n$1\r\nx\r\n",
-      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
-   });
-   push_parser p{nodes};
-   constexpr push_view expected[] = {
-      {"second", std::nullopt, "Hello"}
-   };
-   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
-}
-
-void test_skip_pmessage_push_size_1()
-{
-   auto nodes = tree_from_resp3({
-      ">1\r\n$8\r\npmessage\r\n",
-      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
-   });
-   push_parser p{nodes};
-   constexpr push_view expected[] = {
-      {"second", std::nullopt, "Hello"}
-   };
-   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
-}
-
-void test_skip_pmessage_push_size_3()
-{
-   auto nodes = tree_from_resp3({
-      ">3\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n",
-      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
-   });
-   push_parser p{nodes};
-   constexpr push_view expected[] = {
-      {"second", std::nullopt, "Hello"}
-   };
-   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
-}
-
-void test_skip_pmessage_push_size_5()
-{
-   auto nodes = tree_from_resp3({
-      ">5\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n$4\r\nmsg2\r\n$1\r\nx\r\n",
-      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
-   });
-   push_parser p{nodes};
-   constexpr push_view expected[] = {
-      {"second", std::nullopt, "Hello"}
-   };
-   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
-}
-
-// Field (pattern/channel/payload) is not a string (e.g. array): push skipped
-void test_skip_pmessage_pattern_not_string()
+// Pattern is not a string
+void test_skip_pattern_not_string()
 {
    auto nodes = tree_from_resp3({
       ">4\r\n$8\r\npmessage\r\n*1\r\n$3\r\nfoo\r\n$6\r\nmychan\r\n$5\r\nHello\r\n",
@@ -337,7 +274,23 @@ void test_skip_pmessage_pattern_not_string()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-void test_skip_message_channel_not_string()
+// The message ends before the pattern field
+void test_skip_pattern_eof()
+{
+   auto nodes = tree_from_resp3({
+      ">1\r\n$8\r\npmessage\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">1\r\n$8\r\npmessage\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Channel not a string
+void test_skip_channel_not_string_message()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$7\r\nmessage\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n",
@@ -350,7 +303,7 @@ void test_skip_message_channel_not_string()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-void test_skip_pmessage_channel_not_string()
+void test_skip_channel_not_string_pmessage()
 {
    auto nodes = tree_from_resp3({
       ">4\r\n$8\r\npmessage\r\n$1\r\n*\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n",
@@ -363,8 +316,37 @@ void test_skip_pmessage_channel_not_string()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-// Payload is not a string (e.g. client-side caching invalidation: array of keys).
-void test_skip_message_payload_not_string()
+// Message ends before channel
+void test_skip_channel_eof_message()
+{
+   auto nodes = tree_from_resp3({
+      ">1\r\n$7\r\nmessage\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">1\r\n$7\r\nmessage\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_channel_eof_pmessage()
+{
+   auto nodes = tree_from_resp3({
+      ">2\r\n$8\r\npmessage\r\n$1\r\n*\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">2\r\n$8\r\npmessage\r\n$1\r\n*\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Payload not a string
+void test_skip_payload_not_string_message()
 {
    auto nodes = tree_from_resp3({
       ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n*1\r\n$3\r\nfoo\r\n",
@@ -377,10 +359,66 @@ void test_skip_message_payload_not_string()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
-void test_skip_pmessage_payload_not_string()
+void test_skip_payload_not_string_pmessage()
 {
    auto nodes = tree_from_resp3({
       ">4\r\n$8\r\npmessage\r\n$1\r\n*\r\n$6\r\nsecond\r\n*1\r\n$3\r\nfoo\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Message ends before payload
+void test_skip_payload_eof_pmessage()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">3\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_payload_eof_message()
+{
+   auto nodes = tree_from_resp3({
+      ">2\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+      ">2\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Message is longer than expected
+void test_skip_longer_message()
+{
+   auto nodes = tree_from_resp3({
+      ">4\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n$1\r\nx\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_longer_pmessage()
+{
+   auto nodes = tree_from_resp3({
+      ">5\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n$4\r\nmsg2\r\n$1\r\nx\r\n",
       ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
    });
    push_parser p{nodes};
@@ -454,25 +492,33 @@ int main()
    test_message_empty_fields();
    test_pmessage_empty_fields();
 
-   test_skip_resp2_push();
-   test_skip_simple_error();
-   test_skip_simple_string();
-   test_skip_other_message_type();
-   test_skip_subscribe_confirmations();
-   test_skip_unknown_message_type();
-   test_skip_empty_message_type();
-   test_skip_non_string_message_type();
-   test_skip_message_size_1();
-   test_skip_message_push_size_2();
-   test_skip_message_push_size_4();
-   test_skip_pmessage_push_size_1();
-   test_skip_pmessage_push_size_3();
-   test_skip_pmessage_push_size_5();
-   test_skip_pmessage_pattern_not_string();
-   test_skip_message_channel_not_string();
-   test_skip_pmessage_channel_not_string();
-   test_skip_message_payload_not_string();
-   test_skip_pmessage_payload_not_string();
+   test_skip_type_array();
+   test_skip_type_simple_error();
+   test_skip_type_simple_string();
+   test_skip_type_other();
+
+   test_skip_msgtype_subscribe_confirmations();
+   test_skip_msgtype_unknown();
+   test_skip_msgtype_empty();
+   test_skip_msgtype_not_string();
+   test_skip_msgtype_eof();
+
+   test_skip_pattern_not_string();
+   test_skip_pattern_eof();
+
+   test_skip_channel_not_string_message();
+   test_skip_channel_not_string_pmessage();
+   test_skip_channel_eof_message();
+   test_skip_channel_eof_pmessage();
+
+   test_skip_payload_not_string_message();
+   test_skip_payload_not_string_pmessage();
+   test_skip_payload_eof_message();
+   test_skip_payload_eof_pmessage();
+
+   test_skip_longer_message();
+   test_skip_longer_pmessage();
+   test_skip_longer_pmessage();
 
    test_only_skipped();
    test_valid_skipped();

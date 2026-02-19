@@ -40,7 +40,7 @@ inline bool try_parse_push_view(
       return false;
 
    // Root must be a push type
-   if (current->data_type != resp3::type::push) {
+   if (current->data_type != resp3::type::push || current->depth != 0u) {
       current = skip_current_message(current + 1, end);
       return false;
    }
