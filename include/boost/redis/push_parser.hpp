@@ -22,19 +22,23 @@ namespace boost::redis {
 /**
  * @brief A Pub/Sub message received from the server.
  *
- * Can represent messages from both regular subscriptions (`'message'`) and
+ * Can represent messages from both regular subscriptions (`message`) and
  * pattern subscriptions (`pmessage`) with string payloads.
  *
- * @par Object lifetimes.
+ * @par Object lifetimes
  * This object contains views pointing into external storage
- * (usually a @ref resp3::flat_tree object).
+ * (typically a @ref resp3::flat_tree).
  */
 struct push_view {
-   /// The channel where the message was published.
+   /// @brief The channel where the message was published.
    std::string_view channel;
 
-   /// The pattern that matched the channel (only for messages received through
-   /// pattern subscriptions, i.e. `pmessage` - `std::nullopt` otherwise).
+   /**
+    * @brief The pattern that matched the channel.
+    *
+    * Set only for messages received through pattern subscriptions (`pmessage`);
+    * @ref std::nullopt otherwise.
+    */
    std::optional<std::string_view> pattern;
 
    /// The message payload.
@@ -87,6 +91,15 @@ class push_parser {
    void advance() noexcept;
 
 public:
+   /**
+    * @brief Iterator over parsed Pub/Sub messages.
+    *
+    * Models `std::input_iterator`. Iterators are invalidated when the
+    * @ref push_parser they refer to is destroyed or when the underlying
+    * node range is modified.
+    *
+    * The exact iterator type is unspecified.
+    */
    class iterator {
       push_parser* gen_{};
 
@@ -127,6 +140,18 @@ public:
       friend bool operator!=(const iterator& a, const iterator& b) noexcept { return !(a == b); }
    };
 
+   /**
+    * @brief Constructs a parser over a range of RESP3 nodes.
+    *
+    * @par Object lifetimes
+    * No copy of `nodes` is made. The underlying `nodes` range
+    * must remain valid for the lifetime of this parser.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @param nodes A contiguous range of @ref resp3::node_view to parse.
+    */
    explicit push_parser(span<const resp3::node_view> nodes) noexcept
    : first_{nodes.data()}
    , last_{nodes.data() + nodes.size()}
@@ -134,7 +159,27 @@ public:
       advance();
    }
 
+   /**
+    * @brief Returns an iterator to the first parsed Pub/Sub message.
+    *
+    * If the node range contains no valid `message` or `pmessage` pushes,
+    * returns an iterator equal to @ref end.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns An iterator to the first @ref push_view, or past-the-end if none.
+    */
    iterator begin() noexcept { return done_ ? iterator() : iterator(this); }
+
+   /**
+    * @brief Returns a past-the-end iterator.
+    *
+    * @par Exception safety
+    * No-throw guarantee.
+    *
+    * @returns A past-the-end iterator for this parser.
+    */
    iterator end() noexcept { return iterator(); }
 };
 
