@@ -98,7 +98,7 @@ public:
       advance();
    }
 
-   iterator begin() noexcept { return iterator(this); }
+   iterator begin() noexcept { return done_ ? iterator() : iterator(this); }
    iterator end() noexcept { return iterator(); }
 };
 
