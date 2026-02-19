@@ -47,3 +47,5 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
 void create_user(std::string_view port, std::string_view username, std::string_view password);
 
 boost::redis::logger make_string_logger(std::string& to);
+
+std::string safe_getenv(const char* name, const char* default_value);

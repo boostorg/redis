@@ -141,7 +141,6 @@ sentinel_action sentinel_resolve_fsm::resume(
 
          update_sentinel_list(st.sentinels, idx_, resp.sentinels, st.cfg.sentinel.addresses);
 
-         st.sentinel_resp_nodes.clear();  // reduce memory consumption
          return system::error_code();
       }
 
