@@ -79,7 +79,7 @@ Summary of the steps:
   push flow control (see <<flow-control>>).
 * After completion, `resp` holds the raw RESP3 nodes for the received pushes
   (xref:reference:boost/redis/resp3/node_view.adoc[`resp3::node_view`]).
-  For Pub/Sub messages produced by `PUBLISH`, use (TODO: link) `push_parser`
+  For Pub/Sub messages produced by `PUBLISH`, use xref:reference:boost/redis/push_parser.adoc[`push_parser`]
   to iterate over them. Each parsed message exposes the channel, the payload, and, for
   pattern subscriptions (`PSUBSCRIBE`), the matched pattern.
 * Call `resp.value().clear()` to discard the current push data and make room for the
@@ -94,7 +94,8 @@ traffic. Boost.Redis relies on RESP3 to multiplex them on a single connection.
 
 == Dynamic Pub/Sub tracking
 
-When you execute a request built with (TODO: link) `request::subscribe` (or (TODO: link) `psubscribe`, (TODO: link) `unsubscribe`, (TODO: link) `punsubscribe`), the connection tracks it. After a reconnect, it
+When you execute a request built with xref:reference:boost/redis/request.adoc[`request::subscribe`]
+(or `psubscribe`, `unsubscribe`, `punsubscribe`), the connection tracks it. After a reconnect, it
 re-issues the subscribe commands to restore any subscriptions that were active before the reconnect.
 You can dynamically subscribe and unsubscribe to channels; tracking is fully dynamic.
 
@@ -110,14 +111,8 @@ The pending count is reset each time `async_receive2` completes. You must still 
 memory by calling `resp3::flat_tree::clear()` (or equivalent) on the response, as in
 the example.
 
-WARNING: Do not call (TODO: link) `async_exec` from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
+WARNING: Do not call xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`] from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
 
-
-WARNING: don't call basic_connection::async_exec from the receiver loop.
-this is a consequence of the described implementation.
-If you don't call async_receive2, reading messages may halt to create backpressure.
-If the response to your request is behind a lot of pushes, the connection
-may halt before reading the response, creating a deadlock.
 
 == Subscribe confirmations
 
