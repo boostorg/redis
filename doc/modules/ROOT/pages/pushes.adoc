@@ -8,11 +8,12 @@
 [#pushes]
 = Server pushes
 
-Redis servers can send a variety of pushes to the client. Boost.Redis has first-class support for these.
-This section is dedicated to this.
+Redis servers can send various push messages to the client. Boost.Redis supports these
+as first-class operations. This page describes how to receive and handle them.
 
-The most common is https://redis.io/docs/manual/pubsub/[Pubsub messages].
-This is how you use it:
+The most common case is
+https://redis.io/docs/latest/develop/pubsub/[Pub/Sub messages]
+triggered by `PUBLISH`. The following example shows a typical receiver:
 
 [source,cpp]
 ----
@@ -62,56 +63,55 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 }
 ----
 
-Key points here:
+Summary of the steps:
 
-* We use (TODO: link) basic_connection::set_receive_response before anything else.
-  This will make the connection store pushes into the passed object.
-  * No copies made - you're in charge of making the response object live enough time.
-* We then subscribe by creating a request with (TODO: link) request::subscribe.
-  It's enough to subscribe just once. If an I/O error happens and the connection
-  is re-established, an equivalent SUBSCRIBE command is issued.
-* We then loop forever.( tODO: link) basic_connection::will_reconnect()
-  will return true until the connection is cancelled.
-* We use (TODO: link) basic_connection::async_receive2(). This suspends the coroutine
-  until at least one push has arrived. As we will see later, this function also manages
-  push flow control.
-* At this point, `resp` has been populated with a bunch of RESP3 nodes representing our
-  push messages (TODO: link resp3::node_view). This is generic, but difficult to manage.
-  When dealing with PubSub messages caused by PUBLISH, we can use
-  (TODO: link) push_parser to extract them. Every message contains
-   * the channel it was sent to
-   * the payload
-   * if it was received through a pattern subscription (PSUBSCRIBE), the matched pattern.
-* Finally, we use `clear()` to remove all the push nodes, making room for new ones.
+* Call xref:reference:boost/redis/basic_connection.adoc[`connection::set_receive_response`]
+  before any other receive-related calls so that the connection stores incoming pushes in the
+  given object. The library does not copy the response; you must keep it alive for the
+  duration of the receive loop.
+* Build a request with xref:reference:boost/redis/request.adoc[`request::subscribe`]
+  (or `psubscribe`) and execute it. If the connection drops and is re-established,
+  an equivalent `SUBSCRIBE` is sent automatically.
+* Loop while xref:reference:boost/redis/basic_connection.adoc[`connection::will_reconnect`]
+  is true (i.e. until the connection is cancelled).
+* Call xref:reference:boost/redis/basic_connection.adoc[`connection::async_receive2`]
+  to wait until at least one push is available. This function also participates in
+  push flow control (see <<flow-control>>).
+* After completion, `resp` holds the raw RESP3 nodes for the received pushes
+  (xref:reference:boost/redis/resp3/node_view.adoc[`resp3::node_view`]).
+  For Pub/Sub messages produced by `PUBLISH`, use (TODO: link) `push_parser`
+  to iterate over them. Each parsed message exposes the channel, the payload, and, for
+  pattern subscriptions (`PSUBSCRIBE`), the matched pattern.
+* Call `resp.value().clear()` to discard the current push data and make room for the
+  next batch.
 
-WARNING: you should consume all push nodes WITHOUT SUSPENDING THE CURRENT COROUTINE
-(or otherwise returning to the event loop). See "when you need to suspend" (TODO: link)
-for more info.
+WARNING: Consume all push data *without suspending the current coroutine* (or otherwise re-entering
+the event loop). See <<suspending-the-receiver>> for how to handle cases where you must
+suspend.
 
-NOTE: it is OK to mix receiving pushes and regular request/response flow in a single connection.
-Boost.Redis takes advantage of the newer RESP3 protocol features to achieve this.
+NOTE: You can use the same connection for both pushes and normal request/response
+traffic. Boost.Redis relies on RESP3 to multiplex them on a single connection.
 
-== Dynamic PubSub tracking
+== Dynamic Pub/Sub tracking
 
-When executing a request populated with `request::subscribe`, you're opting into
-PubSub tracking. connection will remember which subscriptions you have active.
-If an error occurs, equivalent subscribe commands are issued.
+When you execute a request built with (TODO: link) `request::subscribe` (or (TODO: link) `psubscribe`, (TODO: link) `unsubscribe`, (TODO: link) `punsubscribe`), the connection tracks it. After a reconnect, it
+re-issues the subscribe commands to restore any subscriptions that were active before the reconnect.
+You can dynamically subscribe and unsubscribe to channels; tracking is fully dynamic.
 
-You can subscribe and unsubscribe at any given point in time.
-The tracker is dynamic.
-
-Use (TODO: LINK) request::{subscribe, unsubscribe, psubscribe, punsubscribe}.
-
+[#flow-control]
 == Flow control
 
-If your server is sending lots of pushes very fast, it may overwhelm the client.
-connections implement a form of flow control. If too many (TODO: check, I think it's 1024)
-messages are read and not consumed, the connection will stop reading messages.
-This creates backpressure at the TCP connection level.
+If the server sends pushes faster than the client consumes them, the connection applies
+flow control. After a certain number of pushes have been read and not yet consumed, it
+stops reading until the application drains the receive buffer. This creates backpressure
+at the TCP level.
 
-The count of pending messages is reset every time basic_connection::async_receive2
-completes. Note that you still need to clean the actual messages from memory
-by calling `flat_tree::clear()` as in the example.
+The pending count is reset each time `async_receive2` completes. You must still free
+memory by calling `resp3::flat_tree::clear()` (or equivalent) on the response, as in
+the example.
+
+WARNING: Do not call (TODO: link) `async_exec` from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
+
 
 WARNING: don't call basic_connection::async_exec from the receiver loop.
 this is a consequence of the described implementation.
@@ -119,74 +119,74 @@ If you don't call async_receive2, reading messages may halt to create backpressu
 If the response to your request is behind a lot of pushes, the connection
 may halt before reading the response, creating a deadlock.
 
-
 == Subscribe confirmations
 
-Every time you subscribe to a channel, Redis sends a push as a confirmation.
-These are stored in `resp` and cause `async_receive2` to complete,
-as regular pushes. If you intend to receive actual PubSub messages,
-these are not interesting for you, and are skipped by `push_parser`.
+Every time you subscribe to a channel, Redis sends a push as a confirmation. These confirmations
+are stored in your receive response and cause `async_receive2` to complete like any
+other push. `push_parser` skips these messages, since they don't contain application-level information.
 
-The effect is that *async_receive2 might complete, but the `push_parser`
-range might be empty* if only subscribe confirmations are present.
-Your code should be able to handle this situation.
+As a result, *`async_receive2` will complete while the `push_parser` range is empty*
+when only confirmations are received. Your code should handle an empty range correctly.
 
-In case you're interested in subscribe confirmations, see advanced scenarios.
+To work with subscribe confirmations or other push shapes, use the raw nodes in
+xref:reference:boost/redis/generic_flat_response.adoc[`generic_flat_response`]
+directly (see <<advanced-scenarios>>).
 
+[#suspending-the-receiver]
 == Suspending the receiver
 
-We've said you shouldn't suspend before consuming the entire push response.
-But what if you need to? For example, say you want to send a websocket
-message using the received pushes:
+You must not suspend the receiver coroutine before fully consuming the current push data. If you
+need to perform I/O with that data (e.g. send it over a WebSocket), first copy or
+serialize it without suspending, then clear the response, and only then perform the
+async operation.
 
-```
-// Wait for pushes (error checking omitted)
+For example, the following is incorrect:
+
+[source,cpp]
+----
 auto [ec] = co_await conn->async_receive2(asio::as_tuple);
-
-// DON'T DO THIS!!
+// DON'T DO THIS: more pushes may be read while the WebSocket send runs,
+// and they are discarded when you clear(), causing a race.
 co_await websocket.async_send(push_parser(resp.value()));
 resp.value().clear();
-```
+----
 
-Problem here: it is not async_receive2 who reads the pushes, but async_run.
-More pushes may be read while you're sending the websocket message.
-These pushes are then discarded when you `clear()` the response
-(race condition).
+Instead, copy or compose the message without I/O, then clear, then send:
 
-The proper way to handle this case is:
-
-```
-// Wait for pushes (error checking omitted)
+[source,cpp]
+----
 auto [ec] = co_await conn->async_receive2(asio::as_tuple);
 
-// Compose the websocket message. This is a function involving no I/O.
-// It copies the data, in the sense that msg doesn't point to resp anyhow
+// Compose the WebSocket message without any I/O (no suspension).
+// msg must not reference resp.
 auto msg = compose_websocket_message(push_parser(resp.value()));
 
-// Make room for more pushes
 resp.value().clear();
 
 // Now it's OK to suspend the coroutine
 co_await websocket.async_write(msg);
-```
+----
 
 == SUBSCRIBE errors
 
-The SUBSCRIBE command might error under some circumstances. For example, if ACL checks for the channel fail.
-Because of a protocol oddity, these errors might end up being parsed as pushes.
+`SUBSCRIBE` can fail (e.g. due to ACL rules). Because of how the protocol works, such
+errors may be delivered as push-like data. Using
+xref:reference:boost/redis/generic_flat_response.adoc[`generic_flat_response`]
+(an alias for `adapter::result<resp3::flat_tree>`, similar to `std::expected`) lets you detect them: check
+`resp.has_error()` and handle the error before iterating. See the example at the top
+of this page.
 
-We're using here `generic_flat_response`, which is an alias for `adapter::result<resp3::flat_tree>`
-(`result` is similar to `std::expected`). Using it handles these rare SUBSCRIBE errors.
-
-
+[#advanced-scenarios]
 == Advanced scenarios
 
-Pushes that don't fit the regular PubSub message format are skipped by `push_parser`.
-For example:
+`push_parser` only recognizes standard
+Pub/Sub `message` and `pmessage` pushes. Other push types are skipped, including:
 
-* Subscribe confirmations.
-* https://redis.io/docs/manual/client-side-caching/[Client-side caching] messages.
-* The output of the MONITOR command.
+* Subscribe/unsubscribe confirmations.
+* https://redis.io/docs/latest/develop/reference/client-side-caching/[Client-side caching]
+  invalidation messages.
+* Output of the `MONITOR` command.
 
-If you're in this situation, you can use the nodes in `generic_flat_response` directly
-(without `push_parser`). The overall receiver structure remains the same.
+If you need to handle these, work directly with the nodes in `generic_flat_response`
+instead of `push_parser`. The overall receiver pattern (set response, subscribe,
+loop with `async_receive2`, consume, clear) stays the same.
