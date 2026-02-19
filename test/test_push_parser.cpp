@@ -496,38 +496,52 @@ void test_range_interface()
    auto nodes = tree_from_resp3({
       ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
    });
-   push_parser p{nodes};
 
    // Iterator default construction
-   push_parser::iterator it;
-   BOOST_TEST(it == p.end());
+   {
+      push_parser p{nodes};
+      push_parser::iterator it;
+      BOOST_TEST(it == p.end());
+   }
 
    // Iterator comparison
-   BOOST_TEST(p.begin() == p.begin());
-   BOOST_TEST(p.begin() != p.end());
-   BOOST_TEST(p.end() == p.end());
+   {
+      push_parser p{nodes};
+      BOOST_TEST(p.begin() == p.begin());
+      BOOST_TEST(p.begin() != p.end());
+      BOOST_TEST(p.end() == p.end());
+   }
 
    // Iterator prefix increment
-   auto it2 = p.begin();
-   ++it2;
-   BOOST_TEST(it2 == p.end());
+   {
+      push_parser p{nodes};
+      auto it = p.begin();
+      ++it;
+      BOOST_TEST(it == p.end());
+   }
 
    // Iterator postfix increment
-   p = push_parser{nodes};
-   it2 = p.begin();
-   it2++;
-   BOOST_TEST(it2 == p.end());
+   {
+      push_parser p{nodes};
+      auto it = p.begin();
+      it++;
+      BOOST_TEST(it == p.end());
+   }
 
    // Iterator dereference
-   p = push_parser{nodes};
-   it2 = p.begin();
-   auto value = *it2;
-   BOOST_TEST_EQ(value.payload, "Hello");
+   {
+      push_parser p{nodes};
+      auto it = p.begin();
+      auto value = *it;
+      BOOST_TEST_EQ(value.payload, "Hello");
+   }
 
    // Iterator operator->
-   p = push_parser{nodes};
-   it2 = p.begin();
-   BOOST_TEST_EQ(it2->payload, "Hello");
+   {
+      push_parser p{nodes};
+      auto it = p.begin();
+      BOOST_TEST_EQ(it->payload, "Hello");
+   }
 }
 
 }  // namespace
