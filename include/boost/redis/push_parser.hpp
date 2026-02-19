@@ -19,29 +19,65 @@
 
 namespace boost::redis {
 
-/// A push message parsed from a RESP3 push (e.g. pubsub message/pmessage).
+/**
+ * @brief A Pub/Sub message received from the server.
+ *
+ * Can represent messages from both regular subscriptions (`'message'`) and
+ * pattern subscriptions (`pmessage`) with string payloads.
+ *
+ * @par Object lifetimes.
+ * This object contains views pointing into external storage
+ * (usually a @ref resp3::flat_tree object).
+ */
 struct push_view {
    /// The channel where the message was published.
    std::string_view channel;
 
-   /// The pattern that matched the channel (only for pmessage, std::nullopt otherwise).
+   /// The pattern that matched the channel (only for messages received through
+   /// pattern subscriptions, i.e. `pmessage` - `std::nullopt` otherwise).
    std::optional<std::string_view> pattern;
 
    /// The message payload.
    std::string_view payload;
 };
 
-/// Parses push messages from a sequence of RESP3 nodes.
-///
-/// Non-pubsub messages (e.g. subscribe confirmations) are skipped.
-/// The parser must remain alive for the duration of iteration.
-///
-/// @par Example
-/// @code
-/// for (const push_view& msg : push_parser(tree)) {
-///    std::cout << "Channel: " << msg.channel << ", Payload: " << msg.payload << "\n";
-/// }
-/// @endcode
+/**
+ * @brief A range that parses Pub/Sub messages from a sequence of RESP3 nodes.
+ *
+ * Given an input range of RESP3 nodes, this class attempts to parse them
+ * as Pub/Sub messages. Parsing occurs incrementally, while advancing the iterators.
+ *
+ * This type models `std::input_range`.
+ *
+ * This class handles pushes with type `message` and `pmessage` with string payloads.
+ * These are the messages containing the actual information in the usual Pub/Sub workflow.
+ * Any RESP3 message with a different shape will be skipped. In particular, the following
+ * message types are skipped:
+ *
+ *   @li Messages with type other than @ref resp3::type::push. This includes
+ *       the output of the `MONITOR` command and errors.
+ *   @li Subscribe and unsubscribe confirmation messages.
+ *       These happen every time a `SUBSCRIBE`, `UNSUBSCRIBE`, `PSUBSCRIBE` or `PUNSUBSCRIBE`
+ *       command is successfully executed, and don't carry application-level information.
+ *   @li Pushes with type `message` and `pmessage` with a payload type different to
+ *       @ref resp3::type::bulk_string. Client-side caching generates this kind of messages.
+ *
+ * If you need to handle any of these, use the raw RESP3 nodes rather than this class.
+ *
+ * @par Object lifetimes
+ * Iteration state is held by the parser. Iterators reference the parser.
+ * The parser must be kept alive for the duration of the iteration.
+ *
+ * No copies of the input range are made. The returned @ref push_view
+ * values are views.
+ *
+ * @par Example
+ * @code
+ * for (const push_view& msg : push_parser(tree)) {
+ *    std::cout << "Channel: " << msg.channel << ", Payload: " << msg.payload << "\n";
+ * }
+ * @endcode
+ */
 class push_parser {
    const resp3::node_view* first_{};
    const resp3::node_view* last_{};
