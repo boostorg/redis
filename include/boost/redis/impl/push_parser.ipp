@@ -10,6 +10,7 @@
 #include <boost/redis/resp3/type.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <string_view>
 
 namespace boost::redis {
@@ -73,7 +74,7 @@ inline bool try_parse_push_view(
       }
       msg.pattern = current->value;
    } else {
-      msg.pattern = {};
+      msg.pattern = std::nullopt;
    }
 
    // Channel

@@ -14,6 +14,7 @@
 #include <boost/core/span.hpp>
 
 #include <iterator>
+#include <optional>
 #include <string_view>
 
 namespace boost::redis {
@@ -23,8 +24,8 @@ struct push_view {
    /// The channel where the message was published.
    std::string_view channel;
 
-   /// The pattern that matched the channel (only for pmessage, empty otherwise).
-   std::string_view pattern;
+   /// The pattern that matched the channel (only for pmessage, std::nullopt otherwise).
+   std::optional<std::string_view> pattern;
 
    /// The message payload.
    std::string_view payload;

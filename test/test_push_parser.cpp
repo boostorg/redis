@@ -14,6 +14,7 @@
 #include "sansio_utils.hpp"
 
 #include <iterator>
+#include <optional>
 
 using namespace boost::redis;
 using detail::tree_from_resp3;
@@ -23,8 +24,10 @@ namespace boost::redis {
 
 std::ostream& operator<<(std::ostream& os, const push_view& v)
 {
-   return os << "push_view { .channel=" << v.channel << ", .pattern=" << v.pattern
-             << ", .payload=" << v.payload << " }";
+   os << "push_view { .channel=" << v.channel;
+   if (v.pattern)
+      os << ", .pattern=" << *v.pattern;
+   return os << ", .payload=" << v.payload << " }";
 }
 
 bool operator==(const push_view& lhs, const push_view& rhs) noexcept
@@ -42,10 +45,15 @@ void test_one_message()
    push_parser p{nodes};
 
    constexpr push_view expected[] = {
-      {"second", "", "Hello"}
+      {"second", std::nullopt, "Hello"}
    };
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
+
+// several messages
+// one pmessage
+// messages and pmessages mixed
+//
 
 }  // namespace
 
