@@ -40,6 +40,7 @@ bool operator==(const push_view& lhs, const push_view& rhs) noexcept
 
 namespace {
 
+// --- Only valid messages ---
 void test_one_message()
 {
    auto nodes = tree_from_resp3({">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n"});
@@ -117,6 +118,24 @@ void test_pmessage_empty_fields()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
+// --- Message skipping (valid, expected messages we don't care about) ---
+
+// Pushes in RESP2 used to be arrays. We don't support these
+void test_skip_resp2_push()
+{
+   auto nodes = tree_from_resp3({
+      "*3\r\n$7\r\nmessage\r\n$5\r\nfirst\r\n$5\r\nValue\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// --- Edge cases ---
 void test_empty()
 {
    auto nodes = tree_from_resp3({});
@@ -136,6 +155,9 @@ int main()
    test_messages_pmessages();
    test_message_empty_fields();
    test_pmessage_empty_fields();
+
+   test_skip_resp2_push();
+
    test_empty();
 
    return boost::report_errors();
