@@ -6,7 +6,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/pubsub_messages.hpp>
+#include <boost/redis/push_parser.hpp>
 #include <boost/redis/resp3/type.hpp>
 
 #include <algorithm>
@@ -27,13 +27,13 @@ inline const resp3::node_view* skip_current_message(
    });
 }
 
-// Attempts to parse a pubsub message starting at 'current'.
+// Attempts to parse a push message starting at 'current'.
 // If successful, populates 'msg' and returns true.
 // If not a valid pubsub message (message/pmessage), returns false.
-inline bool try_parse_pubsub_message(
+inline bool try_parse_push_view(
    const resp3::node_view*& current,
    const resp3::node_view* end,
-   pubsub_message& msg)
+   push_view& msg)
 {
    if (current == end)
       return false;
@@ -104,10 +104,10 @@ inline bool try_parse_pubsub_message(
 
 }  // namespace detail
 
-void pubsub_generator::advance() noexcept
+void push_parser::advance() noexcept
 {
    while (first_ != last_) {
-      if (detail::try_parse_pubsub_message(first_, last_, current_)) {
+      if (detail::try_parse_push_view(first_, last_, current_)) {
          return;
       }
    }

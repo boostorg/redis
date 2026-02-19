@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef BOOST_REDIS_PUBSUB_MESSAGES_HPP
-#define BOOST_REDIS_PUBSUB_MESSAGES_HPP
+#ifndef BOOST_REDIS_PUSH_PARSER_HPP
+#define BOOST_REDIS_PUSH_PARSER_HPP
 
 #include <boost/redis/resp3/node.hpp>
 
@@ -18,8 +18,8 @@
 
 namespace boost::redis {
 
-/// A pubsub message parsed from a RESP3 push.
-struct pubsub_message {
+/// A push message parsed from a RESP3 push (e.g. pubsub message/pmessage).
+struct push_view {
    /// The channel where the message was published.
    std::string_view channel;
 
@@ -30,40 +30,40 @@ struct pubsub_message {
    std::string_view payload;
 };
 
-/// Parses pubsub messages from a sequence of RESP3 nodes.
+/// Parses push messages from a sequence of RESP3 nodes.
 ///
 /// Non-pubsub messages (e.g. subscribe confirmations) are skipped.
-/// The generator must remain alive for the duration of iteration.
+/// The parser must remain alive for the duration of iteration.
 ///
 /// @par Example
 /// @code
-/// for (const pubsub_message& msg : pubsub_generator(tree)) {
+/// for (const push_view& msg : push_parser(tree)) {
 ///    std::cout << "Channel: " << msg.channel << ", Payload: " << msg.payload << "\n";
 /// }
 /// @endcode
-class pubsub_generator {
+class push_parser {
    const resp3::node_view* first_{};
    const resp3::node_view* last_{};
-   pubsub_message current_{};
+   push_view current_{};
    bool done_{false};
 
    void advance() noexcept;
 
 public:
    class iterator {
-      pubsub_generator* gen_{};
+      push_parser* gen_{};
 
-      friend class pubsub_generator;
+      friend class push_parser;
 
-      explicit iterator(pubsub_generator* gen) noexcept
+      explicit iterator(push_parser* gen) noexcept
       : gen_{gen}
       { }
 
    public:
-      using value_type = pubsub_message;
+      using value_type = push_view;
       using difference_type = std::ptrdiff_t;
-      using reference = pubsub_message const&;
-      using pointer = pubsub_message const*;
+      using reference = push_view const&;
+      using pointer = push_view const*;
       using iterator_category = std::input_iterator_tag;
 
       iterator() = default;
@@ -90,7 +90,7 @@ public:
       friend bool operator!=(const iterator& a, const iterator& b) noexcept { return !(a == b); }
    };
 
-   explicit pubsub_generator(span<const resp3::node_view> nodes) noexcept
+   explicit push_parser(span<const resp3::node_view> nodes) noexcept
    : first_{nodes.data()}
    , last_{nodes.data() + nodes.size()}
    {
