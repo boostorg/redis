@@ -244,6 +244,85 @@ void test_skip_non_string_message_type()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
+// Push has type 'message'/'pmessage' but wrong push size
+void test_skip_message_size_1()
+{
+   auto nodes = tree_from_resp3({
+      ">1\r\n$7\r\nmessage\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_message_push_size_2()
+{
+   auto nodes = tree_from_resp3({
+      ">2\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_message_push_size_4()
+{
+   auto nodes = tree_from_resp3({
+      ">4\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n$1\r\nx\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_pmessage_push_size_1()
+{
+   auto nodes = tree_from_resp3({
+      ">1\r\n$8\r\npmessage\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_pmessage_push_size_3()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_pmessage_push_size_5()
+{
+   auto nodes = tree_from_resp3({
+      ">5\r\n$8\r\npmessage\r\n$1\r\n*\r\n$3\r\nch2\r\n$4\r\nmsg2\r\n$1\r\nx\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
 // --- Edge cases ---
 void test_empty()
 {
@@ -273,6 +352,12 @@ int main()
    test_skip_unknown_message_type();
    test_skip_empty_message_type();
    test_skip_non_string_message_type();
+   test_skip_message_size_1();
+   test_skip_message_push_size_2();
+   test_skip_message_push_size_4();
+   test_skip_pmessage_push_size_1();
+   test_skip_pmessage_push_size_3();
+   test_skip_pmessage_push_size_5();
 
    test_empty();
 
