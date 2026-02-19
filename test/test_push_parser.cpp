@@ -39,12 +39,11 @@ namespace {
 void test_one_message()
 {
    auto nodes = tree_from_resp3({">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n"});
+   push_parser p{nodes};
 
    constexpr push_view expected[] = {
       {"second", "", "Hello"}
    };
-   push_parser p{nodes};
-
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
