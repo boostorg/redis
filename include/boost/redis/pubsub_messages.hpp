@@ -33,30 +33,21 @@ struct pubsub_message {
 /// Parses pubsub messages from a sequence of RESP3 nodes.
 ///
 /// Non-pubsub messages (e.g. subscribe confirmations) are skipped.
-/// The current message is cached; use advance(), done(), and current(),
-/// or the range interface. The generator must remain alive for the duration of iteration.
+/// The generator must remain alive for the duration of iteration.
 ///
-/// @par Example (advance / done / current)
+/// @par Example
 /// @code
-/// pubsub_generator gen(tree);
-/// while (!gen.done()) {
-///    std::cout << "Channel: " << gen.current().channel << ", Payload: " << gen.current().payload << "\n";
-///    gen.advance();
-/// }
-/// @endcode
-///
-/// @par Example (range)
-/// @code
-/// pubsub_generator gen(tree);
-/// for (const pubsub_message& msg : gen) {
+/// for (const pubsub_message& msg : pubsub_generator(tree)) {
 ///    std::cout << "Channel: " << msg.channel << ", Payload: " << msg.payload << "\n";
 /// }
 /// @endcode
 class pubsub_generator {
-   const resp3::node_view* current_{};
-   const resp3::node_view* end_{};
-   pubsub_message cached_{};
+   const resp3::node_view* first_{};
+   const resp3::node_view* last_{};
+   pubsub_message current_{};
    bool done_{false};
+
+   void advance() noexcept;
 
 public:
    class iterator {
@@ -77,14 +68,14 @@ public:
 
       iterator() = default;
 
-      reference operator*() const noexcept { return gen_->current(); }
-      pointer operator->() const noexcept { return &gen_->current(); }
+      reference operator*() const noexcept { return gen_->current_; }
+      pointer operator->() const noexcept { return &gen_->current_; }
 
       iterator& operator++() noexcept
       {
          BOOST_ASSERT(gen_);
          gen_->advance();
-         if (gen_->done())
+         if (gen_->done_)
             gen_ = nullptr;
          return *this;
       }
@@ -100,20 +91,11 @@ public:
    };
 
    explicit pubsub_generator(span<const resp3::node_view> nodes) noexcept
-   : current_{nodes.data()}
-   , end_{nodes.data() + nodes.size()}
+   : first_{nodes.data()}
+   , last_{nodes.data() + nodes.size()}
    {
       advance();
    }
-
-   /// Advances to the next pubsub message (or to done if none left).
-   void advance() noexcept;
-
-   /// True when there is no current message (before first or after last).
-   bool done() const noexcept { return done_; }
-
-   /// Current message. Undefined if done().
-   pubsub_message const& current() const noexcept { return cached_; }
 
    iterator begin() noexcept { return iterator(this); }
    iterator end() noexcept { return iterator(); }

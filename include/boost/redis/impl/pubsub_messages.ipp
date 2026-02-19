@@ -106,8 +106,8 @@ inline bool try_parse_pubsub_message(
 
 void pubsub_generator::advance() noexcept
 {
-   while (current_ != end_) {
-      if (detail::try_parse_pubsub_message(current_, end_, cached_)) {
+   while (first_ != last_) {
+      if (detail::try_parse_pubsub_message(first_, last_, current_)) {
          return;
       }
    }
