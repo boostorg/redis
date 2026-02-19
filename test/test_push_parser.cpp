@@ -323,6 +323,73 @@ void test_skip_pmessage_push_size_5()
    BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
 }
 
+// Field (pattern/channel/payload) is not a string (e.g. array): push skipped
+void test_skip_pmessage_pattern_not_string()
+{
+   auto nodes = tree_from_resp3({
+      ">4\r\n$8\r\npmessage\r\n*1\r\n$3\r\nfoo\r\n$6\r\nmychan\r\n$5\r\nHello\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_message_channel_not_string()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$7\r\nmessage\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_pmessage_channel_not_string()
+{
+   auto nodes = tree_from_resp3({
+      ">4\r\n$8\r\npmessage\r\n$1\r\n*\r\n*1\r\n$3\r\nfoo\r\n$5\r\nHello\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+// Payload is not a string (e.g. client-side caching invalidation: array of keys).
+void test_skip_message_payload_not_string()
+{
+   auto nodes = tree_from_resp3({
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n*1\r\n$3\r\nfoo\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
+void test_skip_pmessage_payload_not_string()
+{
+   auto nodes = tree_from_resp3({
+      ">4\r\n$8\r\npmessage\r\n$1\r\n*\r\n$6\r\nsecond\r\n*1\r\n$3\r\nfoo\r\n",
+      ">3\r\n$7\r\nmessage\r\n$6\r\nsecond\r\n$5\r\nHello\r\n",
+   });
+   push_parser p{nodes};
+   constexpr push_view expected[] = {
+      {"second", std::nullopt, "Hello"}
+   };
+   BOOST_TEST_ALL_EQ(p.begin(), p.end(), std::begin(expected), std::end(expected));
+}
+
 // --- Edge cases ---
 void test_empty()
 {
@@ -358,6 +425,11 @@ int main()
    test_skip_pmessage_push_size_1();
    test_skip_pmessage_push_size_3();
    test_skip_pmessage_push_size_5();
+   test_skip_pmessage_pattern_not_string();
+   test_skip_message_channel_not_string();
+   test_skip_pmessage_channel_not_string();
+   test_skip_message_payload_not_string();
+   test_skip_pmessage_payload_not_string();
 
    test_empty();
 
