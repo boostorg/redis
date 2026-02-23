@@ -57,6 +57,7 @@ make_test(test_flat_tree)
 make_test(test_generic_flat_response)
 make_test(test_read_buffer)
 make_test(test_subscription_tracker)
+make_test(test_push_parser)
 
 # Tests that require a real Redis server
 make_test(test_conn_quit)

@@ -87,68 +87,14 @@ The roles played by the `async_run` and `async_exec` functions are:
   be called from multiple places in your code concurrently.
 * xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`]: keeps the connection healthy. It takes care of hostname resolution, session establishment, health-checks, reconnection and coordination of low-level read and write operations. It should be called only once per connection, regardless of the number of requests to execute.
 
-== Server pushes
-
-Redis servers can also send a variety of pushes to the client. Some of
-them are:
-
-* https://redis.io/docs/manual/pubsub/[Pubsub messages].
-* https://redis.io/docs/manual/keyspace-notifications/[Keyspace notifications].
-* https://redis.io/docs/manual/client-side-caching/[Client-side caching].
-
-The connection class supports server pushes by means of the
-xref:reference:boost/redis/basic_connection/async_receive.adoc[`connection::async_receive2`] function, which can be
-called in the same connection that is being used to execute commands.
-The coroutine below shows how to use it
-
-
-[source,cpp]
-----
-auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
-{
-   generic_flat_response resp;
-   conn->set_receive_response(resp);
-
-   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
-   request req;
-   req.subscribe({"mychannel"});
-   co_await conn->async_exec(req);
-
-   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
-   // in resp. If the connection encounters a network error and reconnects to the server,
-   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
-   // You need to use specialized request::subscribe() function (instead of request::push)
-   // to enable this behavior.
-
-   // Loop to read Redis push messages.
-   while (conn->will_reconnect()) {
-      // Wait for pushes
-      auto [ec] = co_await conn->async_receive2(asio::as_tuple);
-
-      // Check for errors and cancellations
-      if (ec) {
-         std::cerr << "Error during receive: " << ec << std::endl;
-         break;
-      }
-
-      // The response must be consumed without suspending the
-      // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value())
-         std::cout << elem.value << "\n";
-
-      std::cout << std::endl;
-
-      resp.value().clear();
-   }
-}
-----
 
 == Further reading
 
 Here is a list of topics that you might be interested in:
 
-* xref:cancellation.adoc[Setting timeouts to requests and managing cancellation].
 * xref:requests_responses.adoc[More on requests and responses].
+* xref:pushes.adoc[Reading server pushes].
+* xref:cancellation.adoc[Setting timeouts to requests and managing cancellation].
 * xref:serialization.adoc[Serializing and parsing into custom types].
 * xref:logging.adoc[Configuring logging].
 * xref:examples.adoc[Examples].

@@ -1085,7 +1085,35 @@ public:
       "the other member functions to interact with the connection.")
    auto const& next_layer() const noexcept { return impl_->stream_.next_layer(); }
 
-   /// Sets the response object of @ref async_receive2 operations.
+   /**
+    * @brief Sets the response object of @ref async_receive2 operations.
+    *
+    * Pushes received by the connection (concretely, by @ref async_run)
+    * will be stored in `resp`. This happens even if @ref async_receive2
+    * is not being called.
+    *
+    * `resp` should be able to accommodate the following message types:
+    *
+    *  @li Any kind of RESP3 pushes that the application might expect.
+    *      This usually involves Pub/Sub messages of type `message`,
+    *      `subscribe`, `unsubscribe`, `psubscribe` and `punsubscribe`.
+    *      See <a href="https://redis.io/docs/latest/develop/pubsub/">this page</a>
+    *      for more info.
+    *  @li Any errors caused by failed `SUBSCRIBE` commands.
+    *      Because of protocol oddities, these are placed in the receive buffer,
+    *      rather than handed to `async_exec`.
+    *  @li If your application is using `MONITOR`, simple strings.
+    *
+    * Because receive responses need to accommodate many different kind
+    * of messages, it's advised to use one of the generic responses
+    * (like @ref generic_flat_response). If a response can't accommodate
+    * one of the received types, @ref async_run will exit with an error.
+    *
+    * Messages received before this function is called are discarded.
+    *
+    * @par Object lifetimes
+    * `resp` should be kept alive until @ref async_run completes.
+    */
    template <class Response>
    void set_receive_response(Response& resp)
    {
