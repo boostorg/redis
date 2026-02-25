@@ -28,11 +28,11 @@ make_testable_example(cpp20_containers 20)
 make_testable_example(cpp20_json 20)
 make_testable_example(cpp20_unix_sockets 20)
 make_testable_example(cpp20_timeouts 20)
+make_testable_example(cpp20_sentinel 20)
 
 make_example(cpp20_subscriber 20)
 make_example(cpp20_streams 20)
 make_example(cpp20_echo_server 20)
-make_example(cpp20_resolve_with_sentinel 20)
 make_example(cpp20_intro_tls 20)
 
 # We test the protobuf example only on gcc.
