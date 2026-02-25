@@ -38,6 +38,7 @@ if (BOOST_REDIS_MAIN_PROJECT)
     align
     context
     core
+    static_assert
     pool
     date_time
     smart_ptr
