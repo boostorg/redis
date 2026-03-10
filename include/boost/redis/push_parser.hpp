@@ -64,7 +64,7 @@ struct push_view {
  *       These happen every time a `SUBSCRIBE`, `UNSUBSCRIBE`, `PSUBSCRIBE` or `PUNSUBSCRIBE`
  *       command is successfully executed, and don't carry application-level information.
  *   @li Pushes with type `message` and `pmessage` with a payload type different to
- *       @ref resp3::type::bulk_string. Client-side caching generates this kind of messages.
+ *       @ref resp3::type::blob_string. Client-side caching generates this kind of messages.
  *
  * If you need to handle any of these, use the raw RESP3 nodes rather than this class.
  *
