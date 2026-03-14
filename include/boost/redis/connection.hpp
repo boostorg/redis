@@ -669,7 +669,7 @@ public:
     *      @ref boost::redis::config::addr.
     *  @li Establishes a physical connection to the server. For TCP connections,
     *      connects to one of the endpoints obtained during name resolution.
-    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_sockets.
+    *      For UNIX domain socket connections, it connects to @ref boost::redis::config::unix_socket.
     *  @li If @ref boost::redis::config::use_ssl is `true`, performs the TLS handshake.
     *  @li Executes the setup request, as defined by the passed @ref config object.
     *      By default, this is a `HELLO` command, but it can contain any other arbitrary
