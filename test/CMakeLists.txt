@@ -34,6 +34,7 @@ endmacro()
 
 # Unit tests
 make_test(test_low_level)
+make_test(test_parser)
 make_test(test_request)
 make_test(test_serialization)
 make_test(test_low_level_sync_sans_io)
