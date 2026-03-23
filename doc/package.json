@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@cppalliance/antora-cpp-reference-extension": "^0.0.6",
+    "@cppalliance/antora-downloads-extension": "^0.0.2",
     "antora": "^3.1.10"
   }
 }
