@@ -30,6 +30,7 @@ content:
   sources:
     - url: ..
       start_path: doc
+      edit_url: 'https://github.com/boostorg/redis/blob/develop/{path}'
 
 ui: 
   bundle:
