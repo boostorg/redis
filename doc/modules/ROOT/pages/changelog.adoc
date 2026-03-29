@@ -7,6 +7,48 @@
 
 = Changelog
 
+== Boost 1.91
+
+** Added built-in support for **Sentinel** deployments, which can be configured
+   using `config::sentinel`. The library handles master/replica discovery,
+   error detection, and reconnection automatically
+   (boost_gh:pr[redis,345], boost_gh:pr[redis,391], boost_gh:issue[redis,237]).
+** Added **`generic_flat_response`**, a high-performance replacement for
+   `flat_response` that uses contiguous memory and performs zero allocations
+   in steady state. Many thanks to Nikolai Vladimirov for the PR
+   (boost_gh:pr[redis,340], boost_gh:pr[redis,356], boost_gh:pr[redis,358],
+   boost_gh:pr[redis,378], boost_gh:pr[redis,383], boost_gh:issue[redis,263]).
+** General improvements to **server push handling**:
+*** Added support for subscription tracking, which restores
+    active subscriptions after each reconnection. Can be accessed using
+    `request::subscribe`, `request::psubscribe`, `request::unsubscribe`
+    and `request::punsubscribe`
+    (boost_gh:pr[redis,375], boost_gh:issue[redis,367]).
+*** Added `push_parser`, a view that facilitates parsing
+    PubSub-related messages (boost_gh:pr[redis,390], boost_gh:issue[redis,349]).
+*** **`connection::async_receive`** and **`connection::receive`** are now **deprecated**.
+    Users should prefer `async_receive2`, which allows for faster batch processing
+    (boost_gh:pr[redis,381], boost_gh:pr[redis,340], boost_gh:issue[redis,331]).
+*** **`consume_one`** is now **deprecated**. Users should prefer
+    `generic_flat_response::clear`, instead. See the PubSub examples for more details.
+*** Improved the documentation and examples.
+** **`config::username`**, **`config::password`**, **`config::client_name`** and
+   **`config::database_index`** are now **deprecated**. Users should prefer `config::setup`, instead.
+   Added `request::hello` and `request::hello_setname` to simplify composing
+   setup requests (boost_gh:pr[redis,392]).
+** Log message levels have been adjusted to be more relevant:
+   `level::error` for configuration and network errors,
+   `level::info` for successful connection attempts,
+   and `level::debug` for verbose output
+   (boost_gh:pr[redis,389], boost_gh:issue[redis,395]).
+** Added `request::append()` to concatenate request objects
+   (boost_gh:pr[redis,342], boost_gh:issue[redis,341]).
+** Fixed a problem causing `request::push_range` to generate invalid commands
+   when passed a range with `std::tuple` elements
+   (boost_gh:pr[redis,363], boost_gh:issue[redis,360]).
+** Removed `<ostream>` from public headers to make them more lightweight
+   (boost_gh:pr[redis,364], boost_gh:issue[redis,361]).
+
 == Boost 1.90
 
 
