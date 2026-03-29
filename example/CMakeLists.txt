@@ -1,12 +1,10 @@
 add_library(examples_main STATIC main.cpp)
-target_compile_features(examples_main PRIVATE cxx_std_20)
 target_link_libraries(examples_main PRIVATE boost_redis_project_options)
 
 macro(make_example EXAMPLE_NAME STANDARD)
   add_executable(${EXAMPLE_NAME} ${EXAMPLE_NAME}.cpp)
   target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_src)
   target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_project_options)
-  target_compile_features(${EXAMPLE_NAME} PRIVATE cxx_std_${STANDARD})
   if (${STANDARD} STREQUAL "20")
     target_link_libraries(${EXAMPLE_NAME} PRIVATE examples_main)
   endif()
