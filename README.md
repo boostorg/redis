@@ -82,9 +82,9 @@ The roles played by the `async_run` and `async_exec` functions are:
 Redis servers can also send a variety of pushes to the client. Some of
 them are:
 
-* [Pubsub messages](https://redis.io/docs/manual/pubsub/).
-* [Keyspace notifications](https://redis.io/docs/manual/keyspace-notifications/).
-* [Client-side caching](https://redis.io/docs/manual/client-side-caching/).
+* [Pubsub messages](https://redis.io/docs/latest/develop/pubsub/).
+* [Keyspace notifications](https://redis.io/docs/latest/develop/pubsub/keyspace-notifications/).
+* [Client-side caching](https://redis.io/docs/latest/develop/clients/client-side-caching/).
 
 The connection class supports server pushes by means of the
 `connection::async_receive2` function, which can be
