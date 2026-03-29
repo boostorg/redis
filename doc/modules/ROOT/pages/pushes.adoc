@@ -178,7 +178,7 @@ of this page.
 Pub/Sub `message` and `pmessage` pushes. Other push types are skipped, including:
 
 * Subscribe/unsubscribe confirmations.
-* https://redis.io/docs/latest/develop/reference/client-side-caching/[Client-side caching]
+* https://redis.io/docs/latest/develop/clients/client-side-caching/[Client-side caching]
   invalidation messages.
 * Output of the `MONITOR` command.
 
