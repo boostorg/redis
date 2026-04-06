@@ -46,7 +46,7 @@ struct pubsub_change {
  *  
  *  A request is composed of one or more Redis commands and is
  *  referred to in the redis documentation as a pipeline. See
- *  <a href="https://redis.io/topics/pipelining"></a> for more info.
+ *  <a href="https://redis.io/docs/latest/develop/using-commands/pipelining/"></a> for more info.
  *
  *  For example:
  *
