@@ -35,7 +35,7 @@ capy::task<void> test_reconnection()
    // Setup
    connection conn{(co_await capy::this_coro::executor).context()};
 
-   auto exec_fn = [&]() -> capy::task<void> {
+   auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
       request req1;
       req1.push("BLPOP", "any", 0);
@@ -55,15 +55,19 @@ capy::task<void> test_reconnection()
       // Execute the second request. This one will succeed after reconnection
       auto [ec2] = co_await conn.exec(req2, ignore);
       BOOST_TEST_EQ(ec2, error_code());
+
+      co_return {};
    };
 
-   auto run_fn = [&]() -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       // Make the test run faster
       auto cfg = make_test_config();
       cfg.health_check_interval = 500ms;
 
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
    co_await capy::when_any(exec_fn(), run_fn());
@@ -74,16 +78,18 @@ capy::task<void> test_error_code()
 {
    connection conn{(co_await capy::this_coro::executor).context()};
 
-   auto exec_fn = [&]() -> capy::task<void> {
+   auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
       request req;
       req.push("BLPOP", "any", 0);
 
       auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, capy::error::canceled);
+
+      co_return {};
    };
 
-   auto run_fn = [&]() -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       // Make the test run faster
       auto cfg = make_test_config();
       cfg.health_check_interval = 200ms;
@@ -91,6 +97,8 @@ capy::task<void> test_error_code()
 
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, boost::redis::error::pong_timeout);
+
+      co_return {};
    };
 
    co_await capy::when_any(exec_fn(), run_fn());
@@ -101,7 +109,7 @@ capy::task<void> test_disabled()
 {
    connection conn{(co_await capy::this_coro::executor).context()};
 
-   auto exec_fn = [&]() -> capy::task<void> {
+   auto exec_fn = [&]() -> capy::io_task<> {
       // Run a couple of requests to verify that the connection works fine
       request req1;
       req1.push("PING", "health_check_disabled_1");
@@ -114,13 +122,17 @@ capy::task<void> test_disabled()
 
       auto [ec2] = co_await conn.exec(req1, ignore);
       BOOST_TEST_EQ(ec2, std::error_code());
+
+      co_return {};
    };
 
-   auto run_fn = [&]() -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       auto cfg = make_test_config();
       cfg.health_check_interval = 0s;
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
    co_await capy::when_any(exec_fn(), run_fn());
@@ -147,17 +159,19 @@ capy::task<void> test_flexible()
    cfg.health_check_interval = 500ms;
    std::string channel_name = make_unique_id();
 
-   auto run1_fn = [&] -> capy::task<void> {
+   auto run1_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn1.run(cfg);
       BOOST_TEST_EQ(ec, capy::error::canceled);
+      co_return {};
    };
 
-   auto run2_fn = [&] -> capy::task<void> {
+   auto run2_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn2.run(cfg);
       BOOST_TEST_EQ(ec, capy::error::canceled);
+      co_return {};
    };
 
-   auto exec_fn = [&] -> capy::task<void> {
+   auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block for much longer than the health check
       // interval. If we weren't receiving pushes, the connection would be considered dead.
       // If this request finishes successfully, the health checker is doing good
@@ -171,9 +185,11 @@ capy::task<void> test_flexible()
       generic_response resp;
       auto [ec] = co_await conn1.exec(blocking_req, resp);
       BOOST_TEST_EQ(ec, error_code());
+
+      co_return {};
    };
 
-   auto publish_fn = [&] -> capy::task<void> {
+   auto publish_fn = [&]() -> capy::io_task<> {
       request publish_req;
       publish_req.push("PUBLISH", channel_name, "test_health_check_flexible");
 
@@ -183,14 +199,14 @@ capy::task<void> test_flexible()
          // Publish a message
          auto [ec] = co_await conn2.exec(publish_req, ignore);
          if (ec == capy::error::canceled)
-            co_return;
+            co_return {};
          BOOST_TEST_EQ(ec, error_code());
 
          // Wait for some time and publish again
          timer.expires_after(100ms);
          auto [ec2] = co_await timer.wait();
          if (ec2 == capy::error::canceled)
-            co_return;
+            co_return {};
          BOOST_TEST_EQ(ec2, error_code());
       }
    };

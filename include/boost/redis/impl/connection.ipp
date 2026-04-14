@@ -7,8 +7,12 @@
 #include <boost/redis/connection.hpp>
 
 #include <boost/assert.hpp>
+#include <boost/capy/concept/io_awaitable.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/timeout.hpp>
 #include <boost/core/ignore_unused.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <system_error>
 #include <utility>
@@ -30,27 +34,16 @@ inline asio::cancellation_type_t token_to_cancel(std::stop_token tok)
                                : asio::cancellation_type_t::none;
 }
 
-template <class... Types>
-capy::io_task<Types...> cancel_at(
-   capy::io_task<Types...> task,
-   corosio::timer& timer,
-   std::chrono::steady_clock::time_point timeout)
-{
-   timer.expires_at(timeout);
-   auto [winner_index, result] = co_await capy::when_any(std::move(task), timer.wait());
-   if (winner_index == 0u)
-      co_return std::get<0>(std::move(result));
-   else
-      co_return {capy::error::canceled};
-}
-
-template <class... Types>
-capy::io_task<Types...> cancel_after(
-   capy::io_task<Types...> task,
-   corosio::timer& timer,
+// Run an operation with a timeout, with a zero timeout meaning 'no timeout'
+template <class Aw>
+capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
+   Aw&& aw,
    std::chrono::steady_clock::duration timeout)
 {
-   return cancel_at(std::move(task), timer, std::chrono::steady_clock::now() + timeout);
+   if (timeout.count() == 0)
+      co_return co_await std::move(aw);
+   else
+      co_return co_await capy::timeout(std::move(aw), timeout);
 }
 
 capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buffered_logger& l)
@@ -71,16 +64,11 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
             co_return {std::make_error_code(std::errc::operation_not_supported)};
          case connect_action_type::tcp_resolve:
          {
-            auto result = co_await cancel_after(
-               [&] -> capy::io_task<corosio::resolver_results> {
-                  co_return co_await resolv_.resolve(
-                     params.addr.tcp_address().host,
-                     params.addr.tcp_address().port);
-               }(),
-               timer_,
+            auto result = co_await capy::timeout(
+               resolv_.resolve(params.addr.tcp_address().host, params.addr.tcp_address().port),
                params.resolve_timeout);
             ec = result.ec;
-            endpoints = std::move(result.t1);
+            endpoints = std::move(std::get<0>(result.values));
             act = fsm.resume(ec, endpoints, st_);
             break;
          }
@@ -89,9 +77,8 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
             act = fsm.resume(ec, st_);
             break;
          case connect_action_type::ssl_handshake:
-            ec = (co_await cancel_after(
+            ec = (co_await capy::timeout(
                      stream_.handshake(corosio::tls_stream::handshake_type::client),
-                     timer_,
                      params.ssl_handshake_timeout))
                     .ec;
             act = fsm.resume(ec, st_);
@@ -102,11 +89,8 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
             // TODO: range connect
             socket_.close();
             socket_.open();
-            auto result = co_await cancel_after(
-               [&] -> capy::io_task<> {
-                  co_return co_await socket_.connect(*endpoints.begin());
-               }(),
-               timer_,
+            auto result = co_await capy::timeout(
+               socket_.connect(*endpoints.begin()),
                params.connect_timeout);
             ec = result.ec;
             act = fsm.resume(ec, *endpoints.begin(), st_);
@@ -275,9 +259,8 @@ inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
          }
          case sentinel_action::type::request:
          {
-            auto [request_ec] = co_await cancel_after(
+            auto [request_ec] = co_await capy::timeout(
                async_exec_one(conn, conn.st_.cfg.sentinel.setup, make_sentinel_adapter(conn.st_)),
-               conn.reconnect_timer_,
                conn.st_.cfg.sentinel.request_timeout);
             ec = request_ec;
             break;
@@ -304,10 +287,9 @@ inline capy::io_task<> writer(corosio_connection_impl& conn)
          case writer_action_type::done: co_return {act.error()};
          case writer_action_type::write_some:
          {
-            auto [write_ec, write_bytes] = co_await cancel_at(
+            auto [write_ec, write_bytes] = co_await maybe_timeout(
                conn.stream_.write_some(capy::make_buffer(conn.st_.mpx.get_write_buffer())),
-               conn.writer_timer_,
-               compute_expiry(act.timeout()));
+               act.timeout());
             ec = write_ec;
             bytes_written = write_bytes;
             break;
@@ -336,10 +318,9 @@ inline capy::io_task<> reader(corosio_connection_impl& conn)
       switch (act.get_type()) {
          case reader_fsm::action::type::read_some:
          {
-            auto [read_ec, read_bytes] = co_await cancel_at(
+            auto [read_ec, read_bytes] = co_await maybe_timeout(
                conn.stream_.read_some(capy::make_buffer(conn.st_.mpx.get_prepared_read_buffer())),
-               conn.reader_timer_,
-               compute_expiry(act.timeout()));
+               act.timeout());
             ec = read_ec;
             n = read_bytes;
             break;
@@ -377,9 +358,9 @@ inline capy::io_task<> run(corosio_connection_impl& conn)
             break;
          case run_action_type::parallel_group:
          {
-            auto [winner_index, result] = co_await capy::when_any(reader(conn), writer(conn));
-            ignore_unused(winner_index);
-            ec = std::get<0>(result).ec;
+            auto result = co_await capy::when_any(reader(conn), writer(conn));
+            BOOST_ASSERT(result.index() == 0u);  // reader and writer always finish with an error
+            ec = std::get<0>(result);
             break;
          }
          case run_action_type::cancel_receive: break;  // no longer required
@@ -407,11 +388,10 @@ capy::io_task<> connection::run(config const& cfg)
    impl_->st_.mpx.set_config(cfg);
    impl_->run_cancelled_event_.clear();
 
-   auto [winner_index, result] = co_await capy::when_any(
-      detail::run(*impl_),
-      impl_->run_cancelled_event_.wait());
+   auto result = co_await capy::when_any(detail::run(*impl_), impl_->run_cancelled_event_.wait());
 
-   co_return {winner_index == 0u ? std::get<0>(result).ec : capy::error::canceled};
+   // If run finished first, return its result (run never returns successfully). Otherwise, return a cancellation
+   co_return {result.index() == 0u ? std::get<0>(result) : capy::error::canceled};
 }
 
 capy::io_task<> connection::receive() { return detail::receive(*impl_); }

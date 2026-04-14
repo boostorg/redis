@@ -97,6 +97,7 @@ if (BOOST_REDIS_MAIN_PROJECT)
       Boost::asio
       Boost::capy
       Boost::corosio
+      Boost::corosio_openssl
       Threads::Threads
       OpenSSL::Crypto
       OpenSSL::SSL
@@ -127,7 +128,7 @@ else()
       Boost::throw_exception
       Boost::capy
       Boost::corosio
-      boost_corosio_openssl
+      Boost::corosio_openssl
       Threads::Threads
       OpenSSL::Crypto
       OpenSSL::SSL
