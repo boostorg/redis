@@ -46,8 +46,8 @@ template <>
 struct log_traits<std::span<const corosio::resolver_entry>> {
    static inline void log(std::string& to, std::span<const corosio::resolver_entry> value)
    {
-      auto iter = value.cbegin();
-      auto end = value.cend();
+      auto iter = value.begin();
+      auto end = value.end();
 
       if (iter != end) {
          format_tcp_endpoint(iter->get_endpoint(), to);

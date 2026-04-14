@@ -7,7 +7,6 @@
 #ifndef BOOST_REDIS_READ_BUFFER_HPP
 #define BOOST_REDIS_READ_BUFFER_HPP
 
-#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
