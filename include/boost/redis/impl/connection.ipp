@@ -15,7 +15,9 @@
 #include <chrono>
 #include <cstddef>
 #include <system_error>
+#include <tuple>
 #include <utility>
+#include <variant>
 
 namespace boost::redis {
 namespace detail {
@@ -37,7 +39,7 @@ inline asio::cancellation_type_t token_to_cancel(std::stop_token tok)
 // Run an operation with a timeout, with a zero timeout meaning 'no timeout'
 template <class Aw>
 capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
-   Aw&& aw,
+   Aw aw,
    std::chrono::steady_clock::duration timeout)
 {
    if (timeout.count() == 0)
@@ -269,7 +271,8 @@ inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
    }
 }
 
-inline capy::io_task<> writer(corosio_connection_impl& conn)
+// This signature is required because capy::when_any is equivalent to wait_for_one_success
+inline capy::io_task<std::error_code> writer(corosio_connection_impl& conn)
 {
    // Setup
    writer_fsm fsm;
@@ -284,7 +287,7 @@ inline capy::io_task<> writer(corosio_connection_impl& conn)
          token_to_cancel(co_await capy::this_coro::stop_token));
 
       switch (act.type()) {
-         case writer_action_type::done: co_return {act.error()};
+         case writer_action_type::done: co_return {{}, act.error()};
          case writer_action_type::write_some:
          {
             auto [write_ec, write_bytes] = co_await maybe_timeout(
@@ -306,7 +309,7 @@ inline capy::io_task<> writer(corosio_connection_impl& conn)
    }
 }
 
-inline capy::io_task<> reader(corosio_connection_impl& conn)
+inline capy::io_task<std::error_code> reader(corosio_connection_impl& conn)
 {
    reader_fsm fsm;
    std::size_t n = 0u;
@@ -335,12 +338,12 @@ inline capy::io_task<> reader(corosio_connection_impl& conn)
                conn.controller_.put(act.push_size());
             break;
          }
-         case reader_fsm::action::type::done: co_return {act.error()};
+         case reader_fsm::action::type::done: co_return {{}, act.error()};
       }
    }
 }
 
-inline capy::io_task<> run(corosio_connection_impl& conn)
+inline capy::io_task<std::error_code> run(corosio_connection_impl& conn)
 {
    run_fsm fsm;
    system::error_code ec;
@@ -349,7 +352,7 @@ inline capy::io_task<> run(corosio_connection_impl& conn)
       auto act = fsm.resume(conn.st_, ec, token_to_cancel(co_await capy::this_coro::stop_token));
 
       switch (act.type) {
-         case run_action_type::done:             co_return {act.ec};
+         case run_action_type::done:             co_return {{}, act.ec};
          case run_action_type::immediate:        break;  // no longer required
          case run_action_type::sentinel_resolve: ec = (co_await sentinel_resolve(conn)).ec; break;
          case run_action_type::connect:
@@ -359,8 +362,11 @@ inline capy::io_task<> run(corosio_connection_impl& conn)
          case run_action_type::parallel_group:
          {
             auto result = co_await capy::when_any(reader(conn), writer(conn));
-            BOOST_ASSERT(result.index() == 0u);  // reader and writer always finish with an error
-            ec = std::get<0>(result);
+            ec = std::visit(
+               [](std::error_code value) {
+                  return value;
+               },
+               result);
             break;
          }
          case run_action_type::cancel_receive: break;  // no longer required
@@ -390,8 +396,15 @@ capy::io_task<> connection::run(config const& cfg)
 
    auto result = co_await capy::when_any(detail::run(*impl_), impl_->run_cancelled_event_.wait());
 
-   // If run finished first, return its result (run never returns successfully). Otherwise, return a cancellation
-   co_return {result.index() == 0u ? std::get<0>(result) : capy::error::canceled};
+   struct visitor {
+      // Either error or run finished 1st
+      std::error_code operator()(std::error_code val) const { return val; }
+
+      // The event finishes 1st
+      std::error_code operator()(std::tuple<>) const { return capy::error::canceled; }
+   };
+
+   co_return std::visit(visitor{}, result);
 }
 
 capy::io_task<> connection::receive() { return detail::receive(*impl_); }
