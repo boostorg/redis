@@ -121,21 +121,6 @@ co_connection_impl::co_connection_impl(
    writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
 }
 
-void co_connection_impl::cancel()
-{
-   // exec
-   st_.mpx.cancel_waiting();
-
-   // receive (TODO: do we really need this?)
-   st_.receive2_cancelled = true;
-
-   // reconnect (TODO: do we really need this?)
-   st_.cfg.reconnect_wait_interval = std::chrono::seconds::zero();
-
-   // run
-   run_cancelled_event_.set();
-}
-
 capy::io_task<> co_connection_impl::exec(request const& req, any_adapter adapter)
 {
    // Setup
@@ -348,7 +333,7 @@ inline capy::io_task<std::error_code> reader(co_connection_impl& conn)
    }
 }
 
-inline capy::io_task<std::error_code> run(co_connection_impl& conn)
+inline capy::io_task<> run(co_connection_impl& conn)
 {
    constexpr bool unix_sockets_supported = false;  // TODO
    run_fsm fsm{unix_sockets_supported};
@@ -358,7 +343,7 @@ inline capy::io_task<std::error_code> run(co_connection_impl& conn)
       auto act = fsm.resume(conn.st_, ec, token_to_cancel(co_await capy::this_coro::stop_token));
 
       switch (act.type) {
-         case run_action_type::done:             co_return {{}, act.ec};
+         case run_action_type::done:             co_return {act.ec};
          case run_action_type::immediate:        break;  // no longer required
          case run_action_type::sentinel_resolve: ec = (co_await sentinel_resolve(conn)).ec; break;
          case run_action_type::connect:
@@ -398,19 +383,7 @@ capy::io_task<> co_connection::run(config const& cfg)
 {
    impl_->st_.cfg = cfg;
    impl_->st_.mpx.set_config(cfg);
-   impl_->run_cancelled_event_.clear();
-
-   auto result = co_await capy::when_any(detail::run(*impl_), impl_->run_cancelled_event_.wait());
-
-   struct visitor {
-      // Either error or run finished 1st
-      std::error_code operator()(std::error_code val) const { return val; }
-
-      // The event finishes 1st
-      std::error_code operator()(std::tuple<>) const { return capy::error::canceled; }
-   };
-
-   co_return std::visit(visitor{}, result);
+   return detail::run(*impl_);
 }
 
 capy::io_task<> co_connection::receive() { return detail::receive(*impl_); }

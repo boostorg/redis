@@ -31,7 +31,6 @@
 #include <boost/redis/response.hpp>
 #include <boost/redis/usage.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/buffers.hpp>
 #include <boost/capy/buffers/make_buffer.hpp>
@@ -107,7 +106,6 @@ public:
 };
 
 struct co_connection_impl {
-   capy::async_event run_cancelled_event_;
    co_redis_stream stream_;
    corosio::timer writer_timer_;     // timer used for write timeouts
    corosio::timer writer_cv_;        // set when there is new data to write
@@ -118,8 +116,6 @@ struct co_connection_impl {
    connection_state st_;
 
    co_connection_impl(capy::execution_context& ctx, corosio::tls_context&& ssl_ctx, logger&& lgr);
-
-   void cancel();
 
    capy::io_task<> exec(request const& req, any_adapter adapter);
 
@@ -406,19 +402,6 @@ public:
    {
       return impl_->exec(req, std::move(adapter));
    }
-
-   /** @brief Cancel operations.
-    *
-    *  @li `operation::exec`: cancels operations started with
-    *  `async_exec`. Affects only requests that haven't been written
-    *  yet.
-    *  @li `operation::run`: cancels the `async_run` operation.
-    *  @li `operation::receive`: cancels any ongoing calls to `async_receive`.
-    *  @li `operation::all`: cancels all operations listed above.
-    *
-    *  @param op The operation to be cancelled.
-    */
-   void cancel() { impl_->cancel(); }
 
    /// Sets the response object of @ref async_receive2 operations.
    void set_receive_response(any_adapter resp) { impl_->set_receive_adapter(std::move(resp)); }

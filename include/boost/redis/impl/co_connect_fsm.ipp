@@ -22,7 +22,6 @@ namespace boost::redis::detail {
 // Logging
 inline void format_tcp_endpoint(const corosio::endpoint& ep, std::string& to)
 {
-   // This formatting is inspired by Asio's endpoint operator<<
    if (ep.is_v6()) {
       to += '[';
       to += ep.v6_address().to_string();
