@@ -1,10 +1,12 @@
-/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
- *
- * Distributed under the Boost Software License, Version 1.0. (See
- * accompanying file LICENSE.txt)
- */
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/capy/concept/io_awaitable.hpp>
@@ -49,7 +51,7 @@ capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
       co_return co_await capy::timeout(std::move(aw), timeout);
 }
 
-capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buffered_logger& l)
+capy::io_task<> co_redis_stream::connect(const connect_params& params, buffered_logger& l)
 {
    connect_fsm fsm{l};
    system::error_code ec;
@@ -101,7 +103,7 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
    }
 }
 
-corosio_connection_impl::corosio_connection_impl(
+co_connection_impl::co_connection_impl(
    capy::execution_context& ctx,
    corosio::tls_context&& ssl_ctx,
    logger&& lgr)
@@ -118,7 +120,7 @@ corosio_connection_impl::corosio_connection_impl(
    writer_cv_.expires_at((std::chrono::steady_clock::time_point::max)());
 }
 
-void corosio_connection_impl::cancel()
+void co_connection_impl::cancel()
 {
    // exec
    st_.mpx.cancel_waiting();
@@ -133,7 +135,7 @@ void corosio_connection_impl::cancel()
    run_cancelled_event_.set();
 }
 
-capy::io_task<> corosio_connection_impl::exec(request const& req, any_adapter adapter)
+capy::io_task<> co_connection_impl::exec(request const& req, any_adapter adapter)
 {
    // Setup
    capy::async_event request_done;
@@ -164,12 +166,12 @@ capy::io_task<> corosio_connection_impl::exec(request const& req, any_adapter ad
    }
 }
 
-void corosio_connection_impl::set_receive_adapter(any_adapter adapter)
+void co_connection_impl::set_receive_adapter(any_adapter adapter)
 {
    st_.mpx.set_receive_adapter(std::move(adapter));
 }
 
-inline capy::io_task<> receive(corosio_connection_impl& conn)
+inline capy::io_task<> receive(co_connection_impl& conn)
 {
    // Setup
    receive_fsm fsm;
@@ -197,7 +199,7 @@ inline capy::io_task<> receive(corosio_connection_impl& conn)
 }
 
 inline capy::io_task<> async_exec_one(
-   corosio_connection_impl& conn,
+   co_connection_impl& conn,
    const request& req,
    any_adapter resp)
 {
@@ -235,7 +237,7 @@ inline capy::io_task<> async_exec_one(
    }
 }
 
-inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
+inline capy::io_task<> sentinel_resolve(co_connection_impl& conn)
 {
    // Setup
    sentinel_resolve_fsm fsm;
@@ -270,7 +272,7 @@ inline capy::io_task<> sentinel_resolve(corosio_connection_impl& conn)
 }
 
 // This signature is required because capy::when_any is equivalent to wait_for_one_success
-inline capy::io_task<std::error_code> writer(corosio_connection_impl& conn)
+inline capy::io_task<std::error_code> writer(co_connection_impl& conn)
 {
    // Setup
    writer_fsm fsm;
@@ -307,7 +309,7 @@ inline capy::io_task<std::error_code> writer(corosio_connection_impl& conn)
    }
 }
 
-inline capy::io_task<std::error_code> reader(corosio_connection_impl& conn)
+inline capy::io_task<std::error_code> reader(co_connection_impl& conn)
 {
    reader_fsm fsm;
    std::size_t n = 0u;
@@ -341,7 +343,7 @@ inline capy::io_task<std::error_code> reader(corosio_connection_impl& conn)
    }
 }
 
-inline capy::io_task<std::error_code> run(corosio_connection_impl& conn)
+inline capy::io_task<std::error_code> run(co_connection_impl& conn)
 {
    run_fsm fsm;
    system::error_code ec;
@@ -378,15 +380,15 @@ inline capy::io_task<std::error_code> run(corosio_connection_impl& conn)
 
 }  // namespace detail
 
-connection::connection(capy::execution_context& ctx, corosio::tls_context ssl_ctx, logger lgr)
-: impl_(std::make_unique<detail::corosio_connection_impl>(ctx, std::move(ssl_ctx), std::move(lgr)))
+co_connection::co_connection(capy::execution_context& ctx, corosio::tls_context ssl_ctx, logger lgr)
+: impl_(std::make_unique<detail::co_connection_impl>(ctx, std::move(ssl_ctx), std::move(lgr)))
 { }
 
-connection::connection(capy::execution_context& ctx, logger lgr)
-: connection(ctx, {}, std::move(lgr))
+co_connection::co_connection(capy::execution_context& ctx, logger lgr)
+: co_connection(ctx, {}, std::move(lgr))
 { }
 
-capy::io_task<> connection::run(config const& cfg)
+capy::io_task<> co_connection::run(config const& cfg)
 {
    impl_->st_.cfg = cfg;
    impl_->st_.mpx.set_config(cfg);
@@ -405,6 +407,6 @@ capy::io_task<> connection::run(config const& cfg)
    co_return std::visit(visitor{}, result);
 }
 
-capy::io_task<> connection::receive() { return detail::receive(*impl_); }
+capy::io_task<> co_connection::receive() { return detail::receive(*impl_); }
 
 }  // namespace boost::redis

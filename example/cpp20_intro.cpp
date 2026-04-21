@@ -4,8 +4,8 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/connection.hpp>
 
 #include <boost/capy/ex/run_async.hpp>
 #include <boost/capy/io_task.hpp>
@@ -20,7 +20,7 @@ namespace capy = boost::capy;
 using namespace boost::redis;
 namespace corosio = boost::corosio;
 
-capy::task<void> run_request(connection& conn)
+capy::task<void> run_request(co_connection& conn)
 {
    // A request containing only a ping command.
    request req;
@@ -39,7 +39,7 @@ capy::task<void> run_request(connection& conn)
 capy::task<void> co_main()
 {
    // Create a connection
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto r = co_await capy::when_any(run_request(conn), conn.run(config{}));
 

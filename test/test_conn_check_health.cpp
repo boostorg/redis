@@ -1,10 +1,12 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
- *
- * Distributed under the Boost Software License, Version 1.0. (See
- * accompanying file LICENSE.txt)
- */
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
@@ -33,7 +35,7 @@ namespace {
 capy::task<void> test_reconnection()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
@@ -76,7 +78,7 @@ capy::task<void> test_reconnection()
 // We use the correct error code when a ping times out
 capy::task<void> test_error_code()
 {
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
@@ -107,7 +109,7 @@ capy::task<void> test_error_code()
 // A ping interval of zero disables timeouts (and doesn't cause trouble)
 capy::task<void> test_disabled()
 {
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // Run a couple of requests to verify that the connection works fine
@@ -153,8 +155,8 @@ std::string make_unique_id()
 capy::task<void> test_flexible()
 {
    // Setup
-   connection conn1{(co_await capy::this_coro::executor).context()};
-   connection conn2{(co_await capy::this_coro::executor).context()};
+   co_connection conn1{(co_await capy::this_coro::executor).context()};
+   co_connection conn2{(co_await capy::this_coro::executor).context()};
    auto cfg = make_test_config();
    cfg.health_check_interval = 500ms;
    std::string channel_name = make_unique_id();

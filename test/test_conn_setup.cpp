@@ -41,7 +41,7 @@ capy::task<void> create_user(
    std::string_view username,
    std::string_view password)
 {
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto exec_fn = [&]() -> capy::task<void> {
       // Enable the user and grant them permissions on everything
@@ -66,7 +66,7 @@ capy::task<void> create_user(
 capy::task<> test_auth_success()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto request_fn = [&] -> capy::task<void> {
       // This request should return the username we're logged in as
@@ -97,7 +97,7 @@ capy::task<> test_auth_failure()
 {
    // Setup
    std::string logs;
-   connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
+   co_connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();
@@ -117,7 +117,7 @@ capy::task<> test_auth_failure()
 capy::task<> test_database_index()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto request_fn = [&] -> capy::task<void> {
       request req;
@@ -145,7 +145,7 @@ capy::task<> test_database_index()
 capy::task<> test_setup_empty()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto request_fn = [&] -> capy::task<void> {
       request req;
@@ -173,7 +173,7 @@ capy::task<> test_setup_empty()
 capy::task<> test_setup_hello()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto request_fn = [&] -> capy::task<void> {
       request req;
@@ -205,7 +205,7 @@ capy::task<> test_setup_hello()
 capy::task<> test_setup_no_hello()
 {
    // Setup
-   connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{(co_await capy::this_coro::executor).context()};
 
    auto request_fn = [&] -> capy::task<void> {
       request req;
@@ -236,7 +236,7 @@ capy::task<> test_setup_failure()
 {
    // Setup
    std::string logs;
-   connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
+   co_connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();

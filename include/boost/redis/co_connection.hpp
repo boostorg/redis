@@ -1,11 +1,13 @@
-/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
- *
- * Distributed under the Boost Software License, Version 1.0. (See
- * accompanying file LICENSE.txt)
- */
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-#ifndef BOOST_REDIS_COROSIO_CONNECTION_HPP
-#define BOOST_REDIS_COROSIO_CONNECTION_HPP
+#ifndef BOOST_REDIS_CO_CONNECTION_HPP
+#define BOOST_REDIS_CO_CONNECTION_HPP
 
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
@@ -29,10 +31,10 @@
 #include <boost/redis/usage.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/buffers.hpp>
 #include <boost/capy/buffers/make_buffer.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/capy/ex/async_event.hpp>
 #include <boost/capy/ex/execution_context.hpp>
 #include <boost/capy/ex/this_coro.hpp>
@@ -50,7 +52,6 @@
 #include <boost/corosio/timer.hpp>
 #include <boost/corosio/tls_context.hpp>
 #include <boost/corosio/tls_stream.hpp>
-#include <boost/system/detail/error_code.hpp>
 
 #include <array>
 #include <chrono>
@@ -64,7 +65,7 @@
 namespace boost::redis {
 namespace detail {
 
-class corosio_redis_stream {
+class co_redis_stream {
    // TODO: UNIX sockets
    corosio::tcp_socket socket_;
    corosio::openssl_stream stream_;  // TODO: make this configurable
@@ -73,7 +74,7 @@ class corosio_redis_stream {
    redis_stream_state st_;
 
 public:
-   explicit corosio_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
+   explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
    : socket_(ctx)
    , stream_(&socket_, std::move(tls_ctx))
    , timer_(ctx)
@@ -106,9 +107,9 @@ public:
    }
 };
 
-struct corosio_connection_impl {
+struct co_connection_impl {
    capy::async_event run_cancelled_event_;
-   corosio_redis_stream stream_;
+   co_redis_stream stream_;
    corosio::timer writer_timer_;     // timer used for write timeouts
    corosio::timer writer_cv_;        // set when there is new data to write
    corosio::timer reader_timer_;     // timer used for read timeouts
@@ -117,10 +118,7 @@ struct corosio_connection_impl {
    flow_controller controller_;
    connection_state st_;
 
-   corosio_connection_impl(
-      capy::execution_context& ctx,
-      corosio::tls_context&& ssl_ctx,
-      logger&& lgr);
+   co_connection_impl(capy::execution_context& ctx, corosio::tls_context&& ssl_ctx, logger&& lgr);
 
    void cancel();
 
@@ -139,7 +137,7 @@ struct corosio_connection_impl {
  *
  *  @tparam Executor The executor type used to create any required I/O objects.
  */
-class connection {
+class co_connection {
 public:
    /** @brief Constructor from an executor.
    *
@@ -149,7 +147,7 @@ public:
    *             and customize logging. By default, `logger::level::info` messages
    *             and higher are logged to `stderr`.
    */
-   explicit connection(
+   explicit co_connection(
       capy::execution_context& ctx,
       corosio::tls_context ssl_ctx = {},
       logger lgr = {});
@@ -163,7 +161,7 @@ public:
     *
     * An SSL context with default settings will be created.
     */
-   connection(capy::execution_context& ctx, logger lgr);
+   co_connection(capy::execution_context& ctx, logger lgr);
 
    /** @brief Starts the underlying connection operations.
     *
@@ -420,7 +418,7 @@ public:
    usage get_usage() const noexcept { return impl_->st_.mpx.get_usage(); }
 
 private:
-   std::unique_ptr<detail::corosio_connection_impl> impl_;
+   std::unique_ptr<detail::co_connection_impl> impl_;
 };
 
 }  // namespace boost::redis
