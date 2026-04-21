@@ -35,10 +35,9 @@ inline std::chrono::steady_clock::time_point compute_expiry(
                                : std::chrono::steady_clock::now() + timeout;
 }
 
-inline asio::cancellation_type_t token_to_cancel(std::stop_token tok)
+inline cancellation_type token_to_cancel(std::stop_token tok)
 {
-   return tok.stop_requested() ? asio::cancellation_type_t::terminal
-                               : asio::cancellation_type_t::none;
+   return tok.stop_requested() ? cancellation_type::terminal : cancellation_type::none;
 }
 
 // Run an operation with a timeout, with a zero timeout meaning 'no timeout'

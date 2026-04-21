@@ -7,10 +7,10 @@
 #ifndef BOOST_REDIS_READER_FSM_HPP
 #define BOOST_REDIS_READER_FSM_HPP
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <chrono>
@@ -84,7 +84,7 @@ public:
       connection_state& st,
       std::size_t bytes_read,
       system::error_code ec,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 
    reader_fsm(std::error_condition timeout_cond) noexcept
    : timeout_cond_(timeout_cond)

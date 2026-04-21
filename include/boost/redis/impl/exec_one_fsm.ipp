@@ -17,7 +17,6 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
@@ -30,7 +29,7 @@ exec_one_action exec_one_fsm::resume(
    read_buffer& buffer,
    system::error_code ec,
    std::size_t bytes_transferred,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL

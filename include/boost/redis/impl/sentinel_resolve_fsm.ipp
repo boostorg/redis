@@ -42,7 +42,7 @@ void log_sentinel_error(connection_state& st, std::size_t current_idx, const Arg
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL

@@ -19,7 +19,6 @@
 #include <boost/redis/impl/sentinel_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 namespace boost::redis::detail {
@@ -86,7 +85,7 @@ struct log_traits<any_address_view> {
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL

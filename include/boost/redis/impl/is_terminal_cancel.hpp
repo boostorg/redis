@@ -9,13 +9,13 @@
 #ifndef BOOST_REDIS_IS_TERMINAL_CANCEL_HPP
 #define BOOST_REDIS_IS_TERMINAL_CANCEL_HPP
 
-#include <boost/asio/cancellation_type.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 
 namespace boost::redis::detail {
 
-constexpr bool is_terminal_cancel(asio::cancellation_type_t cancel_state)
+constexpr bool is_terminal_cancel(cancellation_type cancel_state)
 {
-   return (cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none;
+   return contains_terminal(cancel_state);
 }
 
 }  // namespace boost::redis::detail

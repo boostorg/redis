@@ -19,7 +19,6 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/logger.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/error_code.hpp>
@@ -57,7 +56,7 @@ writer_action writer_fsm::resume(
    connection_state& st,
    system::error_code ec,
    std::size_t bytes_written,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL

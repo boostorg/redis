@@ -9,9 +9,9 @@
 #ifndef BOOST_REDIS_RUN_FSM_HPP
 #define BOOST_REDIS_RUN_FSM_HPP
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 // Sans-io algorithm for async_run, as a finite state machine
@@ -60,7 +60,7 @@ public:
    run_action resume(
       connection_state& st,
       system::error_code ec,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 connect_params make_run_connect_params(const connection_state& st);

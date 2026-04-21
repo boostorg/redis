@@ -11,9 +11,9 @@
 
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -82,7 +82,7 @@ public:
    sentinel_action resume(
       connection_state& st,
       system::error_code ec,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 connect_params make_sentinel_connect_params(const config& cfg, const address& sentinel_addr);

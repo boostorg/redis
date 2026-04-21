@@ -9,7 +9,8 @@
 #ifndef BOOST_REDIS_RECEIVE_FSM_HPP
 #define BOOST_REDIS_RECEIVE_FSM_HPP
 
-#include <boost/asio/cancellation_type.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
+
 #include <boost/system/error_code.hpp>
 
 // Sans-io algorithm for async_receive2, as a finite state machine
@@ -50,7 +51,7 @@ public:
    receive_action resume(
       connection_state& st,
       system::error_code ec,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 }  // namespace boost::redis::detail

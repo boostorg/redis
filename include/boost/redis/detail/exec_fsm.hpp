@@ -9,9 +9,9 @@
 #ifndef BOOST_REDIS_EXEC_FSM_HPP
 #define BOOST_REDIS_EXEC_FSM_HPP
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -66,7 +66,7 @@ public:
    exec_action resume(
       bool connection_is_open,
       connection_state& st,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 }  // namespace boost::redis::detail

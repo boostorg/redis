@@ -10,9 +10,9 @@
 #define BOOST_REDIS_EXEC_ONE_FSM_HPP
 
 #include <boost/redis/adapter/any_adapter.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/resp3/parser.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -61,7 +61,7 @@ public:
       read_buffer& buffer,
       system::error_code ec,
       std::size_t bytes_transferred,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 }  // namespace boost::redis::detail

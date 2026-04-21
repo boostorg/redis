@@ -11,15 +11,13 @@
 #include <boost/redis/impl/is_terminal_cancel.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-
 namespace boost::redis::detail {
 
 reader_fsm::action reader_fsm::resume(
    connection_state& st,
    std::size_t bytes_read,
    system::error_code ec,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
