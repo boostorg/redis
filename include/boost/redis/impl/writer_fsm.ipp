@@ -82,7 +82,7 @@ writer_action writer_fsm::resume(
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
                   ec = make_error_code(system::errc::operation_canceled);
-               else if (ec == make_error_code(system::errc::operation_canceled))  // TODO
+               else if (ec == timeout_cond_)
                   ec = error::write_timeout;
 
                // Check for errors

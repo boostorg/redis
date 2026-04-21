@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <system_error>
 
 // Sans-io algorithm for the writer task, as a finite state machine
 
@@ -75,10 +76,13 @@ public:
 };
 
 class writer_fsm {
+   std::error_condition timeout_cond_;
    int resume_point_{0};
 
 public:
-   writer_fsm() = default;
+   writer_fsm(std::error_condition timeout_cond) noexcept
+   : timeout_cond_(timeout_cond)
+   { }
 
    writer_action resume(
       connection_state& st,

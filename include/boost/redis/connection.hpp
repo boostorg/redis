@@ -382,7 +382,8 @@ auto async_sentinel_resolve(connection_impl<Executor>& conn, CompletionToken&& t
 template <class Executor>
 struct writer_op {
    connection_impl<Executor>* conn_;
-   writer_fsm fsm_;
+   // asio timeouts => operation_aborted
+   writer_fsm fsm_{system::error_code(asio::error::operation_aborted).default_error_condition()};
 
    explicit writer_op(connection_impl<Executor>& conn) noexcept
    : conn_(&conn)

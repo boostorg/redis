@@ -11,6 +11,7 @@
 
 #include <boost/assert.hpp>
 #include <boost/capy/concept/io_awaitable.hpp>
+#include <boost/capy/cond.hpp>
 #include <boost/capy/task.hpp>
 #include <boost/capy/timeout.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -277,8 +278,8 @@ inline capy::io_task<> sentinel_resolve(co_connection_impl& conn)
 // This signature is required because capy::when_any is equivalent to wait_for_one_success
 inline capy::io_task<std::error_code> writer(co_connection_impl& conn)
 {
-   // Setup
-   writer_fsm fsm;
+   // Setup.
+   writer_fsm fsm{capy::cond::timeout};
    system::error_code ec;
    std::size_t bytes_written = 0u;
 
