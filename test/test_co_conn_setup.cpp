@@ -6,8 +6,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/connection.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 
@@ -41,34 +41,39 @@ capy::task<void> create_user(
    std::string_view username,
    std::string_view password)
 {
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto exec_fn = [&]() -> capy::task<void> {
+   auto exec_fn = [&]() -> capy::io_task<> {
       // Enable the user and grant them permissions on everything
       request req;
       req.push("ACL", "SETUSER", username, "on", ">" + std::string(password), "~*", "&*", "+@all");
 
       auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, std::error_code());
+
+      co_return {};
    };
 
-   auto run_fn = [&]() -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       config cfg;
       cfg.addr.port = port;
 
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(exec_fn(), run_fn());
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 capy::task<> test_auth_success()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto request_fn = [&] -> capy::task<void> {
+   auto request_fn = [&]() -> capy::io_task<> {
       // This request should return the username we're logged in as
       request req;
       req.push("ACL", "WHOAMI");
@@ -77,9 +82,11 @@ capy::task<> test_auth_success()
       auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, std::error_code());
       BOOST_TEST_EQ(std::get<0>(resp).value(), "myuser");
+
+      co_return {};
    };
 
-   auto run_fn = [&] -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       // These credentials are set up in main, before tests are run
       config cfg;
       cfg.username = "myuser";
@@ -87,9 +94,12 @@ capy::task<> test_auth_success()
 
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(request_fn(), run_fn());
+   auto result = co_await capy::when_any(request_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
@@ -97,7 +107,7 @@ capy::task<> test_auth_failure()
 {
    // Setup
    std::string logs;
-   co_connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
+   co_connection conn{co_await capy::this_coro::executor, make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();
@@ -117,9 +127,9 @@ capy::task<> test_auth_failure()
 capy::task<> test_database_index()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto request_fn = [&] -> capy::task<void> {
+   auto request_fn = [&]() -> capy::io_task<> {
       request req;
       req.push("CLIENT", "INFO");
       response<std::string> resp;
@@ -128,26 +138,31 @@ capy::task<> test_database_index()
 
       BOOST_TEST_EQ(ec, std::error_code());
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "2");
+
+      co_return {};
    };
 
-   auto run_fn = [&] -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       // Use a non-default database index
       auto cfg = make_test_config();
       cfg.database_index = 2;
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(request_fn(), run_fn());
+   auto result = co_await capy::when_any(request_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // The user configured an empty setup request. No request should be sent
 capy::task<> test_setup_empty()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto request_fn = [&] -> capy::task<void> {
+   auto request_fn = [&]() -> capy::io_task<> {
       request req;
       req.push("CLIENT", "INFO");
       response<std::string> resp;
@@ -156,26 +171,31 @@ capy::task<> test_setup_empty()
 
       BOOST_TEST_EQ(ec, std::error_code());
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
+
+      co_return {};
    };
 
-   auto run_fn = [&] -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       auto cfg = make_test_config();
       cfg.use_setup = true;
       cfg.setup.clear();
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(request_fn(), run_fn());
+   auto result = co_await capy::when_any(request_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // We can use the setup member to run commands at startup
 capy::task<> test_setup_hello()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto request_fn = [&] -> capy::task<void> {
+   auto request_fn = [&]() -> capy::io_task<> {
       request req;
       req.push("CLIENT", "INFO");
       response<std::string> resp;
@@ -186,9 +206,11 @@ capy::task<> test_setup_hello()
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "3");  // using RESP3
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "user"), "myuser");
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
+
+      co_return {};
    };
 
-   auto run_fn = [&] -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       auto cfg = make_test_config();
       cfg.use_setup = true;
       cfg.setup.clear();
@@ -196,18 +218,21 @@ capy::task<> test_setup_hello()
       cfg.setup.push("SELECT", 8);
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(request_fn(), run_fn());
+   auto result = co_await capy::when_any(request_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // Running a pipeline without a HELLO is okay (regression check: we set the priority flag)
 capy::task<> test_setup_no_hello()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   auto request_fn = [&] -> capy::task<void> {
+   auto request_fn = [&]() -> capy::io_task<> {
       request req;
       req.push("CLIENT", "INFO");
       response<std::string> resp;
@@ -217,18 +242,23 @@ capy::task<> test_setup_no_hello()
       BOOST_TEST_EQ(ec, std::error_code());
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "resp"), "2");  // using RESP2
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp).value(), "db"), "8");
+
+      co_return {};
    };
 
-   auto run_fn = [&] -> capy::task<void> {
+   auto run_fn = [&]() -> capy::io_task<> {
       auto cfg = make_test_config();
       cfg.use_setup = true;
       cfg.setup.clear();
       cfg.setup.push("SELECT", 8);
       auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+
+      co_return {};
    };
 
-   co_await capy::when_any(request_fn(), run_fn());
+   auto result = co_await capy::when_any(request_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // Verify that we log appropriately (see https://github.com/boostorg/redis/issues/297)
@@ -236,7 +266,7 @@ capy::task<> test_setup_failure()
 {
    // Setup
    std::string logs;
-   co_connection conn{(co_await capy::this_coro::executor).context(), make_string_logger(logs)};
+   co_connection conn{co_await capy::this_coro::executor, make_string_logger(logs)};
 
    // Disable reconnection so the hello error causes the connection to exit
    auto cfg = make_test_config();
