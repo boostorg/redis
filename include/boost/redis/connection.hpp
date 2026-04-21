@@ -420,7 +420,8 @@ struct writer_op {
 template <class Executor>
 struct reader_op {
    connection_impl<Executor>* conn_;
-   reader_fsm fsm_;
+   // asio timeouts => operation_aborted
+   reader_fsm fsm_{system::error_code(asio::error::operation_aborted).default_error_condition()};
 
 public:
    reader_op(connection_impl<Executor>& conn) noexcept

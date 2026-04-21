@@ -12,7 +12,6 @@
 #include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 
 namespace boost::redis::detail {
 
@@ -45,10 +44,10 @@ reader_fsm::action reader_fsm::resume(
             return system::error_code(make_error_code(system::errc::operation_canceled));
          }
 
-         // Translate timeout errors caused by operation_aborted to more legible ones.
+         // Translate timeout errors to more legible ones.
          // A timeout here means that we didn't receive data in time.
          // Note that cancellation is already handled by the above statement.
-         if (ec == asio::error::operation_aborted) {  // TODO
+         if (ec == timeout_cond_) {
             ec = error::pong_timeout;
          }
 

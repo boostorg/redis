@@ -315,7 +315,7 @@ inline capy::io_task<std::error_code> writer(co_connection_impl& conn)
 
 inline capy::io_task<std::error_code> reader(co_connection_impl& conn)
 {
-   reader_fsm fsm;
+   reader_fsm fsm{capy::cond::timeout};
    std::size_t n = 0u;
    system::error_code ec;
 

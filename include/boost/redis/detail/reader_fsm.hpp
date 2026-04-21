@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <system_error>
 
 namespace boost::redis::detail {
 
@@ -85,9 +86,12 @@ public:
       system::error_code ec,
       asio::cancellation_type_t cancel_state);
 
-   reader_fsm() = default;
+   reader_fsm(std::error_condition timeout_cond) noexcept
+   : timeout_cond_(timeout_cond)
+   { }
 
 private:
+   std::error_condition timeout_cond_;
    int resume_point_{0};
    std::pair<consume_result, std::size_t> res_{consume_result::needs_more, 0u};
 };
