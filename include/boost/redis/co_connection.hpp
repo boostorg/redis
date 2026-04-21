@@ -152,6 +152,11 @@ public:
       corosio::tls_context ssl_ctx = {},
       logger lgr = {});
 
+   template <capy::Executor Ex>
+   co_connection(const Ex& ex, corosio::tls_context ssl_ctx = {}, logger lgr = {})
+   : co_connection(ex.context(), std::move(ssl_ctx), std::move(lgr))
+   { }
+
    /** @brief Constructor from an executor and a logger.
     *
     *  @param ex Executor used to create all internal I/O objects.
@@ -162,6 +167,11 @@ public:
     * An SSL context with default settings will be created.
     */
    co_connection(capy::execution_context& ctx, logger lgr);
+
+   template <capy::Executor Ex>
+   co_connection(const Ex& ex, logger lgr)
+   : co_connection(ex.context(), corosio::tls_context{}, std::move(lgr))
+   { }
 
    /** @brief Starts the underlying connection operations.
     *
