@@ -12,17 +12,25 @@ endif()
 
 # Source libraries
 add_library(boost_redis_proto STATIC boost_redis_proto.cpp)
-target_link_libraries(boost_redis_proto PRIVATE boost_redis_project_options)
+target_link_libraries(boost_redis_proto PUBLIC boost_redis_project_options)
 
 add_library(boost_redis_asio STATIC boost_redis_asio.cpp)
-target_link_libraries(boost_redis_asio PRIVATE boost_redis_proto)
+target_link_libraries(boost_redis_asio PUBLIC boost_redis_proto)
 
 add_library(boost_redis_corosio STATIC boost_redis_corosio.cpp)
-target_link_libraries(boost_redis_corosio PRIVATE boost_redis_proto)
+target_link_libraries(boost_redis_corosio PUBLIC boost_redis_proto)
 
 # Test utils
-add_library(boost_redis_tests_common STATIC common.cpp sansio_utils.cpp)
-target_link_libraries(boost_redis_tests_common PRIVATE boost_redis_project_options)
+add_library(boost_redis_tests_proto STATIC common.cpp sansio_utils.cpp)
+target_link_libraries(boost_redis_tests_proto PUBLIC boost_redis_proto)
+target_compile_definitions(boost_redis_tests_proto PUBLIC BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
+
+add_library(boost_redis_tests_asio STATIC asio_common.cpp)
+target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio)
+
+# add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
+# target_link_libraries(boost_redis_tests_corosio PRIVATE boost_redis_corosio)
+
 
 macro(make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")

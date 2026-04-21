@@ -1,38 +1,14 @@
 #include <boost/redis/config.hpp>
 
-#include <boost/capy/ex/run_async.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/corosio/io_context.hpp>
 
 #include "common.hpp"
 
 #include <chrono>
 #include <cstdlib>
 #include <string_view>
-#include <utility>
 
 using namespace std::chrono_literals;
-
-struct run_callback {
-   std::shared_ptr<boost::redis::connection> conn;
-   boost::redis::operation op;
-   boost::system::error_code expected;
-
-   void operator()(boost::system::error_code const& ec) const
-   {
-      std::cout << "async_run: " << ec.message() << std::endl;
-      conn->cancel(op);
-   }
-};
-
-void run(
-   std::shared_ptr<boost::redis::connection> conn,
-   boost::redis::config cfg,
-   boost::system::error_code ec,
-   boost::redis::operation op)
-{
-   conn->async_run(cfg, run_callback{conn, op, ec});
-}
 
 std::string safe_getenv(const char* name, const char* default_value)
 {
@@ -81,22 +57,4 @@ boost::redis::logger make_string_logger(std::string& to)
          to += msg;
          to += '\n';
       }};
-}
-
-void run_coroutine_test(boost::capy::task<void> test)
-{
-   // Set a timeout to the tests, so they don't hang on error
-   bool finished = false;
-   auto wrapper_fn = [test = std::move(test), &finished]() mutable -> boost::capy::task<void> {
-      co_await std::move(test);
-      finished = true;
-   };
-
-   // Actually run the test
-   boost::corosio::io_context ctx;
-   boost::capy::run_async(ctx.get_executor())(wrapper_fn());
-   ctx.run_for(test_timeout);
-
-   // Check that it finished
-   BOOST_TEST(finished);
 }
