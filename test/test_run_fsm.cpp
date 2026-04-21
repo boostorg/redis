@@ -191,7 +191,7 @@ void test_connect_error()
    fix.check_log({
       // clang-format off
       {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
-      {logger::level::info, "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::err,  "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
       {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
       {logger::level::info, "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"          },
       // clang-format on
@@ -224,7 +224,7 @@ void test_connect_error_ssl()
    fix.check_log({
       // clang-format off
       {logger::level::info, "Trying to connect to Redis server at my_hostname:10000 (TLS enabled)"  },
-      {logger::level::info, "Failed to connect to Redis server at my_hostname:10000 (TLS enabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::err,  "Failed to connect to Redis server at my_hostname:10000 (TLS enabled): Connect timeout. [boost.redis:18]"},
       {logger::level::info, "Trying to connect to Redis server at my_hostname:10000 (TLS enabled)"  },
       {logger::level::info, "Connected to Redis server at my_hostname:10000 (TLS enabled)"          },
       // clang-format on
@@ -256,7 +256,7 @@ void test_connect_error_unix()
    fix.check_log({
       // clang-format off
       {logger::level::info, "Trying to connect to Redis server at '/tmp/sock'"  },
-      {logger::level::info, "Failed to connect to Redis server at '/tmp/sock': Connect timeout. [boost.redis:18]"},
+      {logger::level::err,  "Failed to connect to Redis server at '/tmp/sock': Connect timeout. [boost.redis:18]"},
       {logger::level::info, "Trying to connect to Redis server at '/tmp/sock'"  },
       {logger::level::info, "Connected to Redis server at '/tmp/sock'"          },
       // clang-format on
@@ -282,7 +282,7 @@ void test_connect_error_no_reconnect()
    fix.check_log({
       // clang-format off
       {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
-      {logger::level::info, "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::err,  "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
       // clang-format on
    });
 }
@@ -533,10 +533,10 @@ void test_several_reconnections()
    // Log
    fix.check_log({
       // clang-format off
-      {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
-      {logger::level::info, "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
-      {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
-      {logger::level::info, "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"          },
+      {logger::level::info,  "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
+      {logger::level::err,   "Failed to connect to Redis server at 127.0.0.1:6379 (TLS disabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::info,  "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"  },
+      {logger::level::info,  "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"          },
       {logger::level::info,  "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"},
       {logger::level::info,  "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"        },
       {logger::level::debug, "Run: cancelled (2)"                                                }  // clang-format on
@@ -672,9 +672,51 @@ void test_setup_request_server_error()
    fix.check_log({
       {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"},
       {logger::level::info, "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"        },
-      {logger::level::info,
-       "Setup request execution: The server response to the setup request sent during connection "
-       "establishment contains an error. [boost.redis:23] (ERR: wrong command)"                 }
+      {logger::level::err,  "Setup request execution failed: ERR: wrong command"                }
+   });
+}
+
+// If the setup request finishes with another error (e.g. network error), we log it
+void test_setup_request_other_error()
+{
+   // Setup
+   fixture fix;
+   fix.st.diagnostic = "leftover";  // simulate a leftover from previous runs
+   fix.st.cfg.setup.clear();
+   fix.st.cfg.setup.push("HELLO", 3);
+   fix.st.cfg.reconnect_wait_interval = 0s;
+
+   // Run the operation. We connect and launch the tasks
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::connect);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::parallel_group);
+
+   // At this point, the setup request should be already queued.
+   // Simulate the writer
+   BOOST_TEST_EQ(fix.st.mpx.prepare_write(), 1u);
+   BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
+
+   // Simulate a read error
+   read(fix.st.mpx, "*malformed\r\n");
+   error_code ec;
+   auto res = fix.st.mpx.consume(ec);
+   BOOST_TEST_EQ(ec, error::not_a_number);
+   BOOST_TEST(res.first == detail::consume_result::got_response);
+
+   // This will cause the writer to exit
+   act = fix.fsm.resume(fix.st, error::not_a_number, cancellation_type_t::none);
+   BOOST_TEST_EQ(act, run_action_type::cancel_receive);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   BOOST_TEST_EQ(act, error_code(error::not_a_number));
+
+   // Check log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Trying to connect to Redis server at 127.0.0.1:6379 (TLS disabled)"},
+      {logger::level::info, "Connected to Redis server at 127.0.0.1:6379 (TLS disabled)"        },
+      {logger::level::err,  "Setup request execution failed: Can't convert string to number (maybe forgot to upgrade to RESP3?). [boost.redis:2]" },
+      // clang-format on
    });
 }
 
@@ -733,7 +775,7 @@ void test_sentinel_reconnection()
    fix.check_log({
       // clang-format off
       {logger::level::info,  "Trying to connect to Redis server at host1:1000 (TLS disabled)"},
-      {logger::level::info,  "Failed to connect to Redis server at host1:1000 (TLS disabled): Connect timeout. [boost.redis:18]"},
+      {logger::level::err,   "Failed to connect to Redis server at host1:1000 (TLS disabled): Connect timeout. [boost.redis:18]"},
       {logger::level::info,  "Trying to connect to Redis server at host2:2000 (TLS disabled)"},
       {logger::level::info,  "Connected to Redis server at host2:2000 (TLS disabled)"},
       {logger::level::info,  "Setup request execution: success"},
@@ -847,6 +889,7 @@ int main()
    test_setup_request_success();
    test_setup_request_empty();
    test_setup_request_server_error();
+   test_setup_request_other_error();
 
    test_sentinel_reconnection();
    test_sentinel_resolve_error();

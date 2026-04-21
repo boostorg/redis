@@ -30,7 +30,7 @@ reader_fsm::action reader_fsm::resume(
          // Prepare the buffer for the read operation
          ec = st.mpx.prepare_read();
          if (ec) {
-            log_debug(st.logger, "Reader task: error in prepare_read: ", ec);
+            log_err(st.logger, "Error preparing the read buffer: ", ec);
             return {ec};
          }
 
@@ -54,10 +54,9 @@ reader_fsm::action reader_fsm::resume(
          }
 
          // Log what we read
+         log_debug(st.logger, "Reader task: ", bytes_read, " bytes read");
          if (ec) {
-            log_debug(st.logger, "Reader task: ", bytes_read, " bytes read, error: ", ec);
-         } else {
-            log_debug(st.logger, "Reader task: ", bytes_read, " bytes read");
+            log_err(st.logger, "Error reading data from the server: ", ec);
          }
 
          // Process the bytes read, even if there was an error
@@ -78,7 +77,12 @@ reader_fsm::action reader_fsm::resume(
             if (ec) {
                // TODO: Perhaps log what has not been consumed to aid
                // debugging.
-               log_debug(st.logger, "Reader task: error processing message: ", ec);
+               if (ec == error::resp3_hello) {
+                  // This is already logged in the setup adapter
+                  log_debug(st.logger, "Error processing message: setup request error");
+               } else {
+                  log_err(st.logger, "Error processing message: ", ec);
+               }
                return ec;
             }
 
@@ -95,9 +99,10 @@ reader_fsm::action reader_fsm::resume(
                   return system::error_code(capy::error::canceled);
                }
 
-               // Check for other errors
+               // Check for other errors.
+               // We should't get any in the real world, but just in case.
                if (ec) {
-                  log_debug(st.logger, "Reader task: error notifying push receiver: ", ec);
+                  log_err(st.logger, "Error notifying push receiver: ", ec);
                   return ec;
                }
             } else {

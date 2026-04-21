@@ -27,4 +27,4 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
 
 boost::redis::logger make_string_logger(std::string& to);
 
-void run_coroutine_test(boost::capy::task<void> test);
+std::string safe_getenv(const char* name, const char* default_value);

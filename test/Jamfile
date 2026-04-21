@@ -74,6 +74,7 @@ local tests =
     test_generic_flat_response
     test_read_buffer
     test_subscription_tracker
+    test_push_parser
 ;
 
 # Build and run the tests

@@ -82,9 +82,9 @@ The roles played by the `async_run` and `async_exec` functions are:
 Redis servers can also send a variety of pushes to the client. Some of
 them are:
 
-* [Pubsub messages](https://redis.io/docs/manual/pubsub/).
-* [Keyspace notifications](https://redis.io/docs/manual/keyspace-notifications/).
-* [Client-side caching](https://redis.io/docs/manual/client-side-caching/).
+* [Pubsub messages](https://redis.io/docs/latest/develop/pubsub/).
+* [Keyspace notifications](https://redis.io/docs/latest/develop/pubsub/keyspace-notifications/).
+* [Client-side caching](https://redis.io/docs/latest/develop/clients/client-side-caching/).
 
 The connection class supports server pushes by means of the
 `connection::async_receive2` function, which can be
@@ -120,12 +120,19 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
          break;
       }
 
+      // This can happen if a SUBSCRIBE command errored (e.g. insufficient permissions)
+      if (resp.has_error()) {
+         std::cerr << "The receive response contains an error: " << resp.error().diagnostic
+                   << std::endl;
+         break;
+      }
+
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value())
-         std::cout << elem.value << "\n";
-
-      std::cout << std::endl;
+      for (push_view elem : push_parser(resp.value())) {
+         std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
+                   << "\n";
+      }
 
       resp.value().clear();
    }

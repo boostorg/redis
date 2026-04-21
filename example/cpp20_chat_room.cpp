@@ -5,6 +5,7 @@
  */
 
 #include <boost/redis/connection.hpp>
+#include <boost/redis/push_parser.hpp>
 
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -35,6 +36,8 @@ using boost::redis::connection;
 using boost::redis::generic_flat_response;
 using boost::redis::request;
 using boost::system::error_code;
+using boost::redis::push_parser;
+using boost::redis::push_view;
 using namespace std::chrono_literals;
 
 // Chat over Redis pubsub. To test, run this program from multiple
@@ -70,10 +73,19 @@ auto receiver(std::shared_ptr<connection> conn) -> awaitable<void>
          break;
       }
 
+      // This can happen if a SUBSCRIBE command errored (e.g. insufficient permissions)
+      if (resp.has_error()) {
+         std::cerr << "The receive response contains an error: " << resp.error().diagnostic
+                   << std::endl;
+         break;
+      }
+
       // The response must be consumed without suspending the
       // coroutine i.e. without the use of async operations.
-      for (auto const& elem : resp.value())
-         std::cout << elem.value << "\n";
+      for (push_view elem : push_parser(resp.value())) {
+         std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
+                   << "\n";
+      }
 
       std::cout << std::endl;
 

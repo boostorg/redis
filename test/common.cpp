@@ -13,7 +13,28 @@
 
 using namespace std::chrono_literals;
 
-static std::string safe_getenv(const char* name, const char* default_value)
+struct run_callback {
+   std::shared_ptr<boost::redis::connection> conn;
+   boost::redis::operation op;
+   boost::system::error_code expected;
+
+   void operator()(boost::system::error_code const& ec) const
+   {
+      std::cout << "async_run: " << ec.message() << std::endl;
+      conn->cancel(op);
+   }
+};
+
+void run(
+   std::shared_ptr<boost::redis::connection> conn,
+   boost::redis::config cfg,
+   boost::system::error_code ec,
+   boost::redis::operation op)
+{
+   conn->async_run(cfg, run_callback{conn, op, ec});
+}
+
+std::string safe_getenv(const char* name, const char* default_value)
 {
    // MSVC doesn't like getenv
 #ifdef BOOST_MSVC
