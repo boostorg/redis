@@ -19,6 +19,7 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
+#include "corosio_common.hpp"
 
 #include <chrono>
 #include <string>
@@ -26,6 +27,7 @@
 
 namespace capy = boost::capy;
 using namespace boost::redis;
+using detail::run_coroutine_test;
 using error_code = std::error_code;
 using namespace std::chrono_literals;
 

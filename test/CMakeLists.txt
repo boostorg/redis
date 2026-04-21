@@ -26,24 +26,21 @@ target_link_libraries(boost_redis_tests_proto PUBLIC boost_redis_proto)
 target_compile_definitions(boost_redis_tests_proto PUBLIC BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
 add_library(boost_redis_tests_asio STATIC asio_common.cpp)
-target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio)
+target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio boost_redis_tests_proto)
 
-# add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
-# target_link_libraries(boost_redis_tests_corosio PRIVATE boost_redis_corosio)
+add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
+target_link_libraries(boost_redis_tests_corosio PUBLIC boost_redis_corosio boost_redis_tests_proto)
 
-
-macro(make_test TEST_NAME)
+function(make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")
   add_executable(${EXE_NAME} ${TEST_NAME}.cpp)
-  target_link_libraries(${EXE_NAME} PRIVATE
-    boost_redis_src
-    boost_redis_tests_common
-    boost_redis_project_options
-    Boost::unit_test_framework
-  )
+  if (ARGN)
+    target_link_libraries(${EXE_NAME} PRIVATE ${ARGN})
+  endif()
+
   target_compile_definitions(${EXE_NAME} PRIVATE BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
   add_test(NAME ${EXE_NAME} COMMAND ${EXE_NAME})
-endmacro()
+endfunction()
 
 # Unit tests
 make_test(test_low_level)
@@ -79,7 +76,7 @@ make_test(test_conn_exec_error)
 make_test(test_run)
 make_test(test_conn_run_cancel)
 make_test(test_conn_check_health)
-make_test(test_co_check_health)
+make_test(test_co_check_health        boost_redis_tests_corosio)
 make_test(test_conn_exec)
 make_test(test_conn_push)
 make_test(test_conn_push2)
