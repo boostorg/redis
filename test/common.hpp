@@ -8,8 +8,10 @@
 #include <boost/system/error_condition.hpp>
 
 #include <chrono>
+#include <iosfwd>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 // The timeout for tests involving communication to a real server.
 // Some tests use a longer timeout by multiplying this value by some
@@ -27,8 +29,29 @@ boost::redis::logger make_string_logger(std::string& to);
 
 std::string safe_getenv(const char* name, const char* default_value);
 
+// std::error_condition doesn't implement operator<< and is difficult to use in tests
+struct condition_wrapper {
+   std::error_condition value;
+
+   friend bool operator==(const condition_wrapper& lhs, const condition_wrapper& rhs) noexcept
+   {
+      return lhs.value == rhs.value;
+   }
+
+   template <class T>
+   friend bool operator==(const T& lhs, const condition_wrapper& rhs) noexcept
+   {
+      return lhs == rhs.value;
+   }
+
+   template <class T>
+   friend bool operator==(const condition_wrapper& lhs, const T& rhs) noexcept
+   {
+      return lhs.value == rhs;
+   }
+
+   friend std::ostream& operator<<(std::ostream& os, const condition_wrapper& val);
+};
+
 // Reduce verbosity in tests
-constexpr boost::system::error_condition canceled_condition()
-{
-   return boost::system::errc::operation_canceled;
-}
+condition_wrapper canceled_condition();

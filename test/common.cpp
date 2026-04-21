@@ -1,11 +1,13 @@
 #include <boost/redis/config.hpp>
 
+#include <boost/capy/cond.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
 
 #include <chrono>
 #include <cstdlib>
+#include <ostream>
 #include <string_view>
 
 using namespace std::chrono_literals;
@@ -58,3 +60,13 @@ boost::redis::logger make_string_logger(std::string& to)
          to += '\n';
       }};
 }
+
+std::ostream& operator<<(std::ostream& os, const condition_wrapper& val)
+{
+   return os << val.value.category().name() << ':' << val.value.value() << " ("
+             << val.value.message() << ')';
+}
+
+// TODO: this should use std::errc::operation_canceled
+// https://github.com/cppalliance/capy/issues/267
+condition_wrapper canceled_condition() { return {boost::capy::cond::canceled}; }
