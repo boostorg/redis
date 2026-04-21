@@ -12,7 +12,7 @@
 #include <boost/assert/source_location.hpp>
 #include <boost/capy/task.hpp>
 
-namespace boost::redis::detail {
+namespace boost::redis::test {
 
 void run_coroutine_test(capy::task<void> test, source_location loc = BOOST_CURRENT_LOCATION);
 

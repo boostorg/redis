@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-void boost::redis::detail::run_coroutine_test(capy::task<void> test, source_location loc)
+void boost::redis::test::run_coroutine_test(capy::task<void> test, source_location loc)
 {
    // Set a timeout to the tests, so they don't hang on error
    bool finished = false;
