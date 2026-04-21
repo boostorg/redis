@@ -11,6 +11,7 @@
 #include <boost/capy/task.hpp>
 #include <boost/capy/timeout.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/corosio/connect.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -88,14 +89,11 @@ capy::io_task<> corosio_redis_stream::connect(const connect_params& params, buff
          case connect_action_type::done: co_return {act.ec};
          case connect_action_type::tcp_connect:
          {
-            // TODO: range connect
-            socket_.close();
-            socket_.open();
             auto result = co_await capy::timeout(
-               socket_.connect(*endpoints.begin()),
+               corosio::connect(socket_, std::move(endpoints)),
                params.connect_timeout);
             ec = result.ec;
-            act = fsm.resume(ec, *endpoints.begin(), st_);
+            act = fsm.resume(ec, result.get<1>(), st_);
             break;
          }
          default: BOOST_ASSERT(false);
