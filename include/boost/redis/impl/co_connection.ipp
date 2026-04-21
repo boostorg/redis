@@ -7,6 +7,7 @@
 //
 
 #include <boost/redis/co_connection.hpp>
+#include <boost/redis/detail/co_connect_fsm.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/capy/concept/io_awaitable.hpp>
@@ -53,7 +54,7 @@ capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
 
 capy::io_task<> co_redis_stream::connect(const connect_params& params, buffered_logger& l)
 {
-   connect_fsm fsm{l};
+   co_connect_fsm fsm{l};
    system::error_code ec;
    corosio::resolver_results endpoints;
 
@@ -61,13 +62,13 @@ capy::io_task<> co_redis_stream::connect(const connect_params& params, buffered_
 
    while (true) {
       switch (act.type) {
-         case connect_action_type::unix_socket_close:
+         case co_connect_action_type::unix_socket_close:
             BOOST_ASSERT(false);
             co_return {std::make_error_code(std::errc::operation_not_supported)};
-         case connect_action_type::unix_socket_connect:
+         case co_connect_action_type::unix_socket_connect:
             BOOST_ASSERT(false);
             co_return {std::make_error_code(std::errc::operation_not_supported)};
-         case connect_action_type::tcp_resolve:
+         case co_connect_action_type::tcp_resolve:
          {
             auto result = co_await capy::timeout(
                resolv_.resolve(params.addr.tcp_address().host, params.addr.tcp_address().port),
@@ -77,19 +78,19 @@ capy::io_task<> co_redis_stream::connect(const connect_params& params, buffered_
             act = fsm.resume(ec, endpoints, st_);
             break;
          }
-         case connect_action_type::ssl_stream_reset:
+         case co_connect_action_type::ssl_stream_reset:
             stream_.reset();
             act = fsm.resume(ec, st_);
             break;
-         case connect_action_type::ssl_handshake:
+         case co_connect_action_type::ssl_handshake:
             ec = (co_await capy::timeout(
                      stream_.handshake(corosio::tls_stream::handshake_type::client),
                      params.ssl_handshake_timeout))
                     .ec;
             act = fsm.resume(ec, st_);
             break;
-         case connect_action_type::done: co_return {act.ec};
-         case connect_action_type::tcp_connect:
+         case co_connect_action_type::done: co_return {act.ec};
+         case co_connect_action_type::tcp_connect:
          {
             auto result = co_await capy::timeout(
                corosio::connect(socket_, std::move(endpoints)),
@@ -227,8 +228,10 @@ inline capy::io_task<> async_exec_one(
          }
          case exec_one_action_type::read_some:
          {
+            // https://github.com/cppalliance/capy/issues/147
+            auto buff = conn.st_.mpx.get_read_buffer().get_prepared();
             auto [read_ec, read_bytes] = co_await conn.stream_.read_some(
-               capy::make_buffer(conn.st_.mpx.get_read_buffer().get_prepared()));
+               capy::mutable_buffer(buff.data(), buff.size()));
             ec = read_ec;
             bytes = read_bytes;
             break;
@@ -321,8 +324,10 @@ inline capy::io_task<std::error_code> reader(co_connection_impl& conn)
       switch (act.get_type()) {
          case reader_fsm::action::type::read_some:
          {
+            // https://github.com/cppalliance/capy/issues/147
+            auto buff = conn.st_.mpx.get_prepared_read_buffer();
             auto [read_ec, read_bytes] = co_await maybe_timeout(
-               conn.stream_.read_some(capy::make_buffer(conn.st_.mpx.get_prepared_read_buffer())),
+               conn.stream_.read_some(capy::mutable_buffer(buff.data(), buff.size())),
                act.timeout());
             ec = read_ec;
             n = read_bytes;

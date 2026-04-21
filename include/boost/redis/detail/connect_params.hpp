@@ -12,7 +12,7 @@
 // Parameters used by redis_stream::async_connect
 
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/connect_fsm.hpp>
+#include <boost/redis/detail/transport_type.hpp>
 
 #include <chrono>
 #include <string_view>

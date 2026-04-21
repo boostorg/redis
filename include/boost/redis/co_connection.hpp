@@ -12,6 +12,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/co_connect_fsm.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/exec_one_fsm.hpp>
@@ -71,7 +72,7 @@ class co_redis_stream {
    corosio::openssl_stream stream_;  // TODO: make this configurable
    corosio::timer timer_;
    corosio::resolver resolv_;
-   redis_stream_state st_;
+   co_redis_stream_state st_;
 
 public:
    explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)

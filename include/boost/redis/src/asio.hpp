@@ -4,5 +4,5 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/impl/connect_fsm.ipp>
 #include <boost/redis/impl/connection.ipp>
-// #include <boost/redis/impl/connect_fsm.ipp> // TODO

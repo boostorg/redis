@@ -9,62 +9,86 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/detail/connect_fsm.hpp>
 #include <boost/redis/detail/coroutine.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/impl/log_utils.hpp>
 
+#include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/assert.hpp>
-#include <boost/corosio/resolver_results.hpp>
 
-#include <span>
 #include <string>
 
 namespace boost::redis::detail {
 
 // Logging
-inline void format_tcp_endpoint(const corosio::endpoint& ep, std::string& to)
+inline void format_tcp_endpoint(const asio::ip::tcp::endpoint& ep, std::string& to)
 {
    // This formatting is inspired by Asio's endpoint operator<<
-   if (ep.is_v6()) {
+   const auto& addr = ep.address();
+   if (addr.is_v6())
       to += '[';
-      to += ep.v6_address().to_string();
+   to += addr.to_string();
+   if (addr.is_v6())
       to += ']';
-   } else {
-      to += ep.v4_address().to_string();
-   }
    to += ':';
    to += std::to_string(ep.port());
 }
 
 template <>
-struct log_traits<corosio::endpoint> {
-   static inline void log(std::string& to, const corosio::endpoint& value)
+struct log_traits<asio::ip::tcp::endpoint> {
+   static inline void log(std::string& to, const asio::ip::tcp::endpoint& value)
    {
       format_tcp_endpoint(value, to);
    }
 };
 
 template <>
-struct log_traits<std::span<const corosio::resolver_entry>> {
-   static inline void log(std::string& to, std::span<const corosio::resolver_entry> value)
+struct log_traits<asio::ip::tcp::resolver::results_type> {
+   static inline void log(std::string& to, const asio::ip::tcp::resolver::results_type& value)
    {
-      auto iter = value.begin();
-      auto end = value.end();
+      auto iter = value.cbegin();
+      auto end = value.cend();
 
       if (iter != end) {
-         format_tcp_endpoint(iter->get_endpoint(), to);
+         format_tcp_endpoint(iter->endpoint(), to);
          ++iter;
          for (; iter != end; ++iter) {
             to += ", ";
-            format_tcp_endpoint(iter->get_endpoint(), to);
+            format_tcp_endpoint(iter->endpoint(), to);
          }
       }
    }
 };
 
+inline system::error_code translate_timeout_error(
+   system::error_code io_ec,
+   asio::cancellation_type_t cancel_state,
+   error code_if_cancelled)
+{
+   // Translates cancellations and timeout errors into a single error_code.
+   //   - Cancellation state set, and an I/O error: the entire operation was cancelled.
+   //     The I/O code (probably operation_aborted) is appropriate.
+   //   - Cancellation state set, and no I/O error: same as above, but the cancellation
+   //     arrived after the operation completed and before the handler was called. Set the code here.
+   //   - No cancellation state set, I/O error set to operation_aborted: since we use cancel_after,
+   //     this means a timeout.
+   //   - Otherwise, respect the I/O error.
+   if ((cancel_state & asio::cancellation_type_t::terminal) != asio::cancellation_type_t::none) {
+      return io_ec ? io_ec : asio::error::operation_aborted;
+   }
+   return io_ec == asio::error::operation_aborted ? code_if_cancelled : io_ec;
+}
+
 connect_action connect_fsm::resume(
    system::error_code ec,
-   std::span<const corosio::resolver_entry> resolver_results,
-   redis_stream_state& st)
+   const asio::ip::tcp::resolver::results_type& resolver_results,
+   redis_stream_state& st,
+   asio::cancellation_type_t cancel_state)
 {
+   // Translate error codes
+   ec = translate_timeout_error(ec, cancel_state, error::resolve_timeout);
+
    // Log it
    if (ec) {
       log_info(*lgr_, "Connect: hostname resolution failed: ", ec);
@@ -73,14 +97,18 @@ connect_action connect_fsm::resume(
    }
 
    // Delegate to the regular resume function
-   return resume(ec, st);
+   return resume(ec, st, cancel_state);
 }
 
 connect_action connect_fsm::resume(
    system::error_code ec,
-   const corosio::endpoint& selected_endpoint,
-   redis_stream_state& st)
+   const asio::ip::tcp::endpoint& selected_endpoint,
+   redis_stream_state& st,
+   asio::cancellation_type_t cancel_state)
 {
+   // Translate error codes
+   ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
+
    // Log it
    if (ec) {
       log_info(*lgr_, "Connect: TCP connect failed: ", ec);
@@ -89,10 +117,13 @@ connect_action connect_fsm::resume(
    }
 
    // Delegate to the regular resume function
-   return resume(ec, st);
+   return resume(ec, st, cancel_state);
 }
 
-connect_action connect_fsm::resume(system::error_code ec, redis_stream_state& st)
+connect_action connect_fsm::resume(
+   system::error_code ec,
+   redis_stream_state& st,
+   asio::cancellation_type_t cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -103,6 +134,12 @@ connect_action connect_fsm::resume(system::error_code ec, redis_stream_state& st
 
          // Connect to the socket
          BOOST_REDIS_YIELD(resume_point_, 2, connect_action_type::unix_socket_connect)
+
+         // Fix error codes. If we were cancelled and the code is operation_aborted,
+         // it is because per-operation cancellation was activated. If we were not cancelled
+         // but the operation failed with operation_aborted, it's a timeout.
+         // Also check for cancellations that didn't cause a failure
+         ec = translate_timeout_error(ec, cancel_state, error::connect_timeout);
 
          // Log it
          if (ec) {
@@ -132,7 +169,7 @@ connect_action connect_fsm::resume(system::error_code ec, redis_stream_state& st
          // endpoints, and is a specialized resume() that will call this function
          BOOST_REDIS_YIELD(resume_point_, 4, connect_action_type::tcp_resolve)
 
-         // If this failed, we can't continue
+         // If this failed, we can't continue (error code translation already performed here)
          if (ec) {
             return ec;
          }
@@ -141,7 +178,7 @@ connect_action connect_fsm::resume(system::error_code ec, redis_stream_state& st
          // This has a specialized resume(), too
          BOOST_REDIS_YIELD(resume_point_, 5, connect_action_type::tcp_connect)
 
-         // If this failed, we can't continue
+         // If this failed, we can't continue (error code translation already performed here)
          if (ec) {
             return ec;
          }
@@ -152,6 +189,9 @@ connect_action connect_fsm::resume(system::error_code ec, redis_stream_state& st
 
             // Perform the TLS handshake
             BOOST_REDIS_YIELD(resume_point_, 6, connect_action_type::ssl_handshake)
+
+            // Translate error codes
+            ec = translate_timeout_error(ec, cancel_state, error::ssl_handshake_timeout);
 
             // Log it
             if (ec) {
