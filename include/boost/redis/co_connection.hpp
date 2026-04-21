@@ -70,7 +70,6 @@ class co_redis_stream {
    // TODO: UNIX sockets
    corosio::tcp_socket socket_;
    corosio::openssl_stream stream_;  // TODO: make this configurable
-   corosio::timer timer_;
    corosio::resolver resolv_;
    co_redis_stream_state st_;
 
@@ -78,7 +77,6 @@ public:
    explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
    : socket_(ctx)
    , stream_(&socket_, std::move(tls_ctx))
-   , timer_(ctx)
    , resolv_(ctx)
    { }
 
