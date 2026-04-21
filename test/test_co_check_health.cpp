@@ -27,7 +27,7 @@
 
 namespace capy = boost::capy;
 using namespace boost::redis;
-using detail::run_coroutine_test;
+using namespace boost::redis::test;
 using error_code = std::error_code;
 using namespace std::chrono_literals;
 
@@ -54,7 +54,7 @@ capy::task<void> test_reconnection()
       // as unresponsive and triggers a reconnection (it's configured to be cancelled
       // on connection lost).
       auto [ec1] = co_await conn.exec(req1, ignore);
-      BOOST_TEST_EQ(ec1, error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec1, canceled_condition());
 
       // Execute the second request. This one will succeed after reconnection
       auto [ec2] = co_await conn.exec(req2, ignore);
@@ -69,7 +69,7 @@ capy::task<void> test_reconnection()
       cfg.health_check_interval = 500ms;
 
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -88,7 +88,7 @@ capy::task<void> test_error_code()
       req.push("BLPOP", "any", 0);
 
       auto [ec] = co_await conn.exec(req, ignore);
-      BOOST_TEST_EQ(ec, capy::error::canceled);
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -100,7 +100,7 @@ capy::task<void> test_error_code()
       cfg.reconnect_wait_interval = 0s;
 
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, boost::redis::error::pong_timeout);
+      BOOST_TEST_EQ(ec, error::pong_timeout);
 
       co_return {};
    };
@@ -134,7 +134,7 @@ capy::task<void> test_disabled()
       auto cfg = make_test_config();
       cfg.health_check_interval = 0s;
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -165,13 +165,13 @@ capy::task<void> test_flexible()
 
    auto run1_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn1.run(cfg);
-      BOOST_TEST_EQ(ec, capy::error::canceled);
+      BOOST_TEST_EQ(ec, canceled_condition());
       co_return {};
    };
 
    auto run2_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn2.run(cfg);
-      BOOST_TEST_EQ(ec, capy::error::canceled);
+      BOOST_TEST_EQ(ec, canceled_condition());
       co_return {};
    };
 
@@ -200,13 +200,13 @@ capy::task<void> test_flexible()
       while (true) {
          // Publish a message
          auto [ec] = co_await conn2.exec(publish_req, ignore);
-         if (ec == capy::error::canceled)
+         if (ec == canceled_condition())
             co_return {};
          BOOST_TEST_EQ(ec, error_code());
 
          // Wait for some time and publish again
          auto [ec2] = co_await capy::delay(100ms);
-         if (ec2 == capy::error::canceled)
+         if (ec2 == canceled_condition())
             co_return {};
          BOOST_TEST_EQ(ec2, error_code());
       }

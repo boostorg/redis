@@ -3,10 +3,11 @@
 #include <boost/redis/config.hpp>
 #include <boost/redis/logger.hpp>
 
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/system/error_condition.hpp>
 
 #include <chrono>
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -25,3 +26,9 @@ std::string_view find_client_info(std::string_view client_info, std::string_view
 boost::redis::logger make_string_logger(std::string& to);
 
 std::string safe_getenv(const char* name, const char* default_value);
+
+// Reduce verbosity in tests
+constexpr boost::system::error_condition canceled_condition()
+{
+   return boost::system::errc::operation_canceled;
+}
