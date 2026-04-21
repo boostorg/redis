@@ -11,12 +11,12 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/capy/delay.hpp>
 #include <boost/capy/error.hpp>
 #include <boost/capy/ex/this_coro.hpp>
 #include <boost/capy/task.hpp>
 #include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/corosio/timer.hpp>
 
 #include "common.hpp"
 
@@ -35,7 +35,7 @@ namespace {
 capy::task<void> test_reconnection()
 {
    // Setup
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
@@ -78,7 +78,7 @@ capy::task<void> test_reconnection()
 // We use the correct error code when a ping times out
 capy::task<void> test_error_code()
 {
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // This request will block forever, causing the connection to become unresponsive
@@ -109,7 +109,7 @@ capy::task<void> test_error_code()
 // A ping interval of zero disables timeouts (and doesn't cause trouble)
 capy::task<void> test_disabled()
 {
-   co_connection conn{(co_await capy::this_coro::executor).context()};
+   co_connection conn{co_await capy::this_coro::executor};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       // Run a couple of requests to verify that the connection works fine
@@ -155,8 +155,8 @@ std::string make_unique_id()
 capy::task<void> test_flexible()
 {
    // Setup
-   co_connection conn1{(co_await capy::this_coro::executor).context()};
-   co_connection conn2{(co_await capy::this_coro::executor).context()};
+   co_connection conn1{co_await capy::this_coro::executor};
+   co_connection conn2{co_await capy::this_coro::executor};
    auto cfg = make_test_config();
    cfg.health_check_interval = 500ms;
    std::string channel_name = make_unique_id();
@@ -195,8 +195,6 @@ capy::task<void> test_flexible()
       request publish_req;
       publish_req.push("PUBLISH", channel_name, "test_health_check_flexible");
 
-      boost::corosio::timer timer{(co_await capy::this_coro::executor).context()};
-
       while (true) {
          // Publish a message
          auto [ec] = co_await conn2.exec(publish_req, ignore);
@@ -205,8 +203,7 @@ capy::task<void> test_flexible()
          BOOST_TEST_EQ(ec, error_code());
 
          // Wait for some time and publish again
-         timer.expires_after(100ms);
-         auto [ec2] = co_await timer.wait();
+         auto [ec2] = co_await capy::delay(100ms);
          if (ec2 == capy::error::canceled)
             co_return {};
          BOOST_TEST_EQ(ec2, error_code());
