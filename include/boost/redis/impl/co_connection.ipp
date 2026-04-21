@@ -351,7 +351,8 @@ inline capy::io_task<std::error_code> reader(co_connection_impl& conn)
 
 inline capy::io_task<std::error_code> run(co_connection_impl& conn)
 {
-   run_fsm fsm;
+   constexpr bool unix_sockets_supported = false;  // TODO
+   run_fsm fsm{unix_sockets_supported};
    system::error_code ec;
 
    while (true) {

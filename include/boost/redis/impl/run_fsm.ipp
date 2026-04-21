@@ -20,21 +20,19 @@
 #include <boost/redis/impl/setup_request_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-// #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS, TODO
 #include <boost/system/error_code.hpp>
 
 namespace boost::redis::detail {
 
-inline system::error_code check_config(const config& cfg)
+inline system::error_code check_config(const config& cfg, bool unix_sockets_supported)
 {
    if (!cfg.unix_socket.empty()) {
       if (cfg.use_ssl)
          return error::unix_sockets_ssl_unsupported;
       if (use_sentinel(cfg))
          return error::sentinel_unix_sockets_unsupported;
-#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      return error::unix_sockets_unsupported;
-#endif
+      if (!unix_sockets_supported)
+         return error::unix_sockets_unsupported;
    }
    return system::error_code{};
 }
@@ -94,7 +92,7 @@ run_action run_fsm::resume(
       BOOST_REDIS_CORO_INITIAL
 
       // Check config
-      ec = check_config(st.cfg);
+      ec = check_config(st.cfg, unix_sockets_supported_);
       if (ec) {
          log_err(st.logger, "Invalid configuration: ", ec);
          stored_ec_ = ec;

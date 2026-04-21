@@ -461,7 +461,7 @@ template <class Executor>
 class run_op {
 private:
    connection_impl<Executor>* conn_;
-   run_fsm fsm_{};
+   run_fsm fsm_{unix_sockets_supported()};
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)

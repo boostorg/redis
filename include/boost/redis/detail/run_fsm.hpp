@@ -48,11 +48,14 @@ struct run_action {
 };
 
 class run_fsm {
+   bool unix_sockets_supported_;
    int resume_point_{0};
    system::error_code stored_ec_;
 
 public:
-   run_fsm() = default;
+   run_fsm(bool unix_sockets_supported) noexcept
+   : unix_sockets_supported_(unix_sockets_supported)
+   { }
 
    run_action resume(
       connection_state& st,
