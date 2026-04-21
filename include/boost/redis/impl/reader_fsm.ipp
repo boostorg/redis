@@ -12,8 +12,8 @@
 #include <boost/redis/impl/log_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/capy/cond.hpp>
+#include <boost/capy/error.hpp>
 
 namespace boost::redis::detail {
 
@@ -49,7 +49,7 @@ reader_fsm::action reader_fsm::resume(
          // Translate timeout errors caused by canceled to more legible ones.
          // A timeout here means that we didn't receive data in time.
          // Note that cancellation is already handled by the above statement.
-         if (ec == capy::cond::canceled) {
+         if (ec == capy::cond::timeout) {
             ec = error::pong_timeout;
          }
 

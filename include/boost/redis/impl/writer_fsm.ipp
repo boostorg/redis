@@ -19,9 +19,9 @@
 #include <boost/redis/logger.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/capy/cond.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -82,7 +82,7 @@ writer_action writer_fsm::resume(
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
                   ec = capy::error::canceled;
-               else if (ec == capy::cond::canceled)
+               else if (ec == capy::cond::timeout)
                   ec = error::write_timeout;
 
                // Check for errors
