@@ -12,10 +12,11 @@
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 
 #include <boost/assert.hpp>
-#include <boost/capy/error.hpp>
+#include <boost/system/errc.hpp>
 
 namespace boost::redis::detail {
 
@@ -83,7 +84,7 @@ exec_action exec_fsm::resume(
             is_partial_or_terminal_cancel(cancel_state)) {
             st.mpx.cancel(elem_);
             elem_.reset();  // Deallocate memory before finalizing
-            return exec_action{capy::error::canceled};
+            return exec_action{make_error_code(system::errc::operation_canceled)};
          }
       }
    }

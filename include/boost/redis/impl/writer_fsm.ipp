@@ -21,8 +21,7 @@
 
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/assert.hpp>
-#include <boost/capy/cond.hpp>
-#include <boost/capy/error.hpp>
+#include <boost/system/detail/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -82,13 +81,13 @@ writer_action writer_fsm::resume(
 
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
-                  ec = capy::error::canceled;
-               else if (ec == capy::cond::timeout)
+                  ec = make_error_code(system::errc::operation_canceled);
+               else if (ec == make_error_code(system::errc::operation_canceled))  // TODO
                   ec = error::write_timeout;
 
                // Check for errors
                if (ec) {
-                  if (ec == capy::cond::canceled) {
+                  if (ec == system::errc::operation_canceled) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
                   } else {
                      log_err(st.logger, "Error writing data to the server: ", ec);
@@ -108,7 +107,7 @@ writer_action writer_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Writer task: cancelled (2).");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // If we weren't notified, it's because there is no data and we should send a health check

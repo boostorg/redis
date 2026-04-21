@@ -5,10 +5,10 @@
  */
 
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
 
-#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 
 #include <cstddef>
@@ -243,7 +243,7 @@ std::size_t multiplexer::cancel_waiting()
    auto const ret = std::distance(point, std::end(reqs_));
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-      ptr->notify_error({capy::error::canceled});
+      ptr->notify_error({make_error_code(system::errc::operation_canceled)});
    });
 
    reqs_.erase(point, std::end(reqs_));
@@ -276,7 +276,7 @@ void multiplexer::cancel_on_conn_lost()
    auto point = std::stable_partition(std::begin(reqs_), std::end(reqs_), cond);
 
    std::for_each(point, std::end(reqs_), [](auto const& ptr) {
-      ptr->notify_error({capy::error::canceled});
+      ptr->notify_error({make_error_code(system::errc::operation_canceled)});
    });
 
    reqs_.erase(point, std::end(reqs_));

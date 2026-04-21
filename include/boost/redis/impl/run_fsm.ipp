@@ -20,8 +20,7 @@
 #include <boost/redis/impl/setup_request_utils.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/capy/error.hpp>
-// #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
+// #include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS, TODO
 #include <boost/system/error_code.hpp>
 
 namespace boost::redis::detail {
@@ -126,7 +125,7 @@ run_action run_fsm::resume(
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
                log_debug(st.logger, "Run: cancelled (4)");
-               return {capy::error::canceled};
+               return {make_error_code(system::errc::operation_canceled)};
             }
 
             // Check for errors
@@ -141,7 +140,7 @@ run_action run_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (1)");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          if (ec) {
@@ -193,7 +192,7 @@ run_action run_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (2)");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
 sleep_and_reconnect:
@@ -209,7 +208,7 @@ sleep_and_reconnect:
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (3)");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
       }
    }

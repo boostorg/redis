@@ -18,8 +18,8 @@
 #include <boost/redis/resp3/parser.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -40,7 +40,7 @@ exec_one_action exec_one_fsm::resume(
 
       // Errors and cancellations
       if (is_terminal_cancel(cancel_state))
-         return system::error_code{capy::error::canceled};
+         return make_error_code(system::errc::operation_canceled);
       if (ec)
          return ec;
 
@@ -61,7 +61,7 @@ exec_one_action exec_one_fsm::resume(
 
          // Errors and cancellations
          if (is_terminal_cancel(cancel_state))
-            return system::error_code{capy::error::canceled};
+            return make_error_code(system::errc::operation_canceled);
          if (ec)
             return ec;
 

@@ -20,7 +20,6 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>
 
-#include <boost/capy/error.hpp>
 #include <boost/assert.hpp>
 
 #include <cstddef>
@@ -69,7 +68,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Sentinel resolve: cancelled (1)");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // Check for errors
@@ -86,7 +85,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Sentinel resolve: cancelled (2)");
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // Check for errors

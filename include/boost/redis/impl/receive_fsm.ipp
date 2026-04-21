@@ -11,7 +11,6 @@
 #include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/error.hpp>
 
-#include <boost/capy/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/assert.hpp>
 
@@ -63,7 +62,7 @@ receive_action receive_fsm::resume(
          // Check for cancellations
          if (is_any_cancel(cancel_state) || st.receive2_cancelled) {
             st.receive2_running = false;
-            return system::error_code(capy::error::canceled);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // If we get any unknown errors, propagate them (shouldn't happen, but just in case)
