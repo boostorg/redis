@@ -25,6 +25,8 @@ make_testable_example(cpp20_unix_sockets examples_main)
 make_testable_example(cpp20_timeouts     examples_main)
 make_testable_example(cpp20_sentinel     examples_main)
 
+make_testable_example(corosio_intro)
+
 make_example(cpp20_subscriber  examples_main)
 make_example(cpp20_streams     examples_main)
 make_example(cpp20_echo_server examples_main)
