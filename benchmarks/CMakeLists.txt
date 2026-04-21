@@ -1,6 +1,6 @@
 
 add_library(benchmarks_options INTERFACE)
-target_link_libraries(benchmarks_options INTERFACE boost_redis_src)
+target_link_libraries(benchmarks_options INTERFACE boost_redis_asio)
 target_link_libraries(benchmarks_options INTERFACE boost_redis_project_options)
 target_compile_features(benchmarks_options INTERFACE cxx_std_20)
 

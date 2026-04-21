@@ -10,8 +10,15 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL 
   target_compile_options(boost_redis_project_options INTERFACE -Wall -Wextra -Werror)
 endif()
 
-add_library(boost_redis_src STATIC boost_redis.cpp)
-target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
+# Source libraries
+add_library(boost_redis_proto STATIC boost_redis_proto.cpp)
+target_link_libraries(boost_redis_proto PRIVATE boost_redis_project_options)
+
+add_library(boost_redis_asio STATIC boost_redis_asio.cpp)
+target_link_libraries(boost_redis_asio PRIVATE boost_redis_proto)
+
+add_library(boost_redis_corosio STATIC boost_redis_corosio.cpp)
+target_link_libraries(boost_redis_corosio PRIVATE boost_redis_proto)
 
 # Test utils
 add_library(boost_redis_tests_common STATIC common.cpp sansio_utils.cpp)
