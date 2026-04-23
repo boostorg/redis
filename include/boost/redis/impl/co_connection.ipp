@@ -8,17 +8,44 @@
 
 #include <boost/redis/co_connection.hpp>
 #include <boost/redis/detail/co_connect_fsm.hpp>
+#include <boost/redis/detail/connect_params.hpp>
+#include <boost/redis/detail/connection_state.hpp>
+#include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/detail/exec_one_fsm.hpp>
+#include <boost/redis/detail/flow_controller.hpp>
+#include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/detail/reader_fsm.hpp>
+#include <boost/redis/detail/receive_fsm.hpp>
+#include <boost/redis/detail/run_fsm.hpp>
+#include <boost/redis/detail/sentinel_resolve_fsm.hpp>
+#include <boost/redis/detail/writer_fsm.hpp>
 
 #include <boost/assert.hpp>
+#include <boost/capy/buffers.hpp>
+#include <boost/capy/buffers/make_buffer.hpp>
 #include <boost/capy/concept/io_awaitable.hpp>
 #include <boost/capy/cond.hpp>
+#include <boost/capy/ex/async_event.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_result.hpp>
+#include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
 #include <boost/capy/timeout.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/capy/write.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/corosio/connect.hpp>
+#include <boost/corosio/openssl_stream.hpp>
+#include <boost/corosio/resolver.hpp>
+#include <boost/corosio/resolver_results.hpp>
+#include <boost/corosio/tcp_socket.hpp>
+#include <boost/corosio/timer.hpp>
+#include <boost/corosio/tls_stream.hpp>
 
 #include <chrono>
 #include <cstddef>
+#include <memory>
+#include <stop_token>
 #include <system_error>
 #include <tuple>
 #include <utility>
@@ -26,6 +53,64 @@
 
 namespace boost::redis {
 namespace detail {
+
+class co_redis_stream {
+   // TODO: UNIX sockets
+   corosio::tcp_socket socket_;
+   corosio::openssl_stream stream_;  // TODO: make this configurable
+   corosio::resolver resolv_;
+   co_redis_stream_state st_;
+
+public:
+   explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
+   : socket_(ctx)
+   , stream_(&socket_, std::move(tls_ctx))
+   , resolv_(ctx)
+   { }
+
+   // I/O
+   capy::io_task<> connect(const connect_params& params, buffered_logger& l);
+
+   template <capy::ConstBufferSequence BuffType>
+   capy::io_task<std::size_t> write_some(const BuffType& buffers)
+   {
+      switch (st_.type) {
+         case transport_type::tcp:         co_return co_await socket_.write_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_.write_some(buffers);
+         case transport_type::unix_socket:
+         default:                          BOOST_ASSERT(false); co_return {};
+      }
+   }
+
+   template <capy::MutableBufferSequence BuffType>
+   capy::io_task<std::size_t> read_some(const BuffType& buffers)
+   {
+      switch (st_.type) {
+         case transport_type::tcp:         co_return co_await socket_.read_some(buffers);
+         case transport_type::tcp_tls:     co_return co_await stream_.read_some(buffers);
+         case transport_type::unix_socket:
+         default:                          BOOST_ASSERT(false); co_return {};
+      }
+   }
+};
+
+struct co_connection_impl {
+   capy::async_event run_cancelled_event_;
+   co_redis_stream stream_;
+   corosio::timer writer_timer_;     // timer used for write timeouts
+   corosio::timer writer_cv_;        // set when there is new data to write
+   corosio::timer reader_timer_;     // timer used for read timeouts
+   corosio::timer reconnect_timer_;  // to wait the reconnection period
+   corosio::timer ping_timer_;       // to wait between pings
+   flow_controller controller_;
+   connection_state st_;
+
+   co_connection_impl(capy::execution_context& ctx, corosio::tls_context&& ssl_ctx, logger&& lgr);
+
+   capy::io_task<> exec(request const& req, any_adapter adapter);
+
+   void set_receive_adapter(any_adapter adapter);
+};
 
 // Given a timeout value, compute the expiry time. A zero timeout is considered to mean "no timeout"
 inline std::chrono::steady_clock::time_point compute_expiry(
@@ -379,6 +464,10 @@ co_connection::co_connection(capy::execution_context& ctx, logger lgr)
 : co_connection(ctx, {}, std::move(lgr))
 { }
 
+co_connection::co_connection(co_connection&&) noexcept = default;
+co_connection& co_connection::operator=(co_connection&&) noexcept = default;
+co_connection::~co_connection() = default;
+
 capy::io_task<> co_connection::run(config const& cfg)
 {
    impl_->st_.cfg = cfg;
@@ -387,5 +476,17 @@ capy::io_task<> co_connection::run(config const& cfg)
 }
 
 capy::io_task<> co_connection::receive() { return detail::receive(*impl_); }
+
+capy::io_task<> co_connection::exec(request const& req, any_adapter adapter)
+{
+   return impl_->exec(req, std::move(adapter));
+}
+
+void co_connection::set_receive_response(any_adapter resp)
+{
+   impl_->set_receive_adapter(std::move(resp));
+}
+
+usage co_connection::get_usage() const noexcept { return impl_->st_.mpx.get_usage(); }
 
 }  // namespace boost::redis

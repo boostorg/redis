@@ -9,118 +9,24 @@
 #ifndef BOOST_REDIS_CO_CONNECTION_HPP
 #define BOOST_REDIS_CO_CONNECTION_HPP
 
-#include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/detail/co_connect_fsm.hpp>
-#include <boost/redis/detail/connection_state.hpp>
-#include <boost/redis/detail/exec_fsm.hpp>
-#include <boost/redis/detail/exec_one_fsm.hpp>
-#include <boost/redis/detail/flow_controller.hpp>
-#include <boost/redis/detail/multiplexer.hpp>
-#include <boost/redis/detail/reader_fsm.hpp>
-#include <boost/redis/detail/receive_fsm.hpp>
-#include <boost/redis/detail/run_fsm.hpp>
-#include <boost/redis/detail/sentinel_resolve_fsm.hpp>
-#include <boost/redis/detail/writer_fsm.hpp>
-#include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
-#include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
-#include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 #include <boost/redis/usage.hpp>
 
-#include <boost/assert.hpp>
-#include <boost/capy/buffers.hpp>
-#include <boost/capy/buffers/make_buffer.hpp>
-#include <boost/capy/error.hpp>
-#include <boost/capy/ex/async_event.hpp>
 #include <boost/capy/ex/execution_context.hpp>
-#include <boost/capy/ex/this_coro.hpp>
-#include <boost/capy/io_result.hpp>
 #include <boost/capy/io_task.hpp>
-#include <boost/capy/task.hpp>
-#include <boost/capy/when_any.hpp>
-#include <boost/capy/write.hpp>
-#include <boost/config.hpp>
-#include <boost/core/ignore_unused.hpp>
-#include <boost/corosio/openssl_stream.hpp>
-#include <boost/corosio/resolver.hpp>
-#include <boost/corosio/resolver_results.hpp>
-#include <boost/corosio/tcp_socket.hpp>
-#include <boost/corosio/timer.hpp>
 #include <boost/corosio/tls_context.hpp>
-#include <boost/corosio/tls_stream.hpp>
 
-#include <array>
-#include <chrono>
-#include <cstddef>
 #include <memory>
-#include <stop_token>
-#include <string>
-#include <system_error>
 #include <utility>
 
 namespace boost::redis {
 namespace detail {
 
-class co_redis_stream {
-   // TODO: UNIX sockets
-   corosio::tcp_socket socket_;
-   corosio::openssl_stream stream_;  // TODO: make this configurable
-   corosio::resolver resolv_;
-   co_redis_stream_state st_;
-
-public:
-   explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
-   : socket_(ctx)
-   , stream_(&socket_, std::move(tls_ctx))
-   , resolv_(ctx)
-   { }
-
-   // I/O
-   capy::io_task<> connect(const connect_params& params, buffered_logger& l);
-
-   template <capy::ConstBufferSequence BuffType>
-   capy::io_task<std::size_t> write_some(const BuffType& buffers)
-   {
-      switch (st_.type) {
-         case transport_type::tcp:         co_return co_await socket_.write_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_.write_some(buffers);
-         case transport_type::unix_socket:
-         default:                          BOOST_ASSERT(false); co_return {};
-      }
-   }
-
-   template <capy::MutableBufferSequence BuffType>
-   capy::io_task<std::size_t> read_some(const BuffType& buffers)
-   {
-      switch (st_.type) {
-         case transport_type::tcp:         co_return co_await socket_.read_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_.read_some(buffers);
-         case transport_type::unix_socket:
-         default:                          BOOST_ASSERT(false); co_return {};
-      }
-   }
-};
-
-struct co_connection_impl {
-   co_redis_stream stream_;
-   corosio::timer writer_timer_;     // timer used for write timeouts
-   corosio::timer writer_cv_;        // set when there is new data to write
-   corosio::timer reader_timer_;     // timer used for read timeouts
-   corosio::timer reconnect_timer_;  // to wait the reconnection period
-   corosio::timer ping_timer_;       // to wait between pings
-   flow_controller controller_;
-   connection_state st_;
-
-   co_connection_impl(capy::execution_context& ctx, corosio::tls_context&& ssl_ctx, logger&& lgr);
-
-   capy::io_task<> exec(request const& req, any_adapter adapter);
-
-   void set_receive_adapter(any_adapter adapter);
-};
+struct co_connection_impl;
 
 }  // namespace detail
 
@@ -167,6 +73,12 @@ public:
    co_connection(const Ex& ex, logger lgr)
    : co_connection(ex.context(), corosio::tls_context{}, std::move(lgr))
    { }
+
+   co_connection(co_connection&&) noexcept;
+   co_connection& operator=(co_connection&&) noexcept;
+   co_connection(const co_connection&) = delete;
+   co_connection& operator=(const co_connection&) = delete;
+   ~co_connection();
 
    /** @brief Starts the underlying connection operations.
     *
@@ -273,7 +185,7 @@ public:
     * @code
     * asio::awaitable<void> receiver()
     * {
-    *    // Do NOT do this!!! The receive buffer might get full while 
+    *    // Do NOT do this!!! The receive buffer might get full while
     *    // async_exec runs, which will block all read operations until async_receive2
     *    // is called. The two operations end up waiting each other, making the connection unresponsive.
     *    // If you need to do this, use two connections, instead.
@@ -398,16 +310,13 @@ public:
     * @param adapter An adapter object referencing a response to place data into.
     * @param token Completion token.
     */
-   capy::io_task<> exec(request const& req, any_adapter adapter)
-   {
-      return impl_->exec(req, std::move(adapter));
-   }
+   capy::io_task<> exec(request const& req, any_adapter adapter);
 
    /// Sets the response object of @ref async_receive2 operations.
-   void set_receive_response(any_adapter resp) { impl_->set_receive_adapter(std::move(resp)); }
+   void set_receive_response(any_adapter resp);
 
    /// Returns connection usage information.
-   usage get_usage() const noexcept { return impl_->st_.mpx.get_usage(); }
+   usage get_usage() const noexcept;
 
 private:
    std::unique_ptr<detail::co_connection_impl> impl_;
@@ -415,4 +324,4 @@ private:
 
 }  // namespace boost::redis
 
-#endif  // BOOST_REDIS_CONNECTION_HPP
+#endif  // BOOST_REDIS_CO_CONNECTION_HPP
