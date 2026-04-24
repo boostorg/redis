@@ -91,6 +91,7 @@ make_test(test_issue_50)
 make_test(test_conversions)
 make_test(test_conn_tls)
 make_test(test_unix_sockets)
+make_test(test_co_unix_sockets)
 make_test(test_conn_cancel_after)
 make_test(test_conn_sentinel)
 

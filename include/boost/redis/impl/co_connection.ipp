@@ -45,7 +45,6 @@
 #include <boost/corosio/tcp_socket.hpp>
 #include <boost/corosio/timer.hpp>
 #include <boost/corosio/tls_context.hpp>
-#include <boost/corosio/tls_stream.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -452,7 +451,8 @@ struct co_connection_impl {
 
    capy::io_task<> run(const config& cfg)
    {
-      constexpr bool unix_sockets_supported = false;  // TODO
+      // corosio only runs in systems that support UNIX sockets
+      constexpr bool unix_sockets_supported = true;
       run_fsm fsm{unix_sockets_supported};
       system::error_code ec;
 
