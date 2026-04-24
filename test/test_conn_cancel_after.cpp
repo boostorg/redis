@@ -40,7 +40,7 @@ void test_run()
 
    // Call the function with a very short timeout
    conn.async_run(make_test_config(), asio::cancel_after(1ms, [&](error_code ec) {
-                     BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+                     BOOST_TEST_EQ(ec, canceled_condition());
                      run_finished = true;
                   }));
 
@@ -63,7 +63,7 @@ void test_exec()
    // Call the function with a very short timeout.
    // The connection is not being run, so these can't succeed
    conn.async_exec(req, ignore, asio::cancel_after(1ms, [&](error_code ec, std::size_t) {
-                      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+                      BOOST_TEST_EQ(ec, canceled_condition());
                       exec_finished = true;
                    }));
 
@@ -105,7 +105,7 @@ void test_receive2()
 
    // Call the function with a very short timeout.
    conn.async_receive2(asio::cancel_after(1ms, [&](error_code ec) {
-      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       receive_finished = true;
    }));
 

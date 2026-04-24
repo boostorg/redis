@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(exec_default_ssl_context)
 
    conn.async_run(cfg, {}, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(exec_custom_ssl_context)
 
    conn.async_run(cfg, {}, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(reconnection)
    // Run the connection
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    });
 
    // The PING is the end of the callback chain

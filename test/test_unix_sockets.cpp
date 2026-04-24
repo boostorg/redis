@@ -48,7 +48,7 @@ void test_exec()
    // Run the connection
    conn.async_run(cfg, {}, [&run_finished](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    // Execute a request
@@ -93,7 +93,7 @@ void test_reconnection()
    // Run the connection
    conn.async_run(cfg, {}, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    // The PING is the end of the callback chain
@@ -138,13 +138,13 @@ void test_switch_between_transports()
    auto on_run_tls_2 = [&](error_code ec) {
       finished = true;
       std::cout << "Run (TCP/TLS 2) finished\n";
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
 
    // After UNIX sockets, switch back to TCP/tLS
    auto on_run_unix = [&](error_code ec) {
       std::cout << "Run (UNIX) finished\n";
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       // Change to using TCP with TLS again
       conn.async_run(unix_cfg, {}, on_run_tls_2);
@@ -159,7 +159,7 @@ void test_switch_between_transports()
    // After TCP/TLS, change to UNIX sockets
    auto on_run_tls_1 = [&](error_code ec) {
       std::cout << "Run (TCP/TLS 1) finished\n";
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       conn.async_run(unix_cfg, {}, on_run_unix);
       conn.async_exec(req, res2, [&](error_code ec, std::size_t) {

@@ -79,7 +79,7 @@ void test_async_receive2_waiting_for_push()
    });
 
    conn.async_run(make_test_config(), [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -123,7 +123,7 @@ void test_async_receive2_push_available()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -155,7 +155,7 @@ void test_async_receive2_batch()
    // 2. Receive both of them
    // 3. Check that receive2 has consumed them by calling it again
    auto on_receive2 = [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       receive_finished = true;
       conn.cancel();
    };
@@ -173,7 +173,7 @@ void test_async_receive2_batch()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -241,7 +241,7 @@ void test_async_receive2_subsequent_calls()
          start_subscribe1();
          conn.async_run(make_test_config(), [&](error_code ec) {
             run_finished = true;
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+            BOOST_TEST_EQ(ec, canceled_condition());
          });
 
          ioc.run_for(test_timeout);
@@ -267,7 +267,7 @@ void test_async_receive2_per_operation_cancellation(
    bool receive_finished = false;
 
    conn.async_receive2(net::bind_cancellation_slot(sig.slot(), [&](error_code ec) {
-      if (!BOOST_TEST_EQ(ec, net::error::operation_aborted))
+      if (!BOOST_TEST_EQ(ec, canceled_condition()))
          std::cerr << "With cancellation type " << name << std::endl;
       receive_finished = true;
    }));
@@ -290,7 +290,7 @@ void test_async_receive2_connection_cancel()
    bool receive_finished = false;
 
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       receive_finished = true;
    });
 
@@ -354,7 +354,7 @@ void test_async_receive2_reconnection()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -398,7 +398,7 @@ void test_exec_push_interleaved()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -436,14 +436,14 @@ void test_push_adapter_error()
 
    // We cancel receive when run exits
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       receive_finished = true;
    });
 
    // The request is cancelled because the PING response isn't processed
    // by the time the error is generated
    conn.async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       exec_finished = true;
    });
 
@@ -483,7 +483,7 @@ void test_push_adapter_error_reconnection()
 
    // async_receive2 is cancelled every reconnection cycle
    conn.async_receive2([&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       push_received = true;
    });
 
@@ -497,12 +497,12 @@ void test_push_adapter_error_reconnection()
    // The request is cancelled because the PING response isn't processed
    // by the time the error is generated
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       conn.async_exec(req2, resp, on_exec2);
    });
 
    conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -524,7 +524,7 @@ void test_push_consumer()
    std::function<void()> launch_push_consumer = [&]() {
       conn.async_receive2([&](error_code ec) {
          if (ec) {
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+            BOOST_TEST_EQ(ec, canceled_condition());
             push_consumer_finished = true;
             resp.clear();
             return;
@@ -592,7 +592,7 @@ void test_push_consumer()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -658,7 +658,7 @@ void test_unsubscribe()
    conn.async_exec(req_subscribe, resp_subscribe, on_subscribe);
 
    conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -816,7 +816,7 @@ struct test_pubsub_state_restoration_impl {
       // Start running
       bool run_finished = false;
       conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         BOOST_TEST_EQ(ec, canceled_condition());
          run_finished = true;
       });
 

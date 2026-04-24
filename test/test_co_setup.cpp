@@ -59,7 +59,7 @@ capy::task<void> create_user(
       cfg.addr.port = port;
 
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -93,7 +93,7 @@ capy::task<> test_auth_success()
       cfg.password = "mypass";
 
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -147,7 +147,7 @@ capy::task<> test_database_index()
       auto cfg = make_test_config();
       cfg.database_index = 2;
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -180,7 +180,7 @@ capy::task<> test_setup_empty()
       cfg.use_setup = true;
       cfg.setup.clear();
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -217,7 +217,7 @@ capy::task<> test_setup_hello()
       cfg.setup.push("HELLO", "3", "AUTH", "myuser", "mypass");
       cfg.setup.push("SELECT", 8);
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };
@@ -252,7 +252,7 @@ capy::task<> test_setup_no_hello()
       cfg.setup.clear();
       cfg.setup.push("SELECT", 8);
       auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, std::error_code(capy::error::canceled));
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       co_return {};
    };

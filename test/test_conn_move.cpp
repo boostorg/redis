@@ -43,7 +43,7 @@ void test_conn_move_construct()
    // Run the connection
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    // Launch a PING
@@ -78,7 +78,7 @@ void test_conn_move_assign_while_running()
    // Run the connection
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    // Launch a PING. When it finishes, conn will be moved-from, and conn2 will be valid

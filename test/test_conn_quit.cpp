@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(test_async_run_exits)
    auto c3 = [&](error_code ec, std::size_t) {
       c3_called = true;
       std::clog << "c3: " << ec.message() << std::endl;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    };
 
    auto c2 = [&](error_code ec, std::size_t) {

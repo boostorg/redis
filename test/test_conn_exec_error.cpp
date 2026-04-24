@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(issue_287_generic_response_error_then_success)
    bool run_finished = false, exec_finished = false;
 
    conn.async_run(cfg, [&](error_code ec) {
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
       run_finished = true;
    });
 

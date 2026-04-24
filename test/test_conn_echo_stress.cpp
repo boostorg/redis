@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(echo_stress)
    bool run_finished = false, subscribe_finished = false;
    conn.async_run(cfg, logger{logger::level::crit}, [&run_finished](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
       std::clog << "async_run finished" << std::endl;
    });
 

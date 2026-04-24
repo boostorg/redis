@@ -70,13 +70,13 @@ BOOST_AUTO_TEST_CASE(request_cancel_if_unresponded_true)
    auto c2 = [&](error_code ec, std::size_t) {
       c2_called = true;
       std::cout << "c2" << std::endl;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    };
 
    auto c1 = [&](error_code ec, std::size_t) {
       c1_called = true;
       std::cout << "c1" << std::endl;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    };
 
    auto c0 = [&](error_code ec, std::size_t) {
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(request_cancel_if_unresponded_false)
 
    auto c1 = [&](error_code ec, std::size_t) {
       c1_called = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_CHECK_EQUAL(ec, canceled_condition());
    };
 
    auto c0 = [&](error_code ec, std::size_t) {
