@@ -6,6 +6,7 @@
 //
 
 #include <boost/redis/adapter/any_adapter.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
@@ -14,9 +15,9 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/detail/errc.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include "sansio_utils.hpp"
@@ -24,14 +25,15 @@
 #include <chrono>
 #include <memory>
 #include <string_view>
+#include <system_error>
 
 using namespace boost::redis;
-namespace net = boost::asio;
 using boost::system::error_code;
-using net::cancellation_type_t;
+namespace errc = boost::system::errc;
 using detail::reader_fsm;
 using detail::multiplexer;
 using detail::connection_state;
+using detail::cancellation_type;
 using action = detail::reader_fsm::action;
 using namespace std::chrono_literals;
 
@@ -108,11 +110,12 @@ struct fixture : detail::log_fixture {
 
 void test_push()
 {
+   // Timeout condition is arbitrary
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -124,19 +127,19 @@ void test_push()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // Deliver the 2st push
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(12u));
 
    // Deliver the 3rd push
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(13u));
 
    // All pushes were delivered so the fsm should demand more data
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Check logging
@@ -150,10 +153,10 @@ void test_push()
 void test_read_needs_more()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Split the incoming message in three random parts and deliver
@@ -162,22 +165,22 @@ void test_read_needs_more()
 
    // Passes the first part to the fsm.
    copy_to(fix.st.mpx, msg[0]);
-   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Passes the second part to the fsm.
    copy_to(fix.st.mpx, msg[1]);
-   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Passes the third and last part to the fsm, next it should ask us
    // to deliver the message.
    copy_to(fix.st.mpx, msg[2]);
-   act = fsm.resume(fix.st, msg[2].size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[2].size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(msg[0].size() + msg[1].size() + msg[2].size()));
 
    // All pushes were delivered so the fsm should demand more data
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Check logging
@@ -197,11 +200,11 @@ void test_read_needs_more()
 void test_health_checks_disabled()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
    fix.st.cfg.health_check_interval = 0s;
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(0s));
 
    // Split the message into two so we cover both the regular read and the needs more branch
@@ -209,16 +212,16 @@ void test_health_checks_disabled()
 
    // Passes the first part to the fsm.
    copy_to(fix.st.mpx, msg[0]);
-   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[0].size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(0s));
 
    // Push delivery complete
    copy_to(fix.st.mpx, msg[1]);
-   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, msg[1].size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(25u));
 
    // All pushes were delivered so the fsm should demand more data
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(0s));
 
    // Check logging
@@ -235,10 +238,10 @@ void test_health_checks_disabled()
 void test_read_error()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -246,7 +249,7 @@ void test_read_error()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the data
-   act = fsm.resume(fix.st, payload.size(), {error::empty_field}, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), {error::empty_field}, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code{error::empty_field});
 
    // Check logging
@@ -263,14 +266,14 @@ void test_read_error()
 void test_read_timeout()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
-   // Timeout
-   act = fsm.resume(fix.st, 0, {net::error::operation_aborted}, cancellation_type_t::none);
+   // Timeout: an error code that matches the timeout condition
+   act = fsm.resume(fix.st, 0, make_error_code(errc::broken_pipe), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code{error::pong_timeout});
 
    // Check logging
@@ -286,10 +289,10 @@ void test_read_timeout()
 void test_parse_error()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -297,7 +300,7 @@ void test_parse_error()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the data
-   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code{error::not_a_number});
 
    // Check logging
@@ -317,7 +320,7 @@ void test_setup_request_error()
 {
    // Setup
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
    request req;
    req.push("PING");  // should have 1 command
    auto elem = std::make_shared<multiplexer::elem>(
@@ -333,7 +336,7 @@ void test_setup_request_error()
    BOOST_TEST(fix.st.mpx.commit_write(fix.st.mpx.get_write_buffer().size()));
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -341,7 +344,7 @@ void test_setup_request_error()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the data
-   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code{error::resp3_hello});
 
    // Check logging
@@ -355,10 +358,10 @@ void test_setup_request_error()
 void test_push_deliver_error()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -366,11 +369,11 @@ void test_push_deliver_error()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the data
-   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), {}, cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // Resumes from notifying a push with an error.
-   act = fsm.resume(fix.st, 0, error::empty_field, cancellation_type_t::none);
+   act = fsm.resume(fix.st, 0, error::empty_field, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code{error::empty_field});
 
    // Check logging
@@ -389,16 +392,16 @@ void test_max_read_buffer_size()
    fix.st.cfg.read_buffer_append_size = 5;
    fix.st.cfg.max_read_size = 7;
    fix.st.mpx.set_config(fix.st.cfg);
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Passes the first part to the fsm.
    std::string const part1 = ">3\r\n";
    copy_to(fix.st.mpx, part1);
-   act = fsm.resume(fix.st, part1.size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, part1.size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::exceeds_maximum_read_buffer_size));
 
    // Check logging
@@ -416,21 +419,22 @@ void test_max_read_buffer_size()
 void test_cancel_read()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
-   // The read was cancelled (maybe after delivering some bytes)
+   // The read was cancelled (maybe after delivering some bytes).
+   // Cancellation state wins to timeout.
    constexpr std::string_view payload = ">1\r\n";
    copy_to(fix.st.mpx, payload);
    act = fsm.resume(
       fix.st,
       payload.size(),
-      net::error::operation_aborted,
-      cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+      make_error_code(errc::broken_pipe),
+      cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Check logging
    fix.check_log({
@@ -442,18 +446,18 @@ void test_cancel_read()
 void test_cancel_read_edge()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // Deliver a push, and notify a cancellation.
    // This can happen if the cancellation signal arrives before the read handler runs
    constexpr std::string_view payload = ">1\r\n+msg1\r\n";
    copy_to(fix.st.mpx, payload);
-   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Check logging
    fix.check_log({
@@ -465,10 +469,10 @@ void test_cancel_read_edge()
 void test_cancel_push_delivery()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -479,12 +483,13 @@ void test_cancel_push_delivery()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
-   // We got a cancellation while delivering it
-   act = fsm.resume(fix.st, 0, net::error::operation_aborted, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   // We got a cancellation while delivering it.
+   // The pass-through ec is superseded by the cancellation state.
+   act = fsm.resume(fix.st, 0, make_error_code(errc::io_error), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Check logging
    fix.check_log({
@@ -497,10 +502,10 @@ void test_cancel_push_delivery()
 void test_cancel_push_delivery_edge()
 {
    fixture fix;
-   reader_fsm fsm;
+   reader_fsm fsm{std::errc::broken_pipe};
 
    // Initiate
-   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::none);
+   auto act = fsm.resume(fix.st, 0, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::read_some(6s));
 
    // The fsm is asking for data.
@@ -511,13 +516,13 @@ void test_cancel_push_delivery_edge()
    copy_to(fix.st.mpx, payload);
 
    // Deliver the 1st push
-   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type_t::none);
+   act = fsm.resume(fix.st, payload.size(), error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, action::notify_push_receiver(11u));
 
    // We got a cancellation after delivering it.
    // This can happen if the cancellation signal arrives before the channel send handler runs
-   act = fsm.resume(fix.st, 0, error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(net::error::operation_aborted));
+   act = fsm.resume(fix.st, 0, error_code(), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Check logging
    fix.check_log({
