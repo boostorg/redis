@@ -27,6 +27,7 @@ public:
    flow_controller(std::size_t max_bytes) noexcept
    : max_bytes_(max_bytes)
    {
+      bytes_available_.set();
       assert(max_bytes != 0u);
    }
 
@@ -44,22 +45,31 @@ public:
       co_return {};
    }
 
-   capy::io_task<> wait_for_space()
+   bool try_put(std::size_t bytes)
    {
-      while (pending_bytes_ >= max_bytes_) {
-         auto [ec] = co_await bytes_available_.wait();
-         if (ec)
-            co_return {ec};
-      }
-      co_return {};
-   }
+      // Do we have space?
+      if (!room_available_.is_set())
+         return false;
 
-   void put(std::size_t bytes)
-   {
+      // Add the bytes. We might surpass the limit slightly, but this is OK
+      // because we've already read the bytes.
+      // The following messages will wait
       pending_bytes_ += bytes;
       if (pending_bytes_ >= max_bytes_)
          room_available_.clear();
       bytes_available_.set();
+
+      return true;
+   }
+
+   capy::io_task<> put(std::size_t bytes)
+   {
+      while (!try_put(bytes)) {
+         auto [ec] = co_await room_available_.wait();
+         if (ec)
+            co_return {ec};
+      }
+      co_return {};
    }
 };
 
