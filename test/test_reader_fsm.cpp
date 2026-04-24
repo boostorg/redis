@@ -15,6 +15,7 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/detail/errc.hpp>
 #include <boost/system/errc.hpp>
@@ -432,7 +433,7 @@ void test_cancel_read()
    act = fsm.resume(
       fix.st,
       payload.size(),
-      make_error_code(errc::broken_pipe),
+      boost::asio::error::operation_aborted,
       cancellation_type::terminal);
    BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
@@ -488,7 +489,7 @@ void test_cancel_push_delivery()
 
    // We got a cancellation while delivering it.
    // The pass-through ec is superseded by the cancellation state.
-   act = fsm.resume(fix.st, 0, make_error_code(errc::io_error), cancellation_type::terminal);
+   act = fsm.resume(fix.st, 0, boost::asio::error::operation_aborted, cancellation_type::terminal);
    BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Check logging
