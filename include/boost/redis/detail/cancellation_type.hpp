@@ -22,6 +22,11 @@ enum class cancellation_type : int
    total = 4,
 };
 
+constexpr cancellation_type operator|(cancellation_type lhs, cancellation_type rhs)
+{
+   return static_cast<cancellation_type>(static_cast<int>(lhs) | static_cast<int>(rhs));
+}
+
 constexpr bool contains(cancellation_type value, cancellation_type query)
 {
    return (static_cast<int>(value) & static_cast<int>(query)) != 0;
