@@ -23,19 +23,12 @@ namespace boost::redis::detail {
 
 struct buffered_logger;
 
-struct co_redis_stream_state {
-   transport_type type{transport_type::tcp};
-   bool ssl_stream_used{false};
-};
-
 // What should we do next?
 enum class co_connect_action_type
 {
-   unix_socket_close,    // Close the UNIX socket, to discard state
    unix_socket_connect,  // Connect to the UNIX socket
    tcp_resolve,          // Name resolution
    tcp_connect,          // TCP connect
-   ssl_stream_reset,     // Re-create the SSL stream, to discard state
    ssl_handshake,        // SSL handshake
    done,                 // Complete the async op
 };
@@ -57,23 +50,21 @@ struct co_connect_action {
 class co_connect_fsm {
    int resume_point_{0};
    buffered_logger* lgr_{nullptr};
+   transport_type type_;
 
 public:
-   co_connect_fsm(buffered_logger& lgr) noexcept
+   co_connect_fsm(buffered_logger& lgr, transport_type type) noexcept
    : lgr_(&lgr)
+   , type_(type)
    { }
 
    co_connect_action resume(
       system::error_code ec,
-      std::span<const corosio::resolver_entry> resolver_results,
-      co_redis_stream_state& st);
+      std::span<const corosio::resolver_entry> resolver_results);
 
-   co_connect_action resume(
-      system::error_code ec,
-      const corosio::endpoint& selected_endpoint,
-      co_redis_stream_state& st);
+   co_connect_action resume(system::error_code ec, const corosio::endpoint& selected_endpoint);
 
-   co_connect_action resume(system::error_code ec, co_redis_stream_state& st);
+   co_connect_action resume(system::error_code ec);
 
 };  // namespace boost::redis::detail
 

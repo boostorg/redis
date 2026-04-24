@@ -18,6 +18,7 @@
 #include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
+#include <boost/redis/detail/transport_type.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
 
 #include <boost/assert.hpp>
@@ -26,7 +27,9 @@
 #include <boost/capy/concept/io_awaitable.hpp>
 #include <boost/capy/cond.hpp>
 #include <boost/capy/ex/async_event.hpp>
+#include <boost/capy/ex/execution_context.hpp>
 #include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io/any_stream.hpp>
 #include <boost/capy/io_result.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
@@ -35,16 +38,19 @@
 #include <boost/capy/write.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/corosio/connect.hpp>
+#include <boost/corosio/local_stream_socket.hpp>
 #include <boost/corosio/openssl_stream.hpp>
 #include <boost/corosio/resolver.hpp>
 #include <boost/corosio/resolver_results.hpp>
 #include <boost/corosio/tcp_socket.hpp>
 #include <boost/corosio/timer.hpp>
+#include <boost/corosio/tls_context.hpp>
 #include <boost/corosio/tls_stream.hpp>
 
 #include <chrono>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <stop_token>
 #include <system_error>
 #include <utility>
@@ -79,65 +85,117 @@ capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
 }
 
 class co_redis_stream {
-   // TODO: UNIX sockets
-   corosio::tcp_socket socket_;
-   corosio::openssl_stream stream_;  // TODO: make this configurable
-   corosio::resolver resolv_;
-   co_redis_stream_state st_;
+   struct tcp_state {
+      corosio::resolver resolv;
+      corosio::tcp_socket sock;
+
+      explicit tcp_state(capy::execution_context& ctx)
+      : resolv(ctx)
+      , sock(ctx)
+      { }
+   };
+
+   // Required to create the other objects
+   capy::execution_context& ctx_;
+   corosio::tls_context tls_ctx_;
+
+   // Constructed lazily as required
+   std::optional<tcp_state> tcp_;
+   std::optional<corosio::local_stream_socket> unix_;
+   std::optional<corosio::openssl_stream> tls_;
+
+   // Contains the stream that will end up being used
+   capy::any_stream stream_;
+
+   void setup(transport_type type)
+   {
+      if (type == transport_type::unix_socket) {
+         if (unix_.has_value()) {
+            // UNIX sockets don't use range connect.
+            // We need to close and re-open the socket before establishing another connection
+            unix_->close();
+            unix_->open();
+         } else {
+            unix_.emplace(ctx_);
+         }
+         stream_ = capy::any_stream(&*unix_);
+      } else {
+         // TCP (with or without TLS)
+         // Allocate the object if not there.
+         // TCP uses range connect, so we don't need to close and reopen the socket
+         if (!tcp_.has_value())
+            tcp_.emplace(ctx_);
+
+         // If using TLS, allocate or reset the stream
+         if (type == transport_type::tcp_tls) {
+            if (tls_.has_value())
+               tls_->reset();
+            else
+               tls_.emplace(capy::any_stream(&tcp_->sock), tls_ctx_);
+            stream_ = capy::any_stream(&*tls_);
+         } else {
+            stream_ = capy::any_stream(&tcp_->sock);
+         }
+      }
+   }
 
 public:
    explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
-   : socket_(ctx)
-   , stream_(&socket_, std::move(tls_ctx))
-   , resolv_(ctx)
+   : ctx_(ctx)
+   , tls_ctx_(std::move(tls_ctx))
    { }
 
    // I/O
    capy::io_task<> connect(const connect_params& params, buffered_logger& l)
    {
-      co_connect_fsm fsm{l};
+      co_connect_fsm fsm{l, params.addr.type()};
       system::error_code ec;
       corosio::resolver_results endpoints;
 
-      auto act = fsm.resume(ec, st_);
+      setup(params.addr.type());
+
+      auto act = fsm.resume(ec);
 
       while (true) {
          switch (act.type) {
-            case co_connect_action_type::unix_socket_close:
-               BOOST_ASSERT(false);
-               co_return {std::make_error_code(std::errc::operation_not_supported)};
             case co_connect_action_type::unix_socket_connect:
-               BOOST_ASSERT(false);
-               co_return {std::make_error_code(std::errc::operation_not_supported)};
+            {
+               auto result = co_await capy::timeout(
+                  unix_->connect(corosio::local_endpoint(params.addr.unix_socket())),
+                  params.connect_timeout);
+               ec = result.ec;
+               act = fsm.resume(ec);
+               break;
+            }
             case co_connect_action_type::tcp_resolve:
             {
                auto result = co_await capy::timeout(
-                  resolv_.resolve(params.addr.tcp_address().host, params.addr.tcp_address().port),
+                  tcp_->resolv.resolve(
+                     params.addr.tcp_address().host,
+                     params.addr.tcp_address().port),
                   params.resolve_timeout);
                ec = result.ec;
                endpoints = std::move(std::get<0>(result.values));
-               act = fsm.resume(ec, endpoints, st_);
+               act = fsm.resume(ec, endpoints);
                break;
             }
-            case co_connect_action_type::ssl_stream_reset:
-               stream_.reset();
-               act = fsm.resume(ec, st_);
-               break;
             case co_connect_action_type::ssl_handshake:
+            {
                ec = (co_await capy::timeout(
-                        stream_.handshake(corosio::tls_stream::handshake_type::client),
+                        tls_->handshake(corosio::tls_stream::handshake_type::client),
                         params.ssl_handshake_timeout))
                        .ec;
-               act = fsm.resume(ec, st_);
+               act = fsm.resume(ec);
                break;
+            }
             case co_connect_action_type::done: co_return {act.ec};
             case co_connect_action_type::tcp_connect:
             {
                auto result = co_await capy::timeout(
-                  corosio::connect(socket_, std::move(endpoints)),
+                  corosio::connect(tcp_->sock, std::move(endpoints)),
                   params.connect_timeout);
                ec = result.ec;
-               act = fsm.resume(ec, result.get<1>(), st_);
+               act = fsm.resume(ec, result.get<1>());
                break;
             }
             default: BOOST_ASSERT(false);
@@ -146,25 +204,15 @@ public:
    }
 
    template <capy::ConstBufferSequence BuffType>
-   capy::io_task<std::size_t> write_some(const BuffType& buffers)
+   auto write_some(BuffType&& buffers)
    {
-      switch (st_.type) {
-         case transport_type::tcp:         co_return co_await socket_.write_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_.write_some(buffers);
-         case transport_type::unix_socket:
-         default:                          BOOST_ASSERT(false); co_return {};
-      }
+      return stream_.write_some(std::forward<BuffType>(buffers));
    }
 
    template <capy::MutableBufferSequence BuffType>
-   capy::io_task<std::size_t> read_some(const BuffType& buffers)
+   auto read_some(BuffType&& buffers)
    {
-      switch (st_.type) {
-         case transport_type::tcp:         co_return co_await socket_.read_some(buffers);
-         case transport_type::tcp_tls:     co_return co_await stream_.read_some(buffers);
-         case transport_type::unix_socket:
-         default:                          BOOST_ASSERT(false); co_return {};
-      }
+      return stream_.read_some(std::forward<BuffType>(buffers));
    }
 };
 

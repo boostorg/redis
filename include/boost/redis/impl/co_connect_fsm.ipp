@@ -61,8 +61,7 @@ struct log_traits<std::span<const corosio::resolver_entry>> {
 
 co_connect_action co_connect_fsm::resume(
    system::error_code ec,
-   std::span<const corosio::resolver_entry> resolver_results,
-   co_redis_stream_state& st)
+   std::span<const corosio::resolver_entry> resolver_results)
 {
    // Log it
    if (ec) {
@@ -72,13 +71,12 @@ co_connect_action co_connect_fsm::resume(
    }
 
    // Delegate to the regular resume function
-   return resume(ec, st);
+   return resume(ec);
 }
 
 co_connect_action co_connect_fsm::resume(
    system::error_code ec,
-   const corosio::endpoint& selected_endpoint,
-   co_redis_stream_state& st)
+   const corosio::endpoint& selected_endpoint)
 {
    // Log it
    if (ec) {
@@ -88,20 +86,17 @@ co_connect_action co_connect_fsm::resume(
    }
 
    // Delegate to the regular resume function
-   return resume(ec, st);
+   return resume(ec);
 }
 
-co_connect_action co_connect_fsm::resume(system::error_code ec, co_redis_stream_state& st)
+co_connect_action co_connect_fsm::resume(system::error_code ec)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
-      if (st.type == transport_type::unix_socket) {
-         // Reset the socket, to discard any previous state. Ignore any errors
-         BOOST_REDIS_YIELD(resume_point_, 1, co_connect_action_type::unix_socket_close)
-
+      if (type_ == transport_type::unix_socket) {
          // Connect to the socket
-         BOOST_REDIS_YIELD(resume_point_, 2, co_connect_action_type::unix_socket_connect)
+         BOOST_REDIS_YIELD(resume_point_, 1, co_connect_action_type::unix_socket_connect)
 
          // Log it
          if (ec) {
@@ -118,18 +113,9 @@ co_connect_action co_connect_fsm::resume(system::error_code ec, co_redis_stream_
          // Done
          return system::error_code();
       } else {
-         // ssl::stream doesn't support being re-used. If we're to use
-         // TLS and the stream has been used, re-create it.
-         // Must be done before anything else is done on the stream.
-         // We don't need to close the TCP socket if using plaintext TCP
-         // because range-connect closes open sockets, while individual connect doesn't
-         if (st.type == transport_type::tcp_tls && st.ssl_stream_used) {
-            BOOST_REDIS_YIELD(resume_point_, 3, co_connect_action_type::ssl_stream_reset)
-         }
-
          // Resolve names. The continuation needs access to the returned
          // endpoints, and is a specialized resume() that will call this function
-         BOOST_REDIS_YIELD(resume_point_, 4, co_connect_action_type::tcp_resolve)
+         BOOST_REDIS_YIELD(resume_point_, 2, co_connect_action_type::tcp_resolve)
 
          // If this failed, we can't continue
          if (ec) {
@@ -138,17 +124,14 @@ co_connect_action co_connect_fsm::resume(system::error_code ec, co_redis_stream_
 
          // Now connect to the endpoints returned by the resolver.
          // This has a specialized resume(), too
-         BOOST_REDIS_YIELD(resume_point_, 5, co_connect_action_type::tcp_connect)
+         BOOST_REDIS_YIELD(resume_point_, 3, co_connect_action_type::tcp_connect)
 
          // If this failed, we can't continue
          if (ec) {
             return ec;
          }
 
-         if (st.type == transport_type::tcp_tls) {
-            // Mark the SSL stream as used
-            st.ssl_stream_used = true;
-
+         if (type_ == transport_type::tcp_tls) {
             // Perform the TLS handshake
             BOOST_REDIS_YIELD(resume_point_, 6, co_connect_action_type::ssl_handshake)
 
