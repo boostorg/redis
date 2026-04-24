@@ -21,15 +21,15 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
+#include "corosio_common.hpp"
 
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <system_error>
 
-namespace asio = boost::asio;
-
 using namespace boost::redis;
+using namespace boost::redis::test;
 using namespace std::chrono_literals;
 namespace capy = boost::capy;
 namespace corosio = boost::corosio;

@@ -18,7 +18,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 #include "print_node.hpp"
 
 #include <string>

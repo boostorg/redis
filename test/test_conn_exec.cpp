@@ -15,7 +15,7 @@
 #define BOOST_TEST_MODULE conn_exec
 #include <boost/test/included/unit_test.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 #include <iostream>
 

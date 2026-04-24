@@ -12,7 +12,7 @@
 #define BOOST_TEST_MODULE conversions
 #include <boost/test/included/unit_test.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 namespace net = boost::asio;
 using boost::redis::connection;
