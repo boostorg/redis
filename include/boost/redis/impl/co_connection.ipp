@@ -7,6 +7,7 @@
 //
 
 #include <boost/redis/co_connection.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/co_connect_fsm.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 #include <boost/redis/detail/connection_state.hpp>
@@ -45,9 +46,9 @@
 #include <boost/corosio/tcp_socket.hpp>
 #include <boost/corosio/timer.hpp>
 #include <boost/corosio/tls_context.hpp>
+#include <boost/system/detail/error_code.hpp>
 
 #include <chrono>
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <stop_token>
@@ -66,7 +67,7 @@ inline std::chrono::steady_clock::time_point compute_expiry(
                                : std::chrono::steady_clock::now() + timeout;
 }
 
-inline cancellation_type token_to_cancel(std::stop_token tok)
+inline cancellation_type to_cancel(std::stop_token tok)
 {
    return tok.stop_requested() ? cancellation_type::terminal : cancellation_type::none;
 }
@@ -258,7 +259,7 @@ struct co_connection_impl {
       // Invoke the FSM
       while (true) {
          // Invoke the state machine
-         auto act = fsm.resume(true, st_, token_to_cancel(co_await capy::this_coro::stop_token));
+         auto act = fsm.resume(true, st_, to_cancel(co_await capy::this_coro::stop_token));
 
          // Do what the FSM said
          switch (act.type()) {
@@ -283,10 +284,7 @@ struct co_connection_impl {
       system::error_code ec;
 
       while (true) {
-         receive_action act = fsm.resume(
-            st_,
-            ec,
-            token_to_cancel(co_await capy::this_coro::stop_token));
+         receive_action act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
 
          switch (act.type) {
             case receive_action::action_type::setup_cancellation: break;  // not required here
@@ -306,35 +304,27 @@ struct co_connection_impl {
    capy::io_task<> exec_one(const request& req, any_adapter resp)
    {
       exec_one_fsm fsm{std::move(resp), req.get_expected_responses()};
-      system::error_code ec;
-      std::size_t bytes = 0u;
+      auto& rdbuff = st_.mpx.get_read_buffer();
+
+      // First invocation
+      auto act = fsm.resume(rdbuff, system::error_code(), 0u, cancellation_type::none);
 
       while (true) {
-         exec_one_action act = fsm.resume(
-            st_.mpx.get_read_buffer(),
-            ec,
-            bytes,
-            token_to_cancel(co_await capy::this_coro::stop_token));
-
          switch (act.type) {
-            case exec_one_action_type::done: co_return {ec};
+            case exec_one_action_type::done: co_return {act.ec};
             case exec_one_action_type::write:
             {
-               auto [write_ec, write_bytes] = co_await capy::write(
-                  stream_,
-                  capy::make_buffer(req.payload()));
-               ec = write_ec;
-               bytes = write_bytes;
+               auto [ec, bytes] = co_await capy::write(stream_, capy::make_buffer(req.payload()));
+               act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case exec_one_action_type::read_some:
             {
                // https://github.com/cppalliance/capy/issues/147
-               auto buff = st_.mpx.get_read_buffer().get_prepared();
-               auto [read_ec, read_bytes] = co_await stream_.read_some(
+               auto buff = rdbuff.get_prepared();
+               auto [ec, bytes] = co_await stream_.read_some(
                   capy::mutable_buffer(buff.data(), buff.size()));
-               ec = read_ec;
-               bytes = read_bytes;
+               act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
          }
@@ -345,30 +335,25 @@ struct co_connection_impl {
    {
       // Setup
       sentinel_resolve_fsm fsm;
-      system::error_code ec;
+      auto act = fsm.resume(st_, system::error_code(), cancellation_type::none);
 
       while (true) {
-         sentinel_action act = fsm.resume(
-            st_,
-            ec,
-            token_to_cancel(co_await capy::this_coro::stop_token));
-
          switch (act.get_type()) {
             case sentinel_action::type::done: co_return {act.error()};
             case sentinel_action::type::connect:
             {
-               auto [connect_ec] = co_await stream_.connect(
+               auto [ec] = co_await stream_.connect(
                   make_sentinel_connect_params(st_.cfg, act.connect_addr()),
                   st_.logger);
-               ec = connect_ec;
+               act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case sentinel_action::type::request:
             {
-               auto [request_ec] = co_await capy::timeout(
+               auto [ec] = co_await capy::timeout(
                   exec_one(st_.cfg.sentinel.setup, make_sentinel_adapter(st_)),
                   st_.cfg.sentinel.request_timeout);
-               ec = request_ec;
+               act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
          }
@@ -380,33 +365,24 @@ struct co_connection_impl {
    {
       // Setup.
       writer_fsm fsm{capy::cond::timeout};
-      system::error_code ec;
-      std::size_t bytes_written = 0u;
+      auto act = fsm.resume(st_, system::error_code(), 0u, cancellation_type::none);
 
       while (true) {
-         writer_action act = fsm.resume(
-            st_,
-            ec,
-            bytes_written,
-            token_to_cancel(co_await capy::this_coro::stop_token));
-
          switch (act.type()) {
             case writer_action_type::done: co_return {{}, act.error()};
             case writer_action_type::write_some:
             {
-               auto [write_ec, write_bytes] = co_await maybe_timeout(
+               auto [ec, bytes] = co_await maybe_timeout(
                   stream_.write_some(capy::make_buffer(st_.mpx.get_write_buffer())),
                   act.timeout());
-               ec = write_ec;
-               bytes_written = write_bytes;
+               act = fsm.resume(st_, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case writer_action_type::wait:
             {
                writer_cv_.expires_at(compute_expiry(act.timeout()));
-               auto [wait_ec] = co_await writer_cv_.wait();
-               ec = wait_ec;
-               bytes_written = 0u;
+               auto [ec] = co_await writer_cv_.wait();
+               act = fsm.resume(st_, ec, 0u, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
          }
@@ -416,32 +392,27 @@ struct co_connection_impl {
    capy::io_task<std::error_code> reader()
    {
       reader_fsm fsm{capy::cond::timeout};
-      std::size_t n = 0u;
-      system::error_code ec;
+      auto act = fsm.resume(st_, 0u, system::error_code(), cancellation_type::none);
 
       for (;;) {
-         auto act = fsm.resume(st_, n, ec, token_to_cancel(co_await capy::this_coro::stop_token));
-
          switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
             {
                // https://github.com/cppalliance/capy/issues/147
                auto buff = st_.mpx.get_prepared_read_buffer();
-               auto [read_ec, read_bytes] = co_await maybe_timeout(
+               auto [ec, bytes] = co_await maybe_timeout(
                   stream_.read_some(capy::mutable_buffer(buff.data(), buff.size())),
                   act.timeout());
-               ec = read_ec;
-               n = read_bytes;
+               act = fsm.resume(st_, bytes, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case reader_fsm::action::type::notify_push_receiver:
             {
                // TODO: re-work this
-               auto [notify_ec] = co_await controller_.wait_for_space();
-               if (notify_ec)
-                  ec = notify_ec;
-               else
+               auto [ec] = co_await controller_.wait_for_space();
+               if (!ec)
                   controller_.put(act.push_size());
+               act = fsm.resume(st_, 0u, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case reader_fsm::action::type::done: co_return {{}, act.error()};
@@ -461,11 +432,10 @@ struct co_connection_impl {
       st_.mpx.set_config(cfg);
 
       while (true) {
-         auto act = fsm.resume(st_, ec, token_to_cancel(co_await capy::this_coro::stop_token));
+         auto act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
 
          switch (act.type) {
             case run_action_type::done:             co_return {act.ec};
-            case run_action_type::immediate:        break;  // no longer required
             case run_action_type::sentinel_resolve: ec = (co_await sentinel_resolve()).ec; break;
             case run_action_type::connect:
                ec = (co_await stream_.connect(make_run_connect_params(st_), st_.logger)).ec;
@@ -480,7 +450,10 @@ struct co_connection_impl {
                   result);
                break;
             }
-            case run_action_type::cancel_receive: break;  // no longer required
+            case run_action_type::cancel_receive:
+            case run_action_type::immediate:
+               ec = system::error_code();
+               break;  // no longer required
             case run_action_type::wait_for_reconnection:
                reconnect_timer_.expires_after(st_.cfg.reconnect_wait_interval);
                ec = (co_await reconnect_timer_.wait()).ec;
