@@ -7,15 +7,15 @@
 //
 
 #include <boost/redis/adapter/any_adapter.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/exec_one_fsm.hpp>
 #include <boost/redis/detail/read_buffer.hpp>
 #include <boost/redis/error.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/type.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include "print_node.hpp"
@@ -26,13 +26,13 @@
 #include <vector>
 
 using namespace boost::redis;
-namespace asio = boost::asio;
 using detail::exec_one_fsm;
 using detail::exec_one_action;
 using detail::exec_one_action_type;
 using detail::read_buffer;
+using detail::cancellation_type;
 using boost::system::error_code;
-using boost::asio::cancellation_type_t;
+namespace errc = boost::system::errc;
 using parse_event = any_adapter::parse_event;
 using resp3::type;
 
@@ -112,17 +112,17 @@ void test_success()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // Read the entire response in one go
    constexpr std::string_view payload = "$5\r\nhello\r\n*1\r\n+goodbye\r\n";
    copy_to(buff, payload);
-   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::done);
 
    // Verify the adapter calls
@@ -147,11 +147,11 @@ void test_no_expected_response()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM shouldn't ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // No adapter calls should be done
@@ -167,25 +167,25 @@ void test_short_reads()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // Read fragments
    constexpr std::string_view payload = "$5\r\nhello\r\n*1\r\n+goodbye\r\n";
    copy_to(buff, payload.substr(0, 6u));
-   act = fsm.resume(buff, error_code(), 6u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 6u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    copy_to(buff, payload.substr(6, 10u));
-   act = fsm.resume(buff, error_code(), 10u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 10u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    copy_to(buff, payload.substr(16));
-   act = fsm.resume(buff, error_code(), payload.substr(16).size(), cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), payload.substr(16).size(), cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::done);
 
    // Verify the adapter calls
@@ -210,12 +210,12 @@ void test_write_error()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // Write error
-   act = fsm.resume(buff, asio::error::connection_reset, 10u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, error_code(asio::error::connection_reset));
+   act = fsm.resume(buff, make_error_code(errc::io_error), 10u, cancellation_type::none);
+   BOOST_TEST_EQ(act, make_error_code(errc::io_error));
 }
 
 void test_write_cancel()
@@ -226,12 +226,12 @@ void test_write_cancel()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // Edge case where the operation finished successfully but with the cancellation state set
-   act = fsm.resume(buff, error_code(), 10u, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fsm.resume(buff, error_code(), 10u, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 }
 
 // Errors in read
@@ -243,16 +243,16 @@ void test_read_error()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // Read error
-   act = fsm.resume(buff, asio::error::network_reset, 0u, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, error_code(asio::error::network_reset));
+   act = fsm.resume(buff, make_error_code(errc::io_error), 0u, cancellation_type::none);
+   BOOST_TEST_EQ(act, make_error_code(errc::io_error));
 }
 
 void test_read_cancelled()
@@ -263,17 +263,17 @@ void test_read_cancelled()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // Edge case where the operation finished successfully but with the cancellation state set
    copy_to(buff, "$5\r\n");
-   act = fsm.resume(buff, error_code(), 4u, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fsm.resume(buff, error_code(), 4u, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 }
 
 // Buffer too small
@@ -286,11 +286,11 @@ void test_buffer_prepare_error()
    buff.set_config({4096u, 8u});  // max size is 8 bytes
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // When preparing the buffer, we encounter an error
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::exceeds_maximum_read_buffer_size));
 }
 
@@ -303,17 +303,17 @@ void test_parse_error()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // The response contains an invalid message
    constexpr std::string_view payload = "$bad\r\n";
    copy_to(buff, payload);
-   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::not_a_number));
 }
 
@@ -329,17 +329,17 @@ void test_adapter_error()
    read_buffer buff;
 
    // Write the request
-   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type_t::none);
+   auto act = fsm.resume(buff, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::write);
 
    // FSM should now ask for data
-   act = fsm.resume(buff, error_code(), 25u, cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), 25u, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_one_action_type::read_some);
 
    // Read the entire response in one go
    constexpr std::string_view payload = "$5\r\nhello\r\n*1\r\n+goodbye\r\n";
    copy_to(buff, payload);
-   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type_t::none);
+   act = fsm.resume(buff, error_code(), payload.size(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::empty_field));
 }
 
