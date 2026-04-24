@@ -9,6 +9,8 @@
 
 #include <boost/system/error_code.hpp>
 
+#include "common.hpp"
+
 #define BOOST_TEST_MODULE conn_reconnect
 #include <boost/test/included/unit_test.hpp>
 
@@ -109,7 +111,7 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
    std::cout << "ccc" << std::endl;
 
-   BOOST_CHECK_EQUAL(ec1, boost::asio::error::operation_aborted);
+   BOOST_CHECK_EQUAL(ec1, canceled_condition());
 }
 
 BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)

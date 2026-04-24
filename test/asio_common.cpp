@@ -6,6 +6,7 @@
 #include <boost/core/lightweight_test.hpp>
 
 #include "asio_common.hpp"
+#include "common.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -69,7 +70,7 @@ void create_user(std::string_view port, std::string_view username, std::string_v
 
    conn.async_run(cfg, [&](boost::system::error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    conn.async_exec(req, boost::redis::ignore, [&](boost::system::error_code ec, std::size_t) {
