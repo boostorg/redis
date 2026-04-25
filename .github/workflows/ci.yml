@@ -258,7 +258,7 @@ jobs:
         docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
+          --toolset ${{ matrix.toolset }}
 
     - name: Run add_subdirectory tests
       run: |
