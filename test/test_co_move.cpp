@@ -6,107 +6,101 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
-#include <boost/asio/bind_executor.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/post.hpp>
+#include <boost/capy/delay.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
+#include "corosio_common.hpp"
 
-#include <cstddef>
 #include <string>
+#include <system_error>
+#include <utility>
 
-using boost::system::error_code;
-namespace net = boost::asio;
+namespace capy = boost::capy;
 using namespace boost::redis;
+using namespace boost::redis::test;
+using namespace std::chrono_literals;
+using error_code = std::error_code;
 
 namespace {
 
 // Move constructing a connection doesn't leave dangling pointers
-void test_conn_move_construct()
+capy::task<> test_conn_move_construct()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn_prev(ioc);
-   connection conn(std::move(conn_prev));
-   request req;
-   req.push("PING", "something");
-   response<std::string> res;
+   co_connection conn_prev{co_await capy::this_coro::executor};
+   co_connection conn{std::move(conn_prev)};
 
-   bool run_finished = false, exec_finished = false;
+   response<std::string> resp;
 
-   // Run the connection
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, canceled_condition());
-   });
-
-   // Launch a PING
-   conn.async_exec(req, res, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      request req;
+      req.push("PING", "something");
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
+      BOOST_TEST_EQ(ec, canceled_condition());
+      co_return {};
+   };
 
-   // Check
-   BOOST_TEST(run_finished);
-   BOOST_TEST(exec_finished);
-   BOOST_TEST_EQ(std::get<0>(res).value(), "something");
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
+   BOOST_TEST_EQ(std::get<0>(resp).value(), "something");
 }
 
 // Moving a connection is safe even when it's running,
 // and it doesn't leave dangling pointers
-void test_conn_move_assign_while_running()
+capy::task<> test_conn_move_assign_while_running()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn(ioc);
-   connection conn2(ioc);  // will be assigned to
-   request req;
-   req.push("PING", "something");
-   response<std::string> res;
+   co_connection conn{co_await capy::this_coro::executor};
+   co_connection conn2{co_await capy::this_coro::executor};  // will be assigned to
 
-   bool run_finished = false, exec_finished = false;
+   response<std::string> resp;
 
-   // Run the connection
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, canceled_condition());
-   });
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Wait briefly to ensure run is in flight
+      auto [delay_ec] = co_await capy::delay(50ms);
+      BOOST_TEST_EQ(delay_ec, error_code());
 
-   // Launch a PING. When it finishes, conn will be moved-from, and conn2 will be valid
-   conn.async_exec(req, res, [&](error_code ec, std::size_t) {
-      exec_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
-      conn2.cancel();
-   });
-
-   // While the operations are running, perform a move
-   net::post(net::bind_executor(ioc.get_executor(), [&] {
+      // Perform the move while run is in progress
       conn2 = std::move(conn);
-   }));
 
-   ioc.run_for(test_timeout);
+      // Launch a PING on the moved-to connection
+      request req;
+      req.push("PING", "something");
+      auto [ec] = co_await conn2.exec(req, resp);
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
 
-   // Check
-   BOOST_TEST(run_finished);
-   BOOST_TEST(exec_finished);
-   BOOST_TEST_EQ(std::get<0>(res).value(), "something");
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
+      BOOST_TEST_EQ(ec, canceled_condition());
+      co_return {};
+   };
+
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
+   BOOST_TEST_EQ(std::get<0>(resp).value(), "something");
 }
 
 }  // namespace
 
 int main()
 {
-   test_conn_move_construct();
-   test_conn_move_assign_while_running();
+   run_coroutine_test(test_conn_move_construct());
+   run_coroutine_test(test_conn_move_assign_while_running());
 
    return boost::report_errors();
 }
