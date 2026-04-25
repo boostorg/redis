@@ -6,37 +6,81 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/config.hpp>
-#include <boost/redis/connection.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/ignore.hpp>
+#include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/tree.hpp>
 #include <boost/redis/resp3/type.hpp>
 #include <boost/redis/response.hpp>
 
-#include <boost/asio/ssl/context.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_all.hpp>
+#include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/corosio/tls_context.hpp>
 
-#include "asio_common.hpp"
+#include "common.hpp"
+#include "corosio_common.hpp"
 #include "print_node.hpp"
 
+#include <iostream>
+#include <iterator>
 #include <string>
+#include <string_view>
+#include <system_error>
+#include <utility>
 
-namespace net = boost::asio;
+namespace capy = boost::capy;
+namespace corosio = boost::corosio;
 using namespace boost::redis;
+using namespace boost::redis::test;
 using namespace std::chrono_literals;
-using boost::system::error_code;
+using error_code = std::error_code;
 
 namespace {
 
-// We can execute requests normally when using Sentinel run
-void test_exec()
+// RP TODO: this is duplicate
+// Connects to the Redis server at the given port and creates a user
+capy::task<void> create_user(
+   std::string_view port,
+   std::string_view username,
+   std::string_view password)
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Enable the user and grant them permissions on everything
+      request req;
+      req.push("ACL", "SETUSER", username, "on", ">" + std::string(password), "~*", "&*", "+@all");
+
+      auto [ec] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec, error_code());
+
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      config cfg;
+      cfg.addr.port = port;
+
+      auto [ec] = co_await conn.run(cfg);
+      BOOST_TEST_EQ(ec, canceled_condition());
+
+      co_return {};
+   };
+
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
+}
+
+config make_sentinel_config()
+{
    config cfg;
    cfg.sentinel.addresses = {
       {"localhost", "26379"},
@@ -44,17 +88,22 @@ void test_exec()
       {"localhost", "26381"},
    };
    cfg.sentinel.master_name = "mymaster";
+   return cfg;
+}
 
-   // Verify that we're connected to the master
-   request req;
-   req.push("ROLE");
+// We can execute requests normally when using Sentinel
+capy::task<> test_exec()
+{
+   co_connection conn{co_await capy::this_coro::executor};
 
    generic_response resp;
 
-   bool exec_finished = false, run_finished = false;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Verify that we're connected to the master
+      request req;
+      req.push("ROLE");
 
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
 
       // ROLE outputs an array, 1st element should be 'master'
@@ -62,65 +111,55 @@ void test_exec()
       BOOST_TEST_GE(resp.value().size(), 2u);
       BOOST_TEST_EQ(resp.value().at(1u).value, "master");
 
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_sentinel_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
-// We can use receive normally when using Sentinel run
-void test_receive()
+// We can use receive normally when using Sentinel
+capy::task<> test_receive()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
-
-   config cfg;
-   cfg.sentinel.addresses = {
-      {"localhost", "26379"},
-      {"localhost", "26380"},
-      {"localhost", "26381"},
-   };
-   cfg.sentinel.master_name = "mymaster";
-
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::tree resp;
    conn.set_receive_response(resp);
 
-   // Subscribe to a channel. This produces a push message on itself
-   request req;
-   req.subscribe({"sentinel_channel"});
-
-   bool exec_finished = false, receive_finished = false, run_finished = false;
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Subscribe to a channel. This produces a push message on itself
+      request req;
+      req.subscribe({"sentinel_channel"});
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
-   });
+      co_return {};
+   };
 
-   conn.async_receive2([&](error_code ec2) {
-      receive_finished = true;
-      BOOST_TEST_EQ(ec2, error_code());
-      conn.cancel();
-   });
+   auto receive_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+   auto work_fn = [&]() -> capy::io_task<> {
+      auto [ec, a, b] = co_await capy::when_all(exec_fn(), receive_fn());
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_sentinel_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(receive_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(work_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Work finished 1st
 
    // We subscribed to channel 'sentinel_channel', and have 1 active subscription
    const resp3::node expected[] = {
@@ -134,59 +173,41 @@ void test_receive()
 }
 
 // If connectivity to the Redis master fails, we can reconnect
-void test_reconnect()
+capy::task<> test_reconnect()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   config cfg;
-   cfg.sentinel.addresses = {
-      {"localhost", "26379"},
-      {"localhost", "26380"},
-      {"localhost", "26381"},
-   };
-   cfg.sentinel.master_name = "mymaster";
-
-   // Will cause the connection to fail
-   request req_quit;
-   req_quit.push("QUIT");
-
-   // Will succeed if the reconnection succeeds
-   request req_ping;
-   req_ping.push("PING", "sentinel_reconnect");
-   req_ping.get_config().cancel_if_unresponded = false;
-
-   bool quit_finished = false, ping_finished = false, run_finished = false;
-
-   conn.async_exec(req_quit, ignore, [&](error_code ec1, std::size_t) {
-      quit_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Will cause the connection to fail
+      request req_quit;
+      req_quit.push("QUIT");
+      auto [ec1] = co_await conn.exec(req_quit, ignore);
       BOOST_TEST_EQ(ec1, error_code());
-      conn.async_exec(req_ping, ignore, [&](error_code ec2, std::size_t) {
-         ping_finished = true;
-         BOOST_TEST_EQ(ec2, error_code());
-         conn.cancel();
-      });
-   });
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+      // Will succeed if the reconnection succeeds
+      request req_ping;
+      req_ping.push("PING", "sentinel_reconnect");
+      req_ping.get_config().cancel_if_unresponded = false;
+      auto [ec2] = co_await conn.exec(req_ping, ignore);
+      BOOST_TEST_EQ(ec2, error_code());
+
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_sentinel_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(quit_finished);
-   BOOST_TEST(ping_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // If a Sentinel is not reachable, we try the next one
-void test_sentinel_not_reachable()
+capy::task<> test_sentinel_not_reachable()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -195,35 +216,29 @@ void test_sentinel_not_reachable()
    };
    cfg.sentinel.master_name = "mymaster";
 
-   // Verify that we're connected to the master, listening at port 6380
-   request req;
-   req.push("PING", "test_sentinel_not_reachable");
-
-   bool exec_finished = false, run_finished = false;
-
-   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Verify that we're connected to the master
+      request req;
+      req.push("PING", "test_sentinel_not_reachable");
+      auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, error_code());
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // Both Sentinels and masters may be protected with authorization
-void test_auth()
+capy::task<> test_auth()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -236,46 +251,40 @@ void test_auth()
    cfg.setup.clear();
    cfg.setup.push("HELLO", 3, "AUTH", "redis_user", "redis_pass");
 
-   // Verify that we're authenticated correctly
-   request req;
-   req.push("ACL", "WHOAMI");
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Verify that we're authenticated correctly
+      request req;
+      req.push("ACL", "WHOAMI");
+      response<std::string> resp;
 
-   response<std::string> resp;
-
-   bool exec_finished = false, run_finished = false;
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST(std::get<0>(resp).has_value());
       BOOST_TEST_EQ(std::get<0>(resp).value(), "redis_user");
-      conn.cancel();
-   });
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // TLS might be used with Sentinels. In our setup, nodes don't use TLS,
 // but this setting is independent from Sentinel.
-void test_tls()
+capy::task<> test_tls()
 {
-   // Setup
-   net::io_context ioc;
-   net::ssl::context ssl_ctx{net::ssl::context::tlsv13_client};
-
    // The custom server uses a certificate signed by a CA
    // that is not trusted by default - skip verification.
-   ssl_ctx.set_verify_mode(net::ssl::verify_none);
+   corosio::tls_context tls_ctx;
+   tls_ctx.set_verify_mode(corosio::tls_verify_mode::none);
 
-   connection conn{ioc, std::move(ssl_ctx)};
+   co_connection conn{co_await capy::this_coro::executor, std::move(tls_ctx)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -286,54 +295,35 @@ void test_tls()
    cfg.sentinel.master_name = "mymaster";
    cfg.sentinel.use_ssl = true;
 
-   request req;
-   req.push("PING", "test_sentinel_tls");
+   auto exec_fn = [&]() -> capy::io_task<> {
+      request req;
+      req.push("PING", "test_sentinel_tls");
+      auto [ec] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
 
-   bool exec_finished = false, run_finished = false;
-
-   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
-      exec_finished = true;
-      BOOST_TEST(ec == error_code());
-      conn.cancel();
-   });
-
-   conn.async_run(cfg, {}, [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // We can also connect to replicas
-void test_replica()
+capy::task<> test_replica()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
-   config cfg;
-   cfg.sentinel.addresses = {
-      {"localhost", "26379"},
-      {"localhost", "26380"},
-      {"localhost", "26381"},
-   };
-   cfg.sentinel.master_name = "mymaster";
-   cfg.sentinel.server_role = role::replica;
-
-   // Verify that we're connected to a replica
-   request req;
-   req.push("ROLE");
-
-   generic_response resp;
-
-   bool exec_finished = false, run_finished = false;
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Verify that we're connected to a replica
+      request req;
+      req.push("ROLE");
+      generic_response resp;
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
 
       // ROLE outputs an array, 1st element should be 'slave'
@@ -341,28 +331,29 @@ void test_replica()
       BOOST_TEST_GE(resp.value().size(), 2u);
       BOOST_TEST_EQ(resp.value().at(1u).value, "slave");
 
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto cfg = make_sentinel_config();
+      cfg.sentinel.server_role = role::replica;
+
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
 
-   ioc.run_for(test_timeout);
+      co_return {};
+   };
 
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 // If no Sentinel is reachable, an error is issued.
 // This tests disabling reconnection with Sentinel, too.
-void test_error_no_sentinel_reachable()
+capy::task<> test_error_no_sentinel_reachable()
 {
-   // Setup
    std::string logs;
-   net::io_context ioc;
-   connection conn{ioc, make_string_logger(logs)};
+   co_connection conn{co_await capy::this_coro::executor, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -372,16 +363,8 @@ void test_error_no_sentinel_reachable()
    cfg.sentinel.master_name = "mymaster";
    cfg.reconnect_wait_interval = 0s;  // disable reconnection so we can verify the error
 
-   bool run_finished = false;
-
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(run_finished);
+   auto [ec] = co_await conn.run(cfg);
+   BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
 
    if (
       !BOOST_TEST_NE(
@@ -396,12 +379,10 @@ void test_error_no_sentinel_reachable()
 
 // If Sentinel doesn't know about the configured master,
 // the appropriate error is returned
-void test_error_unknown_master()
+capy::task<> test_error_unknown_master()
 {
-   // Setup
    std::string logs;
-   net::io_context ioc;
-   connection conn{ioc, make_string_logger(logs)};
+   co_connection conn{co_await capy::this_coro::executor, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -410,16 +391,8 @@ void test_error_unknown_master()
    cfg.sentinel.master_name = "unknown_master";
    cfg.reconnect_wait_interval = 0s;  // disable reconnection so we can verify the error
 
-   bool run_finished = false;
-
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(run_finished);
+   auto [ec] = co_await conn.run(cfg);
+   BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
 
    if (!BOOST_TEST_NE(
           logs.find("Sentinel at localhost:26380: doesn't know about the configured master"),
@@ -429,12 +402,10 @@ void test_error_unknown_master()
 }
 
 // The same applies when connecting to replicas, too
-void test_error_unknown_master_replica()
+capy::task<> test_error_unknown_master_replica()
 {
-   // Setup
    std::string logs;
-   net::io_context ioc;
-   connection conn{ioc, make_string_logger(logs)};
+   co_connection conn{co_await capy::this_coro::executor, make_string_logger(logs)};
 
    config cfg;
    cfg.sentinel.addresses = {
@@ -444,16 +415,8 @@ void test_error_unknown_master_replica()
    cfg.reconnect_wait_interval = 0s;  // disable reconnection so we can verify the error
    cfg.sentinel.server_role = role::replica;
 
-   bool run_finished = false;
-
-   conn.async_run(cfg, [&](error_code ec) {
-      run_finished = true;
-      BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(run_finished);
+   auto [ec] = co_await conn.run(cfg);
+   BOOST_TEST_EQ(ec, error::sentinel_resolve_failed);
 
    if (!BOOST_TEST_NE(
           logs.find("Sentinel at localhost:26380: doesn't know about the configured master"),
@@ -467,25 +430,25 @@ void test_error_unknown_master_replica()
 int main()
 {
    // Create the required users in the master, replicas and sentinels
-   create_user("6379", "redis_user", "redis_pass");
-   create_user("6380", "redis_user", "redis_pass");
-   create_user("6381", "redis_user", "redis_pass");
-   create_user("26379", "sentinel_user", "sentinel_pass");
-   create_user("26380", "sentinel_user", "sentinel_pass");
-   create_user("26381", "sentinel_user", "sentinel_pass");
+   run_coroutine_test(create_user("6379", "redis_user", "redis_pass"));
+   run_coroutine_test(create_user("6380", "redis_user", "redis_pass"));
+   run_coroutine_test(create_user("6381", "redis_user", "redis_pass"));
+   run_coroutine_test(create_user("26379", "sentinel_user", "sentinel_pass"));
+   run_coroutine_test(create_user("26380", "sentinel_user", "sentinel_pass"));
+   run_coroutine_test(create_user("26381", "sentinel_user", "sentinel_pass"));
 
    // Actual tests
-   test_exec();
-   test_receive();
-   test_reconnect();
-   test_sentinel_not_reachable();
-   test_auth();
-   test_tls();
-   test_replica();
+   run_coroutine_test(test_exec());
+   run_coroutine_test(test_receive());
+   run_coroutine_test(test_reconnect());
+   run_coroutine_test(test_sentinel_not_reachable());
+   run_coroutine_test(test_auth());
+   run_coroutine_test(test_tls());
+   run_coroutine_test(test_replica());
 
-   test_error_no_sentinel_reachable();
-   test_error_unknown_master();
-   test_error_unknown_master_replica();
+   run_coroutine_test(test_error_no_sentinel_reachable());
+   run_coroutine_test(test_error_unknown_master());
+   run_coroutine_test(test_error_unknown_master_replica());
 
    return boost::report_errors();
 }
