@@ -1,36 +1,36 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/connection.hpp>
-
-#include <boost/asio/consign.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/use_awaitable.hpp>
-#include <boost/describe.hpp>
-
-#include <iostream>
-#include <string>
-
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/config.hpp>
+#include <boost/redis/request.hpp>
 #include <boost/redis/resp3/serialization.hpp>
+#include <boost/redis/response.hpp>
 
+#include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
+#include <boost/describe.hpp>
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/value_from.hpp>
 #include <boost/json/value_to.hpp>
 
-namespace asio = boost::asio;
+#include <exception>
+#include <iostream>
+#include <string>
+
+namespace capy = boost::capy;
+namespace corosio = boost::corosio;
 namespace resp3 = boost::redis::resp3;
 using namespace boost::describe;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::ignore_t;
-using boost::redis::config;
-using boost::redis::connection;
+using namespace boost::redis;
 using boost::redis::resp3::node_view;
 
 // Struct that will be stored in Redis using json serialization.
@@ -54,12 +54,8 @@ void boost_redis_from_bulk(user& u, node_view const& node, boost::system::error_
    u = boost::json::value_to<user>(boost::json::parse(node.value));
 }
 
-auto co_main(config cfg) -> asio::awaitable<void>
+capy::io_task<> run_request(co_connection& conn)
 {
-   auto ex = co_await asio::this_coro::executor;
-   auto conn = std::make_shared<connection>(ex);
-   conn->async_run(cfg, asio::consign(asio::detached, conn));
-
    // user object that will be stored in Redis in json format.
    user const u{"Joao", "58", "Brazil"};
 
@@ -70,13 +66,52 @@ auto co_main(config cfg) -> asio::awaitable<void>
 
    response<ignore_t, user> resp;
 
-   co_await conn->async_exec(req, resp);
-   conn->cancel();
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec) {
+      std::cerr << "Error executing request: " << ec << std::endl;
+      exit(1);
+   }
 
-   // Prints the first ping
    std::cout << "Name: " << std::get<1>(resp).value().name << "\n"
              << "Age: " << std::get<1>(resp).value().age << "\n"
              << "Country: " << std::get<1>(resp).value().country << "\n";
+
+   co_return {};
 }
 
-#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)
+capy::task<void> co_main()
+{
+   // Create a connection
+   co_connection conn{co_await capy::this_coro::executor};
+
+   // Run the connection and the JSON request in parallel.
+   // when_any will cancel run() once the request completes.
+   co_await capy::when_any(run_request(conn), conn.run(config{}));
+}
+
+int main()
+{
+   // The I/O context, required for all I/O operations
+   corosio::io_context ctx;
+
+   // Schedules the main coroutine for execution
+   capy::run_async(
+      ctx.get_executor(),
+      []() {
+         // Runs when the main coroutine finishes normally
+         std::cout << "Done\n";
+      },
+      [](std::exception_ptr exc) {
+         // Runs when the main coroutine finishes with an exception
+         try {
+            std::rethrow_exception(exc);
+         } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            exit(1);
+         }
+         exit(1);
+      })(co_main());
+
+   // Executes all pending work, including the main coroutine
+   ctx.run();
+}
