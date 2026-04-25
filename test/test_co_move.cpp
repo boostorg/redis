@@ -10,7 +10,6 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
-#include <boost/capy/delay.hpp>
 #include <boost/capy/ex/this_coro.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/capy/task.hpp>
@@ -66,21 +65,22 @@ capy::task<> test_conn_move_assign_while_running()
    co_connection conn{co_await capy::this_coro::executor};
    co_connection conn2{co_await capy::this_coro::executor};  // will be assigned to
 
-   response<std::string> resp;
-
    auto exec_fn = [&]() -> capy::io_task<> {
-      // Wait briefly to ensure run is in flight
-      auto [delay_ec] = co_await capy::delay(50ms);
-      BOOST_TEST_EQ(delay_ec, error_code());
+      // Ensure that run is in flight
+      request req;
+      req.push("PING", "test_co_move");
+      auto [ec] = co_await conn.exec(req);
+      BOOST_TEST_EQ(ec, error_code());
 
       // Perform the move while run is in progress
       conn2 = std::move(conn);
 
-      // Launch a PING on the moved-to connection
-      request req;
-      req.push("PING", "something");
-      auto [ec] = co_await conn2.exec(req, resp);
-      BOOST_TEST_EQ(ec, error_code());
+      // Checked that the moved-to connection is still usable
+      response<std::string> resp;
+      auto [ec2] = co_await conn2.exec(req, resp);
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "test_co_move");
+
       co_return {};
    };
 
@@ -92,7 +92,6 @@ capy::task<> test_conn_move_assign_while_running()
 
    auto result = co_await capy::when_any(exec_fn(), run_fn());
    BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
-   BOOST_TEST_EQ(std::get<0>(resp).value(), "something");
 }
 
 }  // namespace
