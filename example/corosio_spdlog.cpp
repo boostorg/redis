@@ -113,7 +113,6 @@ int main(int argc, char** argv)
                std::rethrow_exception(exc);
             } catch (const std::exception& e) {
                spdlog::error("Error: {}", e.what());
-               exit(1);
             }
             exit(1);
          })(co_main(cfg));

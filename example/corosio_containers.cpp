@@ -184,7 +184,6 @@ int main()
             std::rethrow_exception(exc);
          } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
-            exit(1);
          }
          exit(1);
       })(co_main(config{}));
