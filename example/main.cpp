@@ -21,28 +21,28 @@ using boost::redis::logger;
 
 extern asio::awaitable<void> co_main(config);
 
-// auto main(int argc, char* argv[]) -> int
-// {
-//    try {
-//       config cfg;
+auto main(int argc, char* argv[]) -> int
+{
+   try {
+      config cfg;
 
-//       if (argc == 3) {
-//          cfg.addr.host = argv[1];
-//          cfg.addr.port = argv[2];
-//       }
+      if (argc == 3) {
+         cfg.addr.host = argv[1];
+         cfg.addr.port = argv[2];
+      }
 
-//       asio::io_context ioc;
-//       asio::co_spawn(ioc, co_main(cfg), [](std::exception_ptr p) {
-//          if (p)
-//             std::rethrow_exception(p);
-//       });
-//       ioc.run();
+      asio::io_context ioc;
+      asio::co_spawn(ioc, co_main(cfg), [](std::exception_ptr p) {
+         if (p)
+            std::rethrow_exception(p);
+      });
+      ioc.run();
 
-//    } catch (std::exception const& e) {
-//       std::cerr << "(main) " << e.what() << std::endl;
-//       return 1;
-//    }
-// }
+   } catch (std::exception const& e) {
+      std::cerr << "(main) " << e.what() << std::endl;
+      return 1;
+   }
+}
 
 #else  // defined(BOOST_ASIO_HAS_CO_AWAIT)
 
