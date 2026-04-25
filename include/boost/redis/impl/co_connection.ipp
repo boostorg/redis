@@ -488,7 +488,7 @@ capy::io_task<> co_connection::exec(request const& req, any_adapter adapter)
    return impl_->exec(req, std::move(adapter));
 }
 
-void co_connection::set_receive_response(any_adapter resp)
+void co_connection::set_receive_adapter(any_adapter resp)
 {
    impl_->set_receive_adapter(std::move(resp));
 }

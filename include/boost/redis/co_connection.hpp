@@ -9,6 +9,7 @@
 #ifndef BOOST_REDIS_CO_CONNECTION_HPP
 #define BOOST_REDIS_CO_CONNECTION_HPP
 
+#include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
 #include <boost/redis/logger.hpp>
@@ -313,12 +314,18 @@ public:
    capy::io_task<> exec(request const& req, any_adapter adapter);
 
    /// Sets the response object of @ref async_receive2 operations.
-   void set_receive_response(any_adapter resp);
+   template <class Response>
+   void set_receive_response(Response& resp)
+   {
+      set_receive_adapter(boost_redis_adapt(resp));
+   }
 
    /// Returns connection usage information.
    usage get_usage() const noexcept;
 
 private:
+   void set_receive_adapter(any_adapter adapter);
+
    std::unique_ptr<detail::co_connection_impl> impl_;
 };
 
