@@ -317,7 +317,7 @@ public:
    template <class Response>
    void set_receive_response(Response& resp)
    {
-      set_receive_adapter(boost_redis_adapt(resp));
+      set_receive_adapter(any_adapter(resp));
    }
 
    /// Returns connection usage information.

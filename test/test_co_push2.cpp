@@ -150,7 +150,7 @@ capy::task<> test_receive_batch()
 
       // 3. Check that receive has consumed them by calling it again with a deadline
       auto [ec3] = co_await capy::timeout(conn.receive(), 50ms);
-      BOOST_TEST_EQ(ec3, capy::cond::timeout);
+      BOOST_TEST_EQ(ec3, condition_wrapper{capy::cond::timeout});
       co_return {};
    };
 
