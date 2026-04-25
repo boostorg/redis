@@ -33,16 +33,18 @@ struct co_connection_impl;
 
 /** @brief A connection to a Redis server, designed for capy coroutines.
  *
- *  This class keeps a healthy connection to the Redis instance where
- *  commands can be sent at any time. For more details, please see the
- *  documentation of each individual function.
+ * This class keeps a healthy connection to the Redis instance where
+ * commands can be sent at any time. For more details, please see the
+ * documentation of each individual function.
  *
- *  Each I/O member function returns a `capy::io_task` that should
- *  be `co_await`ed from a coroutine running on a capy executor.
- *  This class uses corosio for sockets, TLS and timers, and does not depend on Boost.Asio.
- *  Cancellation follows the usual capy patterns, and is driven by the parent task's
- *  `std::stop_token`. When stop is requested, operations complete with
- *  an error matching `capy::cond::canceled`.
+ * Each I/O member function returns a `capy::io_task` that should
+ * be awaited from a coroutine running on a capy executor.
+ * This class uses corosio for sockets, TLS and timers, and does not depend on Boost.Asio.
+ * Cancellation follows the usual capy patterns, and is driven by the parent task's
+ * `std::stop_token`. When stop is requested, operations complete with
+ * an error matching `capy::cond::canceled`.
+ *
+ * This type is movable but not copyable.
  *
  * @par Thread safety
  * Distinct objects: safe.
@@ -146,9 +148,6 @@ public:
     */
    co_connection& operator=(co_connection&&) noexcept;
 
-   co_connection(const co_connection&) = delete;
-   co_connection& operator=(const co_connection&) = delete;
-
    /// Destructor.
    ~co_connection();
 
@@ -157,7 +156,7 @@ public:
     * This function establishes a connection to the Redis server and keeps
     * it healthy by performing the following operations:
     *
-    *  @li For Sentinel deployments (@ref config::sentinel::addresses is not empty),
+    *  @li For Sentinel deployments (`config::sentinel::addresses` is not empty),
     *      contacts Sentinels to obtain the address of the configured master.
     *  @li For TCP connections, resolves the server hostname passed in
     *      @ref config::addr.
@@ -227,7 +226,7 @@ public:
     * function continuously in a loop.
     *
     * This function does *not* remove messages from the response object
-    * passed to @ref set_receive_response - use the functions in the response
+    * passed to @ref set_receive_response. Use the functions in the response
     * object to achieve this.
     *
     * Only a single instance of `receive` may be outstanding for a given
