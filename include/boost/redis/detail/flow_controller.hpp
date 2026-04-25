@@ -27,7 +27,7 @@ public:
    flow_controller(std::size_t max_bytes) noexcept
    : max_bytes_(max_bytes)
    {
-      bytes_available_.set();
+      room_available_.set();
       assert(max_bytes != 0u);
    }
 
