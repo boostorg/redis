@@ -30,6 +30,8 @@ make_example(cpp20_intro_tls   examples_main)
 
 make_testable_example(corosio_intro      boost_redis_corosio)
 
+make_example(corosio_subscriber          boost_redis_corosio)
+
 # We test the protobuf example only on gcc.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   find_package(Protobuf)
