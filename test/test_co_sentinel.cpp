@@ -45,40 +45,6 @@ using error_code = std::error_code;
 
 namespace {
 
-// RP TODO: this is duplicate
-// Connects to the Redis server at the given port and creates a user
-capy::task<void> create_user(
-   std::string_view port,
-   std::string_view username,
-   std::string_view password)
-{
-   co_connection conn{co_await capy::this_coro::executor};
-
-   auto exec_fn = [&]() -> capy::io_task<> {
-      // Enable the user and grant them permissions on everything
-      request req;
-      req.push("ACL", "SETUSER", username, "on", ">" + std::string(password), "~*", "&*", "+@all");
-
-      auto [ec] = co_await conn.exec(req, ignore);
-      BOOST_TEST_EQ(ec, error_code());
-
-      co_return {};
-   };
-
-   auto run_fn = [&]() -> capy::io_task<> {
-      config cfg;
-      cfg.addr.port = port;
-
-      auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, canceled_condition());
-
-      co_return {};
-   };
-
-   auto result = co_await capy::when_any(exec_fn(), run_fn());
-   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
-}
-
 config make_sentinel_config()
 {
    config cfg;
@@ -425,17 +391,22 @@ capy::task<> test_error_unknown_master_replica()
    }
 }
 
+capy::task<> create_all_users()
+{
+   co_await create_user("6379", "redis_user", "redis_pass");
+   co_await create_user("6380", "redis_user", "redis_pass");
+   co_await create_user("6381", "redis_user", "redis_pass");
+   co_await create_user("26379", "sentinel_user", "sentinel_pass");
+   co_await create_user("26380", "sentinel_user", "sentinel_pass");
+   co_await create_user("26381", "sentinel_user", "sentinel_pass");
+}
+
 }  // namespace
 
 int main()
 {
    // Create the required users in the master, replicas and sentinels
-   run_coroutine_test(create_user("6379", "redis_user", "redis_pass"));
-   run_coroutine_test(create_user("6380", "redis_user", "redis_pass"));
-   run_coroutine_test(create_user("6381", "redis_user", "redis_pass"));
-   run_coroutine_test(create_user("26379", "sentinel_user", "sentinel_pass"));
-   run_coroutine_test(create_user("26380", "sentinel_user", "sentinel_pass"));
-   run_coroutine_test(create_user("26381", "sentinel_user", "sentinel_pass"));
+   run_coroutine_test(create_all_users());
 
    // Actual tests
    run_coroutine_test(test_exec());

@@ -16,6 +16,12 @@ namespace boost::redis::test {
 
 void run_coroutine_test(capy::task<void> test, source_location loc = BOOST_CURRENT_LOCATION);
 
-}
+capy::task<> create_user(
+   std::string_view port,
+   std::string_view username,
+   std::string_view password,
+   source_location loc = BOOST_CURRENT_LOCATION);
+
+}  // namespace boost::redis::test
 
 #endif

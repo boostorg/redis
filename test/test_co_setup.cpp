@@ -36,38 +36,6 @@ namespace corosio = boost::corosio;
 
 namespace {
 
-capy::task<void> create_user(
-   std::string_view port,
-   std::string_view username,
-   std::string_view password)
-{
-   co_connection conn{co_await capy::this_coro::executor};
-
-   auto exec_fn = [&]() -> capy::io_task<> {
-      // Enable the user and grant them permissions on everything
-      request req;
-      req.push("ACL", "SETUSER", username, "on", ">" + std::string(password), "~*", "&*", "+@all");
-
-      auto [ec] = co_await conn.exec(req, ignore);
-      BOOST_TEST_EQ(ec, std::error_code());
-
-      co_return {};
-   };
-
-   auto run_fn = [&]() -> capy::io_task<> {
-      config cfg;
-      cfg.addr.port = port;
-
-      auto [ec] = co_await conn.run(cfg);
-      BOOST_TEST_EQ(ec, canceled_condition());
-
-      co_return {};
-   };
-
-   auto result = co_await capy::when_any(exec_fn(), run_fn());
-   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
-}
-
 capy::task<> test_auth_success()
 {
    // Setup
