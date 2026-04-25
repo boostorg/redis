@@ -1,228 +1,108 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
- *
- * Distributed under the Boost Software License, Version 1.0. (See
- * accompanying file LICENSE.txt)
- */
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
 #include <boost/redis/ignore.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/response.hpp>
 
-#include <boost/asio/any_io_executor.hpp>
-#include <boost/asio/bind_cancellation_slot.hpp>
-#include <boost/asio/cancel_after.hpp>
-#include <boost/asio/cancellation_signal.hpp>
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/asio/io_context.hpp>
+#include <boost/capy/cond.hpp>
+#include <boost/capy/ex/immediate.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/timeout.hpp>
+#include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
-#include <boost/system/errc.hpp>
 
 #include "common.hpp"
+#include "corosio_common.hpp"
 
-#include <cstddef>
-#include <iostream>
+#include <chrono>
+#include <memory>
+#include <string>
+#include <system_error>
 
+namespace capy = boost::capy;
+using namespace boost::redis;
+using namespace boost::redis::test;
 using namespace std::chrono_literals;
-
-namespace net = boost::asio;
-using error_code = boost::system::error_code;
-using boost::redis::operation;
-using boost::redis::error;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::generic_response;
-using boost::redis::ignore;
-using boost::redis::ignore_t;
-using boost::redis::logger;
-using boost::redis::connection;
-using namespace std::chrono_literals;
+using error_code = std::error_code;
 
 namespace {
 
-// We can cancel requests that haven't been written yet.
-// All cancellation types are supported here.
-void test_cancel_pending()
+// We can cancel requests that haven't been written yet
+capy::task<> test_cancel_pending()
 {
-   struct {
-      const char* name;
-      net::cancellation_type_t cancel_type;
-   } test_cases[] = {
-      {"terminal", net::cancellation_type_t::terminal},
-      {"partial",  net::cancellation_type_t::partial },
-      {"total",    net::cancellation_type_t::total   },
-   };
+   co_connection conn{co_await capy::this_coro::executor};
 
-   for (const auto& tc : test_cases) {
-      std::cerr << "Running test case: " << tc.name << std::endl;
-
-      // Setup
-      net::io_context ctx;
-      connection conn(ctx);
+   // Issue a request without calling run, so the request stays waiting forever
+   auto exec_fn = [&]() -> capy::io_task<> {
       request req;
       req.push("get", "mykey");
+      auto [ec] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec, canceled_condition());
+      co_return {};
+   };
 
-      // Issue a request without calling async_run(), so the request stays waiting forever
-      net::cancellation_signal sig;
-      bool called = false;
-      conn.async_exec(
-         req,
-         ignore,
-         net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
-            BOOST_TEST_EQ(ec, canceled_condition());
-            BOOST_TEST_EQ(sz, 0u);
-            called = true;
-         }));
-
-      // Issue a cancellation
-      sig.emit(tc.cancel_type);
-
-      // Prevent the test for deadlocking in case of failure
-      ctx.run_for(test_timeout);
-      BOOST_TEST(called);
-   }
+   auto result = co_await capy::when_any(exec_fn(), capy::ready());
+   BOOST_TEST_EQ(result.index(), 2u);  // Trigger finished 1st
 }
 
-// We can cancel requests that have been written but which
+// We can cancel requests that have been written but whose
 // responses haven't been received yet.
-// Terminal and partial cancellation types are supported here.
-void test_cancel_written()
+capy::task<> test_cancel_written()
 {
-   // Setup
-   net::io_context ctx;
-   connection conn{ctx};
-   auto cfg = make_test_config();
-   cfg.health_check_interval = std::chrono::seconds::zero();
-   bool run_finished = false, exec1_finished = false, exec2_finished = false,
-        exec3_finished = false;
+   co_connection conn{co_await capy::this_coro::executor};
 
-   // Will be cancelled after it has been written but before the
-   // response arrives. Create everything in dynamic memory to verify
-   // we don't try to access things after completion.
-   auto req1 = std::make_unique<request>();
-   req1->push("BLPOP", "any", 1);
-   auto r1 = std::make_unique<response<std::string>>();
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // Will be cancelled after it has been written but before the response arrives.
+      // Our BLPOP will block server-side for longer than the deadline below.
+      auto req1 = std::make_unique<request>();
+      req1->push("BLPOP", "any", 1);
+      auto resp1 = std::make_unique<response<std::string>>();
+      auto [ec1] = co_await capy::timeout(conn.exec(*req1, *resp1), 500ms);
+      BOOST_TEST_EQ(ec1, condition_wrapper{capy::cond::timeout});
 
-   // Will be cancelled too because it's sent after BLPOP.
-   // Tests that partial cancellation is supported, too.
-   request req2;
-   req2.push("PING", "partial_cancellation");
-
-   // Will finish successfully once the response to the BLPOP arrives
-   request req3;
-   req3.push("PING", "after_blpop");
-   response<std::string> r3;
-
-   // Run the connection
-   conn.async_run(cfg, [&](error_code ec) {
-      BOOST_TEST_EQ(ec, canceled_condition());
-      run_finished = true;
-   });
-
-   // The request will be cancelled before it receives a response.
-   // Our BLPOP will wait for longer than the timeout we're using.
-   // Clear allocated memory to check we don't access the request or
-   // response when the server response arrives.
-   auto blpop_cb = [&](error_code ec, std::size_t) {
+      // Destroy request and response to verify that we don't reference them after cancellation
       req1.reset();
-      r1.reset();
-      BOOST_TEST_EQ(ec, canceled_condition());
-      exec1_finished = true;
+      resp1.reset();
+
+      // The connection remains usable. The PING's response will be received
+      // after the BLPOP's response, but it will be processed successfully.
+      request req2;
+      req2.push("PING", "after_blpop");
+      response<std::string> resp2;
+      auto [ec2] = co_await conn.exec(req2, resp2);
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp2).value(), "after_blpop");
+      co_return {};
    };
-   conn.async_exec(*req1, *r1, net::cancel_after(500ms, blpop_cb));
 
-   // The first PING will be cancelled, too. Use partial cancellation here.
-   auto req2_cb = [&](error_code ec, std::size_t) {
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto cfg = make_test_config();
+      cfg.health_check_interval = 0s;
+
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, canceled_condition());
-      exec2_finished = true;
+      co_return {};
    };
-   conn.async_exec(
-      req2,
-      ignore,
-      net::cancel_after(500ms, net::cancellation_type_t::partial, req2_cb));
 
-   // The second PING's response will be received after the BLPOP's response,
-   // but it will be processed successfully.
-   conn.async_exec(req3, r3, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(r3).value(), "after_blpop");
-      conn.cancel();
-      exec3_finished = true;
-   });
-
-   ctx.run_for(test_timeout);
-   BOOST_TEST(run_finished);
-   BOOST_TEST(exec1_finished);
-   BOOST_TEST(exec2_finished);
-   BOOST_TEST(exec3_finished);
-}
-
-// connection::cancel(operation::exec) works. Pending requests are cancelled,
-// but written requests are not
-void test_cancel_operation_exec()
-{
-   // Setup
-   net::io_context ctx;
-   connection conn{ctx};
-   bool run_finished = false, exec0_finished = false, exec1_finished = false,
-        exec2_finished = false;
-
-   request req0;
-   req0.push("PING", "before_blpop");
-
-   request req1;
-   req1.push("BLPOP", "any", 1);
-   generic_response r1;
-
-   request req2;
-   req2.push("PING", "after_blpop");
-
-   // Run the connection
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      BOOST_TEST_EQ(ec, canceled_condition());
-      run_finished = true;
-   });
-
-   // Execute req0 and req1. They will be coalesced together.
-   // When req0 completes, we know that req1 will be waiting its response
-   conn.async_exec(req0, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      exec0_finished = true;
-      conn.cancel(operation::exec);
-   });
-
-   // By default, ignore will issue an error when a NULL is received.
-   // ATM, this causes the connection to be torn down. Using a generic_response avoids this.
-   // See https://github.com/boostorg/redis/issues/314
-   conn.async_exec(req1, r1, [&](error_code ec, std::size_t) {
-      // No error should occur since the cancellation should be ignored
-      std::cout << "async_exec (1): " << ec.message() << std::endl;
-      BOOST_TEST_EQ(ec, error_code());
-      exec1_finished = true;
-
-      // The connection remains usable
-      conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
-         BOOST_TEST_EQ(ec2, error_code());
-         exec2_finished = true;
-         conn.cancel();
-      });
-   });
-
-   ctx.run_for(test_timeout);
-   BOOST_TEST(run_finished);
-   BOOST_TEST(exec0_finished);
-   BOOST_TEST(exec1_finished);
-   BOOST_TEST(exec2_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
 }  // namespace
 
 int main()
 {
-   test_cancel_pending();
-   test_cancel_written();
-   test_cancel_operation_exec();
+   run_coroutine_test(test_cancel_pending());
+   run_coroutine_test(test_cancel_written());
 
    return boost::report_errors();
 }
