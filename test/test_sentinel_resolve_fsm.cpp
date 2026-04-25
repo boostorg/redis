@@ -20,6 +20,7 @@
 #include "sansio_utils.hpp"
 
 #include <iterator>
+#include <string_view>
 
 using namespace boost::redis;
 namespace asio = boost::asio;
@@ -184,8 +185,12 @@ void test_success_replica()
    act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
    BOOST_TEST_EQ(act, error_code());
 
-   // The address of one of the replicas is stored
-   BOOST_TEST_EQ(fix.st.cfg.addr, (address{"replica.two", "6379"}));
+   // The address of one of the replicas is stored.
+   // Which one is implementation-defined.
+   BOOST_TEST_WITH(fix.st.cfg.addr.host, 0, [](std::string_view value, int) {
+      return value == "replica.two" || value == "replica.thr";
+   });
+   BOOST_TEST_EQ(fix.st.cfg.addr.port, "6379");
 
    // Logs
    fix.check_log({
