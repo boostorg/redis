@@ -413,7 +413,7 @@ struct co_connection_impl {
                   act = fsm.resume(st_, 0u, system::error_code(), cancel);
                } else {
                   auto [ec] = co_await controller_.put(act.push_size());
-                  act = fsm.resume(st_, 0u, ec, to_cancel(co_await capy::this_coro::stop_token));
+                  act = fsm.resume(st_, 0u, ec, cancel);
                }
                break;
             }
