@@ -6,18 +6,26 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/config.hpp>
 #include <boost/redis/logger.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
 
-#include <boost/asio/detached.hpp>
-#include <boost/system/error_code.hpp>
+#include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
 
-#include <cstddef>
-#include <iostream>
+#include <exception>
 #include <spdlog/spdlog.h>
+#include <string>
 #include <string_view>
 
-namespace asio = boost::asio;
+namespace capy = boost::capy;
+namespace corosio = boost::corosio;
 namespace redis = boost::redis;
 
 // Maps a Boost.Redis log level to a spdlog log level
@@ -47,21 +55,42 @@ static void do_log(redis::logger::level level, std::string_view msg)
    spdlog::log(to_spdlog_level(level), "(Boost.Redis) {}", msg);
 }
 
-auto main(int argc, char** argv) -> int
+capy::io_task<> run_request(redis::co_connection& conn)
+{
+   // Execute a request
+   redis::request req;
+   req.push("PING", "Hello world");
+   redis::response<std::string> resp;
+
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec) {
+      spdlog::error("Request failed: {}", ec.message());
+      exit(1);
+   }
+
+   spdlog::info("PING: {}", std::get<0>(resp).value());
+   co_return {};
+}
+
+capy::task<void> co_main(redis::config cfg)
+{
+   // Create a connection to connect to Redis, and pass it a custom logger.
+   // Boost.Redis will call do_log whenever it needs to log a message.
+   // Note that the function will only be called for messages with level >= info
+   // (i.e. filtering is done by Boost.Redis).
+   redis::co_connection conn{
+      co_await capy::this_coro::executor,
+      redis::logger{redis::logger::level::info, do_log}
+   };
+
+   // Run the connection and the PING request in parallel.
+   // when_any will cancel run() once the request completes.
+   co_await capy::when_any(run_request(conn), conn.run(cfg));
+}
+
+int main(int argc, char** argv)
 {
    try {
-      // Create an execution context, required to create any I/O objects
-      asio::io_context ioc;
-
-      // Create a connection to connect to Redis, and pass it a custom logger.
-      // Boost.Redis will call do_log whenever it needs to log a message.
-      // Note that the function will only be called for messages with level >= info
-      // (i.e. filtering is done by Boost.Redis).
-      redis::connection conn{
-         ioc,
-         redis::logger{redis::logger::level::info, do_log}
-      };
-
       // Configuration to connect to the server. Adjust as required
       redis::config cfg;
       if (argc == 3) {
@@ -69,28 +98,28 @@ auto main(int argc, char** argv) -> int
          cfg.addr.port = argv[2];
       }
 
-      // Run the connection with the specified configuration.
-      // This will establish the connection and keep it healthy
-      conn.async_run(cfg, asio::detached);
+      // Create an execution context, required to create any I/O objects
+      corosio::io_context ctx;
 
-      // Execute a request
-      redis::request req;
-      req.push("PING", "Hello world");
-
-      redis::response<std::string> resp;
-
-      conn.async_exec(req, resp, [&](boost::system::error_code ec, std::size_t /* bytes_read*/) {
-         if (ec) {
-            spdlog::error("Request failed: {}", ec.what());
+      // Schedules the main coroutine for execution
+      capy::run_async(
+         ctx.get_executor(),
+         []() {
+            // Runs when the main coroutine finishes normally
+         },
+         [](std::exception_ptr exc) {
+            // Runs when the main coroutine finishes with an exception
+            try {
+               std::rethrow_exception(exc);
+            } catch (const std::exception& e) {
+               spdlog::error("Error: {}", e.what());
+               exit(1);
+            }
             exit(1);
-         } else {
-            spdlog::info("PING: {}", std::get<0>(resp).value());
-         }
-         conn.cancel();
-      });
+         })(co_main(cfg));
 
       // Actually run our example. Nothing will happen until we call run()
-      ioc.run();
+      ctx.run();
 
    } catch (std::exception const& e) {
       spdlog::error("Error: {}", e.what());
