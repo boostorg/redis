@@ -63,27 +63,21 @@ config make_tls_config()
    return cfg;
 }
 
-// Using a default TLS context with verification disabled
+// Using the default TLS context (the one created if nothing is passed to the ctor)
 // allows establishing TLS connections and execute requests
-capy::task<> test_exec_default_ssl_context()
+capy::task<> test_exec_default_tls_context()
 {
-   constexpr std::string_view ping_value = "Kabuf";
-
-   // The custom server uses a certificate signed by a CA
-   // that is not trusted by default - skip verification.
-   corosio::tls_context tls_ctx;
-   auto ec_mode = tls_ctx.set_verify_mode(corosio::tls_verify_mode::none);
-   BOOST_TEST_EQ(ec_mode, error_code());
-
-   co_connection conn{co_await capy::this_coro::executor, std::move(tls_ctx)};
-
-   response<std::string> resp;
+   co_connection conn{co_await capy::this_coro::executor};
 
    auto exec_fn = [&]() -> capy::io_task<> {
       request req;
-      req.push("PING", ping_value);
+      req.push("PING", "test_co_tls");
+      response<std::string> resp;
+
       auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "test_co_tls");
+
       co_return {};
    };
 
@@ -95,21 +89,16 @@ capy::task<> test_exec_default_ssl_context()
 
    auto result = co_await capy::when_any(exec_fn(), run_fn());
    BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
-   BOOST_TEST_EQ(std::get<0>(resp).value(), ping_value);
 }
 
 // Users can pass a custom context with TLS config
 capy::task<> test_exec_custom_ssl_context()
 {
-   constexpr std::string_view ping_value = "Kabuf";
-
-   std::string ca_pem = load_ca_certificate();
-
    // Configure the TLS context to trust the CA that signed the server's certificate.
    // The test certificate uses "redis" as its common name,
    // regardless of the actual server's hostname.
    corosio::tls_context tls_ctx;
-   auto ec_ca = tls_ctx.add_certificate_authority(ca_pem);
+   auto ec_ca = tls_ctx.add_certificate_authority(load_ca_certificate());
    BOOST_TEST_EQ(ec_ca, error_code());
    auto ec_mode = tls_ctx.set_verify_mode(corosio::tls_verify_mode::require_peer);
    BOOST_TEST_EQ(ec_mode, error_code());
@@ -117,13 +106,16 @@ capy::task<> test_exec_custom_ssl_context()
 
    co_connection conn{co_await capy::this_coro::executor, std::move(tls_ctx)};
 
-   response<std::string> resp;
-
    auto exec_fn = [&]() -> capy::io_task<> {
+      constexpr std::string_view ping_value = "Kabuf";
       request req;
       req.push("PING", ping_value);
+      response<std::string> resp;
+
       auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), ping_value);
+
       co_return {};
    };
 
@@ -135,7 +127,6 @@ capy::task<> test_exec_custom_ssl_context()
 
    auto result = co_await capy::when_any(exec_fn(), run_fn());
    BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
-   BOOST_TEST_EQ(std::get<0>(resp).value(), ping_value);
 }
 
 // After an error, a connection can recover.
@@ -174,7 +165,7 @@ capy::task<> test_reconnection()
 
 int main()
 {
-   run_coroutine_test(test_exec_default_ssl_context());
+   run_coroutine_test(test_exec_default_tls_context());
    run_coroutine_test(test_exec_custom_ssl_context());
    run_coroutine_test(test_reconnection());
 
