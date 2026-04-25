@@ -1,312 +1,237 @@
-/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
- *
- * Distributed under the Boost Software License, Version 1.0. (See
- * accompanying file LICENSE.txt)
- */
+//
+// Copyright (c) 2025 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/ignore.hpp>
-#include <boost/redis/logger.hpp>
-#include <boost/redis/operation.hpp>
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
 #include <boost/redis/response.hpp>
 
-#include <boost/asio/bind_cancellation_slot.hpp>
-#include <boost/asio/cancel_after.hpp>
-#include <boost/asio/cancellation_signal.hpp>
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
+#include <boost/capy/cond.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/timeout.hpp>
+#include <boost/capy/when_all.hpp>
+#include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
+#include "corosio_common.hpp"
 
-#include <cstddef>
-#include <functional>
-#include <iostream>
 #include <iterator>
 #include <set>
 #include <string>
 #include <string_view>
+#include <system_error>
 
-namespace net = boost::asio;
+namespace capy = boost::capy;
 using namespace boost::redis;
+using namespace boost::redis::test;
 using namespace std::chrono_literals;
-using boost::system::error_code;
+using error_code = std::error_code;
 using resp3::flat_tree;
 using resp3::node_view;
 using resp3::type;
 
-// Covers all receive functionality except for the deprecated
-// async_receive and receive functions.
+// Covers all receive functionality for the new co_connection API.
 
 namespace {
 
-// async_receive2 is outstanding when a push is received
-void test_async_receive2_waiting_for_push()
+// receive() is outstanding when a push is received
+capy::task<> test_receive_waiting_for_push()
 {
    resp3::flat_tree resp;
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    conn.set_receive_response(resp);
 
    request req1;
    req1.push("PING", "Message1");
-   req1.push("SUBSCRIBE", "test_async_receive_waiting_for_push");
+   req1.push("SUBSCRIBE", "test_receive_waiting_for_push");
 
    request req2;
    req2.push("PING", "Message2");
 
-   bool run_finished = false, push_received = false, exec1_finished = false, exec2_finished = false;
-
-   auto on_exec2 = [&](error_code ec2, std::size_t) {
-      BOOST_TEST_EQ(ec2, error_code());
-      exec2_finished = true;
-      conn.cancel();
+   auto exec1_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.exec(req1, ignore);
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
    };
 
-   conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      exec1_finished = true;
-   });
-
-   conn.async_receive2([&](error_code ec) {
+   auto receive_then_exec2_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
       BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
-      push_received = true;
-      conn.async_exec(req2, ignore, on_exec2);
-   });
 
-   conn.async_run(make_test_config(), [&](error_code ec) {
+      auto [ec2] = co_await conn.exec(req2, ignore);
+      BOOST_TEST_EQ(ec2, error_code());
+      co_return {};
+   };
+
+   auto work_fn = [&]() -> capy::io_task<> {
+      auto [ec, a, b] = co_await capy::when_all(exec1_fn(), receive_then_exec2_fn());
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-      run_finished = true;
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(push_received);
-   BOOST_TEST(exec1_finished);
-   BOOST_TEST(exec2_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(work_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Work finished 1st
 }
 
-// A push is already available when async_receive2 is called
-void test_async_receive2_push_available()
+// A push is already available when receive() is called
+capy::task<> test_receive_push_available()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::flat_tree resp;
    conn.set_receive_response(resp);
 
    // SUBSCRIBE doesn't have a response, but causes a push to be delivered.
    // Add a PING so the overall request has a response.
-   // This ensures that when async_exec completes, the push has been delivered
+   // This ensures that when exec completes, the push has been delivered
    request req;
-   req.push("SUBSCRIBE", "test_async_receive_push_available");
+   req.push("SUBSCRIBE", "test_receive_push_available");
    req.push("PING", "message");
 
-   bool push_received = false, exec_finished = false, run_finished = false;
-
-   auto on_receive = [&](error_code ec, std::size_t) {
-      push_received = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, error_code());
+
+      auto [ec2] = co_await conn.receive();
+      BOOST_TEST_EQ(ec2, error_code());
       BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
-      conn.cancel();
+      co_return {};
    };
 
-   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
-      exec_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_receive(on_receive);
-   });
-
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(push_received);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
-// async_receive2 blocks only once if several messages are received in a batch
-void test_async_receive2_batch()
+// receive() blocks only once if several messages are received in a batch
+capy::task<> test_receive_batch()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::flat_tree resp;
    conn.set_receive_response(resp);
 
    // Cause two messages to be delivered. The PING ensures that
    // the pushes have been read when exec completes
    request req;
-   req.push("SUBSCRIBE", "test_async_receive2_batch");
-   req.push("SUBSCRIBE", "test_async_receive2_batch");
+   req.push("SUBSCRIBE", "test_receive_batch");
+   req.push("SUBSCRIBE", "test_receive_batch");
    req.push("PING", "message");
 
-   bool receive_finished = false, run_finished = false;
-
-   // 1. Trigger pushes
-   // 2. Receive both of them
-   // 3. Check that receive2 has consumed them by calling it again
-   auto on_receive2 = [&](error_code ec) {
-      BOOST_TEST_EQ(ec, canceled_condition());
-      receive_finished = true;
-      conn.cancel();
-   };
-
-   auto on_receive1 = [&](error_code ec) {
+   auto exec_fn = [&]() -> capy::io_task<> {
+      // 1. Trigger pushes
+      auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, error_code());
+
+      // 2. Receive both of them
+      auto [ec2] = co_await conn.receive();
+      BOOST_TEST_EQ(ec2, error_code());
       BOOST_TEST_EQ(resp.get_total_msgs(), 2u);
-      conn.async_receive2(net::cancel_after(50ms, on_receive2));
+
+      // 3. Check that receive has consumed them by calling it again with a deadline
+      auto [ec3] = co_await capy::timeout(conn.receive(), 50ms);
+      BOOST_TEST_EQ(ec3, capy::cond::timeout);
+      co_return {};
    };
 
-   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_receive2(on_receive1);
-   });
-
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(receive_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
-// async_receive2 can be called several times in a row
-void test_async_receive2_subsequent_calls()
+// receive() can be called several times in a row
+capy::task<> test_receive_subsequent_calls()
 {
-   struct impl {
-      net::io_context ioc{};
-      connection conn{ioc};
-      resp3::flat_tree resp{};
-      request req{};
-      bool receive_finished = false, run_finished = false;
+   co_connection conn{co_await capy::this_coro::executor};
+   resp3::flat_tree resp;
+   conn.set_receive_response(resp);
 
+   request req;
+   req.push("SUBSCRIBE", "test_receive_subsequent_calls");
+
+   auto exec_fn = [&]() -> capy::io_task<> {
       // Send a SUBSCRIBE, which will trigger a push
-      void start_subscribe1()
-      {
-         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
-            BOOST_TEST_EQ(ec, error_code());
-            start_receive1();
-         });
-      }
+      auto [ec] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec, error_code());
 
       // Receive the push
-      void start_receive1()
-      {
-         conn.async_receive2([this](error_code ec) {
-            BOOST_TEST_EQ(ec, error_code());
-            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
-            resp.clear();
-            start_subscribe2();
-         });
-      }
+      auto [ec2] = co_await conn.receive();
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+      resp.clear();
 
       // Send another SUBSCRIBE, which will trigger another push
-      void start_subscribe2()
-      {
-         conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
-            BOOST_TEST_EQ(ec, error_code());
-            start_receive2();
-         });
-      }
+      auto [ec3] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec3, error_code());
 
-      // End
-      void start_receive2()
-      {
-         conn.async_receive2([this](error_code ec) {
-            BOOST_TEST_EQ(ec, error_code());
-            BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
-            receive_finished = true;
-            conn.cancel();
-         });
-      }
-
-      void run()
-      {
-         // Setup
-         conn.set_receive_response(resp);
-         req.push("SUBSCRIBE", "test_async_receive2_subsequent_calls");
-
-         start_subscribe1();
-         conn.async_run(make_test_config(), [&](error_code ec) {
-            run_finished = true;
-            BOOST_TEST_EQ(ec, canceled_condition());
-         });
-
-         ioc.run_for(test_timeout);
-
-         BOOST_TEST(receive_finished);
-         BOOST_TEST(run_finished);
-      }
+      // Receive the push
+      auto [ec4] = co_await conn.receive();
+      BOOST_TEST_EQ(ec4, error_code());
+      BOOST_TEST_EQ(resp.get_total_msgs(), 1u);
+      co_return {};
    };
 
-   impl{}.run();
-}
-
-// async_receive2 can be cancelled using per-operation cancellation,
-// and supports all cancellation types
-void test_async_receive2_per_operation_cancellation(
-   std::string_view name,
-   net::cancellation_type_t type)
-{
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
-   net::cancellation_signal sig;
-   bool receive_finished = false;
-
-   conn.async_receive2(net::bind_cancellation_slot(sig.slot(), [&](error_code ec) {
-      if (!BOOST_TEST_EQ(ec, canceled_condition()))
-         std::cerr << "With cancellation type " << name << std::endl;
-      receive_finished = true;
-   }));
-
-   sig.emit(type);
-
-   ioc.run_for(test_timeout);
-
-   if (!BOOST_TEST(receive_finished))
-      std::cerr << "With cancellation type " << name << std::endl;
-}
-
-// connection::cancel() cancels async_receive2
-void test_async_receive2_connection_cancel()
-{
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
-   net::cancellation_signal sig;
-   bool receive_finished = false;
-
-   conn.async_receive2([&](error_code ec) {
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-      receive_finished = true;
-   });
+      co_return {};
+   };
 
-   conn.cancel();
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(receive_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
-// Reconnection doesn't cancel async_receive2
-void test_async_receive2_reconnection()
+// receive() can be cancelled via stop token
+capy::task<> test_receive_cancellation()
 {
-   // Setup
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
+
+   auto receive_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
+      BOOST_TEST_EQ(ec, canceled_condition());
+      co_return {};
+   };
+
+   // RP TODO: use immediate
+   // RP TODO: check return code
+   auto trigger_fn = [&]() -> capy::io_task<> {
+      // Complete immediately with success to cancel siblings
+      co_return {};
+   };
+
+   auto result = co_await capy::when_any(receive_fn(), trigger_fn());
+   BOOST_TEST_EQ(result.index(), 2u);  // trigger finished 1st
+}
+
+// Reconnection doesn't cancel receive()
+capy::task<> test_receive_reconnection()
+{
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::flat_tree resp;
    conn.set_receive_response(resp);
 
@@ -317,59 +242,58 @@ void test_async_receive2_reconnection()
    // When this completes, the reconnection has happened
    request req_ping;
    req_ping.get_config().cancel_if_unresponded = false;
-   req_ping.push("PING", "test_async_receive2_connection");
+   req_ping.push("PING", "test_receive_reconnection");
 
    // Generates a push
    request req_subscribe;
-   req_subscribe.push("SUBSCRIBE", "test_async_receive2_connection");
+   req_subscribe.push("SUBSCRIBE", "test_receive_reconnection");
 
-   bool exec_finished = false, receive_finished = false, run_finished = false;
+   bool receive_finished = false;
 
-   // Launch a receive operation, and in parallel
-   //   1. Trigger a reconnection
-   //   2. Wait for the reconnection and check that receive hasn't been cancelled
-   //   3. Trigger a push to make receive complete
-   auto on_subscribe = [&](error_code ec, std::size_t) {
-      // Will finish before receive2 because the command doesn't have a response
-      BOOST_TEST_EQ(ec, error_code());
-      exec_finished = true;
-   };
-
-   auto on_ping = [&](error_code ec, std::size_t) {
-      // Reconnection has already happened here
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_NOT(receive_finished);
-      conn.async_exec(req_subscribe, ignore, on_subscribe);
-   };
-
-   conn.async_exec(req_quit, ignore, [&](error_code, std::size_t) {
-      conn.async_exec(req_ping, ignore, on_ping);
-   });
-
-   conn.async_receive2([&](error_code ec) {
+   auto receive_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
       BOOST_TEST_EQ(ec, error_code());
       receive_finished = true;
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
+   // Trigger a reconnection, then trigger a push to make receive complete
+   auto trigger_fn = [&]() -> capy::io_task<> {
+      auto [ec_quit] = co_await conn.exec(req_quit, ignore);
+      // QUIT may complete with success or an error; we don't care
+      static_cast<void>(ec_quit);
+
+      // Reconnection has happened by the time PING completes
+      auto [ec_ping] = co_await conn.exec(req_ping, ignore);
+      BOOST_TEST_EQ(ec_ping, error_code());
+      BOOST_TEST_NOT(receive_finished);
+
+      auto [ec_sub] = co_await conn.exec(req_subscribe, ignore);
+      BOOST_TEST_EQ(ec_sub, error_code());
+      co_return {};
+   };
+
+   auto work_fn = [&]() -> capy::io_task<> {
+      auto [ec, a, b] = co_await capy::when_all(receive_fn(), trigger_fn());
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(receive_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(work_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Work finished 1st
 }
 
 // A push may be interleaved between regular responses.
 // It is handed to the receive adapter (filtered out).
-void test_exec_push_interleaved()
+capy::task<> test_exec_push_interleaved()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::flat_tree receive_resp;
    conn.set_receive_response(receive_resp);
 
@@ -380,32 +304,35 @@ void test_exec_push_interleaved()
 
    response<std::string, std::string> resp;
 
-   bool exec_finished = false, push_received = false, run_finished = false;
-
-   conn.async_exec(req, resp, [&](error_code ec, std::size_t) {
-      exec_finished = true;
+   auto exec_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.exec(req, resp);
       BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST_EQ(std::get<0>(resp).value(), "msg1");
       BOOST_TEST_EQ(std::get<1>(resp).value(), "msg2");
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   conn.async_receive2([&](error_code ec) {
-      push_received = true;
+   auto receive_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
       BOOST_TEST_EQ(ec, error_code());
       BOOST_TEST_EQ(receive_resp.get_total_msgs(), 1u);
-   });
+      co_return {};
+   };
 
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
+   auto work_fn = [&]() -> capy::io_task<> {
+      auto [ec, a, b] = co_await capy::when_all(exec_fn(), receive_fn());
+      BOOST_TEST_EQ(ec, error_code());
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(push_received);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(work_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Work finished 1st
 }
 
 // An adapter that always errors
@@ -421,10 +348,9 @@ struct response_error_adapter {
 auto boost_redis_adapt(response_error_tag&) { return response_error_adapter{}; }
 
 // If the push adapter returns an error, the connection is torn down
-void test_push_adapter_error()
+capy::task<> test_push_adapter_error()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    conn.set_receive_response(error_tag_obj);
 
    request req;
@@ -432,40 +358,36 @@ void test_push_adapter_error()
    req.push("SUBSCRIBE", "channel");
    req.push("PING");
 
-   bool receive_finished = false, exec_finished = false, run_finished = false;
-
-   // We cancel receive when run exits
-   conn.async_receive2([&](error_code ec) {
+   auto receive_fn = [&]() -> capy::io_task<> {
+      // Will be cancelled by when_any
+      auto [ec] = co_await conn.receive();
       BOOST_TEST_EQ(ec, canceled_condition());
-      receive_finished = true;
-   });
+      co_return {};
+   };
 
    // The request is cancelled because the PING response isn't processed
    // by the time the error is generated
-   conn.async_exec(req, ignore, [&exec_finished](error_code ec, std::size_t) {
+   auto exec_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.exec(req, ignore);
       BOOST_TEST_EQ(ec, canceled_condition());
-      exec_finished = true;
-   });
+      co_return {};
+   };
 
-   auto cfg = make_test_config();
-   cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
-   conn.async_run(cfg, [&](error_code ec) {
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto cfg = make_test_config();
+      cfg.reconnect_wait_interval = 0s;  // so we can validate the generated error
+      auto [ec] = co_await conn.run(cfg);
       BOOST_TEST_EQ(ec, error::incompatible_size);
-      run_finished = true;
-      conn.cancel();
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-   BOOST_TEST(receive_finished);
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   co_await capy::when_any(receive_fn(), exec_fn(), run_fn());
 }
 
 // A push response error triggers a reconnection
-void test_push_adapter_error_reconnection()
+capy::task<> test_push_adapter_error_reconnection()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    conn.set_receive_response(error_tag_obj);
 
    request req;
@@ -479,60 +401,40 @@ void test_push_adapter_error_reconnection()
 
    response<std::string> resp;
 
-   bool push_received = false, exec_finished = false, run_finished = false;
-
-   // async_receive2 is cancelled every reconnection cycle
-   conn.async_receive2([&](error_code ec) {
+   // receive() will be cancelled by when_any
+   auto receive_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.receive();
       BOOST_TEST_EQ(ec, canceled_condition());
-      push_received = true;
-   });
-
-   auto on_exec2 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg2");
-      exec_finished = true;
-      conn.cancel();
+      co_return {};
    };
 
    // The request is cancelled because the PING response isn't processed
-   // by the time the error is generated
-   conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
+   // by the time the error is generated. The second exec succeeds after reconnection.
+   auto exec_fn = [&]() -> capy::io_task<> {
+      auto [ec1] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec1, canceled_condition());
+
+      auto [ec2] = co_await conn.exec(req2, resp);
+      BOOST_TEST_EQ(ec2, error_code());
+      BOOST_TEST_EQ(std::get<0>(resp).value(), "msg2");
+      co_return {};
+   };
+
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-      conn.async_exec(req2, resp, on_exec2);
-   });
+      co_return {};
+   };
 
-   conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-      BOOST_TEST_EQ(ec, canceled_condition());
-      run_finished = true;
-   });
-
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(push_received);
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(receive_fn(), exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 2u);  // exec finished after the receive cancel
 }
 
 // Tests the usual push consumer pattern that we recommend in the examples
-void test_push_consumer()
+capy::task<> test_push_consumer()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
    resp3::flat_tree resp;
-   bool push_consumer_finished{false};
-
-   std::function<void()> launch_push_consumer = [&]() {
-      conn.async_receive2([&](error_code ec) {
-         if (ec) {
-            BOOST_TEST_EQ(ec, canceled_condition());
-            push_consumer_finished = true;
-            resp.clear();
-            return;
-         }
-         launch_push_consumer();
-      });
-   };
-
    conn.set_receive_response(resp);
 
    request req1;
@@ -543,70 +445,41 @@ void test_push_consumer()
    req2.get_config().cancel_on_connection_lost = false;
    req2.push("SUBSCRIBE", "channel");
 
-   bool exec_finished = false, run_finished = false;
-
-   auto c10 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      exec_finished = true;
-      conn.cancel();
-   };
-   auto c9 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c10);
-   };
-   auto c8 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req1, ignore, c9);
-   };
-   auto c7 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c8);
-   };
-   auto c6 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c7);
-   };
-   auto c5 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req1, ignore, c6);
-   };
-   auto c4 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c5);
-   };
-   auto c3 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req1, ignore, c4);
-   };
-   auto c2 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c3);
-   };
-   auto c1 = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      conn.async_exec(req2, ignore, c2);
+   auto consumer_fn = [&]() -> capy::io_task<> {
+      while (true) {
+         auto [ec] = co_await conn.receive();
+         resp.clear();
+         if (ec) {
+            BOOST_TEST_EQ(ec, canceled_condition());
+            co_return {};
+         }
+      }
    };
 
-   conn.async_exec(req1, ignore, c1);
-   launch_push_consumer();
+   auto exec_fn = [&]() -> capy::io_task<> {
+      const request* sequence[] =
+         {&req1, &req2, &req2, &req1, &req2, &req1, &req2, &req2, &req1, &req2};
+      for (const auto* r : sequence) {
+         auto [ec] = co_await conn.exec(*r, ignore);
+         BOOST_TEST_EQ(ec, error_code());
+      }
+      co_return {};
+   };
 
-   conn.async_run(make_test_config(), [&](error_code ec) {
-      run_finished = true;
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(exec_finished);
-   BOOST_TEST(run_finished);
-   BOOST_TEST(push_consumer_finished);
+   auto result = co_await capy::when_any(consumer_fn(), exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 2u);  // exec finished 1st
 }
 
 // UNSUBSCRIBE and PUNSUBSCRIBE work
-void test_unsubscribe()
+capy::task<> test_unsubscribe()
 {
-   net::io_context ioc;
-   connection conn{ioc};
+   co_connection conn{co_await capy::this_coro::executor};
 
    // Subscribe to 3 channels and 2 patterns. Use CLIENT INFO to verify this took effect
    request req_subscribe;
@@ -626,125 +499,100 @@ void test_unsubscribe()
 
    response<std::string> resp_subscribe, resp_unsubscribe, resp_ping;
 
-   bool subscribe_finished = false, unsubscribe_finished = false, ping_finished = false,
-        run_finished = false;
-
-   auto on_ping = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, error_code());
-      ping_finished = true;
-      BOOST_TEST(std::get<0>(resp_ping).has_value());
-      BOOST_TEST_EQ(std::get<0>(resp_ping).value(), "test_unsubscribe");
-      conn.cancel();
-   };
-
-   auto on_unsubscribe = [&](error_code ec, std::size_t) {
-      unsubscribe_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
-      BOOST_TEST(std::get<0>(resp_unsubscribe).has_value());
-      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_unsubscribe).value(), "sub"), "2");
-      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_unsubscribe).value(), "psub"), "1");
-      conn.async_exec(req_ping, resp_ping, on_ping);
-   };
-
-   auto on_subscribe = [&](error_code ec, std::size_t) {
-      subscribe_finished = true;
-      BOOST_TEST_EQ(ec, error_code());
+   auto exec_fn = [&]() -> capy::io_task<> {
+      auto [ec_sub] = co_await conn.exec(req_subscribe, resp_subscribe);
+      BOOST_TEST_EQ(ec_sub, error_code());
       BOOST_TEST(std::get<0>(resp_subscribe).has_value());
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp_subscribe).value(), "sub"), "3");
       BOOST_TEST_EQ(find_client_info(std::get<0>(resp_subscribe).value(), "psub"), "2");
-      conn.async_exec(req_unsubscribe, resp_unsubscribe, on_unsubscribe);
+
+      auto [ec_unsub] = co_await conn.exec(req_unsubscribe, resp_unsubscribe);
+      BOOST_TEST_EQ(ec_unsub, error_code());
+      BOOST_TEST(std::get<0>(resp_unsubscribe).has_value());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_unsubscribe).value(), "sub"), "2");
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_unsubscribe).value(), "psub"), "1");
+
+      auto [ec_ping] = co_await conn.exec(req_ping, resp_ping);
+      BOOST_TEST_EQ(ec_ping, error_code());
+      BOOST_TEST(std::get<0>(resp_ping).has_value());
+      BOOST_TEST_EQ(std::get<0>(resp_ping).value(), "test_unsubscribe");
+      co_return {};
    };
 
-   conn.async_exec(req_subscribe, resp_subscribe, on_subscribe);
-
-   conn.async_run(make_test_config(), [&run_finished](error_code ec) {
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
-      run_finished = true;
-   });
+      co_return {};
+   };
 
-   ioc.run_for(test_timeout);
-
-   BOOST_TEST(subscribe_finished);
-   BOOST_TEST(unsubscribe_finished);
-   BOOST_TEST(ping_finished);
-   BOOST_TEST(run_finished);
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
 }
 
-struct test_pubsub_state_restoration_impl {
-   net::io_context ioc;
-   connection conn{ioc};
-   request req{};
-   response<std::string> resp_str{};
-   flat_tree resp_push{};
-   bool exec_finished = false;
+void check_subscriptions(flat_tree const& resp_push)
+{
+   // Checks for the expected subscriptions and patterns after restoration
+   std::set<std::string_view> seen_channels, seen_patterns;
+   for (auto it = resp_push.begin(); it != resp_push.end();) {
+      // The root element should be a push
+      BOOST_TEST_EQ(it->data_type, type::push);
+      BOOST_TEST_GE(it->aggregate_size, 2u);
+      BOOST_TEST(++it != resp_push.end());
 
-   void check_subscriptions()
-   {
-      // Checks for the expected subscriptions and patterns after restoration
-      std::set<std::string_view> seen_channels, seen_patterns;
-      for (auto it = resp_push.begin(); it != resp_push.end();) {
-         // The root element should be a push
-         BOOST_TEST_EQ(it->data_type, type::push);
-         BOOST_TEST_GE(it->aggregate_size, 2u);
-         BOOST_TEST(++it != resp_push.end());
+      // The next element should be the message type
+      std::string_view msg_type = it->value;
+      BOOST_TEST(++it != resp_push.end());
 
-         // The next element should be the message type
-         std::string_view msg_type = it->value;
-         BOOST_TEST(++it != resp_push.end());
+      // The next element is the channel or pattern
+      if (msg_type == "subscribe")
+         seen_channels.insert(it->value);
+      else if (msg_type == "psubscribe")
+         seen_patterns.insert(it->value);
 
-         // The next element is the channel or pattern
-         if (msg_type == "subscribe")
-            seen_channels.insert(it->value);
-         else if (msg_type == "psubscribe")
-            seen_patterns.insert(it->value);
-
-         // Skip the rest of the nodes
-         while (it != resp_push.end() && it->depth != 0u)
-            ++it;
-      }
-
-      const std::string_view expected_channels[] = {"ch1", "ch3", "ch5"};
-      const std::string_view expected_patterns[] = {"ch1*", "ch3*", "ch4*", "ch8*"};
-
-      BOOST_TEST_ALL_EQ(
-         seen_channels.begin(),
-         seen_channels.end(),
-         std::begin(expected_channels),
-         std::end(expected_channels));
-      BOOST_TEST_ALL_EQ(
-         seen_patterns.begin(),
-         seen_patterns.end(),
-         std::begin(expected_patterns),
-         std::end(expected_patterns));
+      // Skip the rest of the nodes
+      while (it != resp_push.end() && it->depth != 0u)
+         ++it;
    }
 
-   void sub1()
-   {
+   const std::string_view expected_channels[] = {"ch1", "ch3", "ch5"};
+   const std::string_view expected_patterns[] = {"ch1*", "ch3*", "ch4*", "ch8*"};
+
+   BOOST_TEST_ALL_EQ(
+      seen_channels.begin(),
+      seen_channels.end(),
+      std::begin(expected_channels),
+      std::end(expected_channels));
+   BOOST_TEST_ALL_EQ(
+      seen_patterns.begin(),
+      seen_patterns.end(),
+      std::begin(expected_patterns),
+      std::end(expected_patterns));
+}
+
+capy::task<> test_pubsub_state_restoration()
+{
+   co_connection conn{co_await capy::this_coro::executor};
+   request req;
+   response<std::string> resp_str;
+   flat_tree resp_push;
+   conn.set_receive_response(resp_push);
+
+   auto exec_fn = [&]() -> capy::io_task<> {
       // Subscribe to some channels and patterns
       req.clear();
       req.subscribe({"ch1", "ch2", "ch3"});              // active: 1, 2, 3
       req.psubscribe({"ch1*", "ch2*", "ch3*", "ch4*"});  // active: 1, 2, 3, 4
-      conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         unsub();
-      });
-   }
+      auto [ec1] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec1, error_code());
 
-   void unsub()
-   {
       // Unsubscribe from some channels and patterns.
       // Unsubscribing from a channel/pattern that we weren't subscribed to is OK.
       req.clear();
       req.unsubscribe({"ch2", "ch1", "ch5"});      // active: 3
       req.punsubscribe({"ch2*", "ch4*", "ch9*"});  // active: 1, 3
-      conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
-         sub2();
-      });
-   }
+      auto [ec2] = co_await conn.exec(req, ignore);
+      BOOST_TEST_EQ(ec2, error_code());
 
-   void sub2()
-   {
       // Subscribe to other channels/patterns.
       // Re-subscribing to channels/patterns we unsubscribed from is OK.
       // Subscribing to the same channel/pattern twice is OK.
@@ -759,95 +607,68 @@ struct test_pubsub_state_restoration_impl {
       // Validate that we're subscribed to what we expect
       req.push("CLIENT", "INFO");
 
-      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
+      auto [ec3] = co_await conn.exec(req, resp_str);
+      BOOST_TEST_EQ(ec3, error_code());
 
-         // We are subscribed to 4 channels and 5 patterns
-         BOOST_TEST(std::get<0>(resp_str).has_value());
-         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "4");
-         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "5");
+      // We are subscribed to 4 channels and 5 patterns
+      BOOST_TEST(std::get<0>(resp_str).has_value());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "4");
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "5");
 
-         resp_push.clear();
+      resp_push.clear();
 
-         quit();
-      });
-   }
-
-   void quit()
-   {
+      // Trigger a reconnection
       req.clear();
       req.push("QUIT");
+      auto result = co_await conn.exec(req, ignore);
+      static_cast<void>(result);
+      // we don't know if this request will complete successfully or not
 
-      conn.async_exec(req, ignore, [this](error_code, std::size_t) {
-         // we don't know if this request will complete successfully or not
-         client_info();
-      });
-   }
-
-   void client_info()
-   {
+      // Verify state after reconnection
       req.clear();
       req.push("CLIENT", "INFO");
       req.get_config().cancel_if_unresponded = false;
 
-      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, error_code());
+      auto [ec4] = co_await conn.exec(req, resp_str);
+      BOOST_TEST_EQ(ec4, error_code());
 
-         // We are subscribed to 3 channels and 4 patterns (1 of each didn't survive reconnection)
-         BOOST_TEST(std::get<0>(resp_str).has_value());
-         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "3");
-         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "4");
+      // We are subscribed to 3 channels and 4 patterns (1 of each didn't survive reconnection)
+      BOOST_TEST(std::get<0>(resp_str).has_value());
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "3");
+      BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "4");
 
-         // We have received pushes confirming it
-         check_subscriptions();
+      // We have received pushes confirming it
+      check_subscriptions(resp_push);
 
-         exec_finished = true;
-         conn.cancel();
-      });
-   }
+      co_return {};
+   };
 
-   void run()
-   {
-      conn.set_receive_response(resp_push);
+   auto run_fn = [&]() -> capy::io_task<> {
+      auto [ec] = co_await conn.run(make_test_config());
+      BOOST_TEST_EQ(ec, canceled_condition());
+      co_return {};
+   };
 
-      // Start the request chain
-      sub1();
-
-      // Start running
-      bool run_finished = false;
-      conn.async_run(make_test_config(), [&run_finished](error_code ec) {
-         BOOST_TEST_EQ(ec, canceled_condition());
-         run_finished = true;
-      });
-
-      ioc.run_for(test_timeout);
-
-      // Done
-      BOOST_TEST(exec_finished);
-      BOOST_TEST(run_finished);
-   }
-};
-void test_pubsub_state_restoration() { test_pubsub_state_restoration_impl{}.run(); }
+   auto result = co_await capy::when_any(exec_fn(), run_fn());
+   BOOST_TEST_EQ(result.index(), 1u);  // Exec finished 1st
+}
 
 }  // namespace
 
 int main()
 {
-   test_async_receive2_waiting_for_push();
-   test_async_receive2_push_available();
-   test_async_receive2_batch();
-   test_async_receive2_subsequent_calls();
-   test_async_receive2_per_operation_cancellation("terminal", net::cancellation_type_t::terminal);
-   test_async_receive2_per_operation_cancellation("partial", net::cancellation_type_t::partial);
-   test_async_receive2_per_operation_cancellation("total", net::cancellation_type_t::total);
-   test_async_receive2_connection_cancel();
-   test_async_receive2_reconnection();
-   test_exec_push_interleaved();
-   test_push_adapter_error();
-   test_push_adapter_error_reconnection();
-   test_push_consumer();
-   test_unsubscribe();
-   test_pubsub_state_restoration();
+   run_coroutine_test(test_receive_waiting_for_push());
+   run_coroutine_test(test_receive_push_available());
+   run_coroutine_test(test_receive_batch());
+   run_coroutine_test(test_receive_subsequent_calls());
+   run_coroutine_test(test_receive_cancellation());
+   run_coroutine_test(test_receive_reconnection());
+   run_coroutine_test(test_exec_push_interleaved());
+   run_coroutine_test(test_push_adapter_error());
+   run_coroutine_test(test_push_adapter_error_reconnection());
+   run_coroutine_test(test_push_consumer());
+   run_coroutine_test(test_unsubscribe());
+   run_coroutine_test(test_pubsub_state_restoration());
 
    return boost::report_errors();
 }
