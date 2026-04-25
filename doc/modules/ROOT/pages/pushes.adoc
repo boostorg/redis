@@ -15,6 +15,12 @@ The most common case is
 https://redis.io/docs/latest/develop/pubsub/[Pub/Sub messages]
 triggered by `PUBLISH`. The following example shows a typical receiver:
 
+[tabs]
+========
+Asio::
++
+--
+
 [source,cpp]
 ----
 auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
@@ -62,6 +68,67 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    }
 }
 ----
+--
+
+Corosio::
++
+--
+
+[source,cpp]
+----
+capy::io_task<> receiver(co_connection& conn)
+{
+   generic_flat_response resp;
+   conn.set_receive_response(resp);
+
+   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
+   request req;
+   req.subscribe({"mychannel"});
+   auto [sub_ec] = co_await conn.exec(req);
+   if (sub_ec) {
+      std::cerr << "Error subscribing: " << sub_ec << std::endl;
+      co_return {};
+   }
+
+   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
+   // in resp. If the connection encounters a network error and reconnects to the server,
+   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
+   // You need to use the specialized request::subscribe() function (instead of request::push)
+   // to enable this behavior.
+
+   // Loop to read Redis push messages. The loop terminates when receive() reports an error
+   // (e.g. cancellation when the surrounding when_any cascade tears down the run loop).
+   while (true) {
+      // Wait for pushes
+      auto [ec] = co_await conn.receive();
+
+      // Check for errors and cancellations
+      if (ec) {
+         std::cerr << "Error during receive: " << ec << std::endl;
+         co_return {};
+      }
+
+      // This can happen if a SUBSCRIBE command errored (e.g. insufficient permissions)
+      if (resp.has_error()) {
+         std::cerr << "The receive response contains an error: " << resp.error().diagnostic
+                   << std::endl;
+         co_return {};
+      }
+
+      // The response must be consumed without suspending the
+      // coroutine i.e. without the use of async operations.
+      for (push_view elem : push_parser(resp.value())) {
+         std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
+                   << "\n";
+      }
+
+      resp.value().clear();
+   }
+}
+----
+--
+
+========
 
 Summary of the steps:
 
