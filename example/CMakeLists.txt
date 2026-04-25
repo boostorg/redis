@@ -1,10 +1,8 @@
 add_library(examples_main STATIC main.cpp)
-target_link_libraries(examples_main PRIVATE boost_redis_project_options)
+target_link_libraries(examples_main PUBLIC boost_redis_asio)
 
 function(make_example EXAMPLE_NAME)
   add_executable(${EXAMPLE_NAME} ${EXAMPLE_NAME}.cpp)
-  target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_src)
-  target_link_libraries(${EXAMPLE_NAME} PRIVATE boost_redis_project_options)
   if (ARGN)
     target_link_libraries(${EXAMPLE_NAME} PRIVATE ${ARGN})
   endif()
@@ -15,8 +13,8 @@ function(make_testable_example EXAMPLE_NAME)
   add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME} $ENV{BOOST_REDIS_TEST_SERVER} 6379)
 endfunction()
 
-make_testable_example(cpp17_intro)
-make_testable_example(cpp17_intro_sync)
+make_testable_example(cpp17_intro        boost_redis_asio)
+make_testable_example(cpp17_intro_sync   boost_redis_asio)
 
 make_testable_example(cpp20_intro        examples_main)
 make_testable_example(cpp20_containers   examples_main)
@@ -25,12 +23,12 @@ make_testable_example(cpp20_unix_sockets examples_main)
 make_testable_example(cpp20_timeouts     examples_main)
 make_testable_example(cpp20_sentinel     examples_main)
 
-make_testable_example(corosio_intro)
-
 make_example(cpp20_subscriber  examples_main)
 make_example(cpp20_streams     examples_main)
 make_example(cpp20_echo_server examples_main)
 make_example(cpp20_intro_tls   examples_main)
+
+make_testable_example(corosio_intro      boost_redis_corosio)
 
 # We test the protobuf example only on gcc.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
