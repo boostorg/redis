@@ -1,57 +1,95 @@
-/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+/* Copyright (c) 2018-2025 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
  * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/connection.hpp>
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/config.hpp>
+#include <boost/redis/request.hpp>
+#include <boost/redis/response.hpp>
 
-#include <boost/asio/consign.hpp>
-#include <boost/asio/detached.hpp>
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/use_awaitable.hpp>
+#include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/ex/this_coro.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
+#include <boost/corosio/tls_context.hpp>
 
+#include <exception>
 #include <iostream>
+#include <utility>
 
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+namespace capy = boost::capy;
+namespace corosio = boost::corosio;
+using namespace boost::redis;
 
-namespace asio = boost::asio;
-using boost::redis::request;
-using boost::redis::response;
-using boost::redis::config;
-using boost::redis::logger;
-using boost::redis::connection;
-
-auto verify_certificate(bool, asio::ssl::verify_context&) -> bool
+capy::io_task<> run_request(co_connection& conn)
 {
-   std::cout << "set_verify_callback" << std::endl;
-   return true;
+   request req;
+   req.push("PING");
+
+   response<std::string> resp;
+
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec) {
+      std::cout << "Error executing PING: " << ec << std::endl;
+   } else {
+      std::cout << "Response: " << std::get<0>(resp).value() << std::endl;
+   }
+
+   co_return {};
 }
 
-auto co_main(config cfg) -> asio::awaitable<void>
+capy::task<void> co_main()
 {
+   // Configure a TLS connection to the public test server
+   config cfg;
    cfg.use_ssl = true;
    cfg.username = "aedis";
    cfg.password = "aedis";
    cfg.addr.host = "db.occase.de";
    cfg.addr.port = "6380";
 
-   asio::ssl::context ctx{asio::ssl::context::tlsv12_client};
-   ctx.set_verify_mode(asio::ssl::verify_peer);
-   ctx.set_verify_callback(verify_certificate);
+   // Configure the TLS context
+   corosio::tls_context tls_ctx;
+   if (auto ec = tls_ctx.set_verify_mode(corosio::tls_verify_mode::require_peer)) {
+      std::cerr << "Error in set_verify_mode: " << ec << std::endl;
+      exit(1);
+   }
+   tls_ctx.set_hostname("db.occase.de");
 
-   auto conn = std::make_shared<connection>(co_await asio::this_coro::executor, std::move(ctx));
-   conn->async_run(cfg, asio::consign(asio::detached, conn));
+   // Create a connection using the configured TLS context
+   co_connection conn{co_await capy::this_coro::executor, std::move(tls_ctx)};
 
-   request req;
-   req.push("PING");
-
-   response<std::string> resp;
-
-   co_await conn->async_exec(req, resp);
-   conn->cancel();
-
-   std::cout << "Response: " << std::get<0>(resp).value() << std::endl;
+   // Run the connection and the PING request, in parallel
+   co_await capy::when_any(run_request(conn), conn.run(cfg));
 }
 
-#endif  // defined(BOOST_ASIO_HAS_CO_AWAIT)
+int main()
+{
+   // The I/O context, required for all I/O operations
+   corosio::io_context ctx;
+
+   // Schedules the main coroutine for execution
+   capy::run_async(
+      ctx.get_executor(),
+      []() {
+         // Runs when the main coroutine finishes normally
+         std::cout << "Done\n";
+      },
+      [](std::exception_ptr exc) {
+         // Runs when the main coroutine finishes with an exception
+         try {
+            std::rethrow_exception(exc);
+         } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            exit(1);
+         }
+         exit(1);
+      })(co_main());
+
+   // Executes all pending work, including the main coroutine
+   ctx.run();
+}
