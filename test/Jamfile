@@ -51,6 +51,7 @@ lib redis_test_common
 # access to a Redis server, so we only run the ones that don't require a DB server.
 local tests =
     test_low_level
+    test_parser
     test_request
     test_serialization
     test_low_level_sync_sans_io
