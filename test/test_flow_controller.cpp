@@ -16,6 +16,7 @@
 #include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
 
+#include "common.hpp"
 #include "corosio_common.hpp"
 
 #include <coroutine>
@@ -129,8 +130,22 @@ capy::task<> test_take_pending_bytes()
    BOOST_TEST_EQ(ec, std::error_code());
 }
 
-// Same, but the object is full
 // take() can be cancelled
+capy::task<> test_take_cancel()
+{
+   flow_controller cont{64u};
+
+   auto result = co_await capy::when_any(
+      [&]() -> capy::io_task<> {
+         auto [ec] = co_await cont.take();
+         BOOST_TEST_EQ(ec, canceled_condition());
+         co_return {};
+      }(),
+      capy::ready());
+
+   BOOST_TEST_EQ(result.index(), 2u);  // ready finished 1st
+}
+
 // try_put() returns true if the object is not full (<, <=, >)
 // try_put() returns false if the object is full
 // put() completes immediately if the object is not full
@@ -145,6 +160,7 @@ int main()
 {
    run_coroutine_test(test_take_initial());
    run_coroutine_test(test_take_pending_bytes());
+   run_coroutine_test(test_take_cancel());
 
    return boost::report_errors();
 }
