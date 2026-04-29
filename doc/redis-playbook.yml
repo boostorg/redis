@@ -20,6 +20,9 @@ antora:
           tag: 'develop'
           variable: 'BOOST_SRC_DIR'
           system-env: 'BOOST_SRC_DIR'
+    - require: '@cppalliance/antora-cpp-tagfiles-extension'
+      cpp-tagfiles:
+        missing-symbol-log-level: error
 
 asciidoc:
   attributes:
