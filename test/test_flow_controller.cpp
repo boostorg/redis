@@ -178,10 +178,136 @@ void test_try_put_past_full()
    BOOST_TEST_EQ(cont.pending_bytes(), 100u);
 }
 
+// put() completes immediately in the initial state (no pending bytes)
+capy::task<> test_put_initial()
+{
+   flow_controller cont{64u};
+   bool point1_reached = false;
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // There are no pending bytes, so this does not block
+         auto [ec] = co_await cont.put(21u);
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 21u);
+         point1_reached = true;
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // Verify that put() completed immediately
+         co_await yield();
+         BOOST_TEST(point1_reached);
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
+
 // put() completes immediately if the object is not full
+capy::task<> test_put_not_full()
+{
+   flow_controller cont{64u};
+   bool point1_reached = false;
+
+   BOOST_TEST(cont.try_put(21u));
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // There are no pending bytes, so this does not block
+         auto [ec] = co_await cont.put(18u);
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 39u);
+         point1_reached = true;
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // Verify that put() completed immediately
+         co_await yield();
+         BOOST_TEST(point1_reached);
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
+
 // put() blocks until a take() happens if the object is full
+capy::task<> test_put_full()
+{
+   flow_controller cont{64u};
+   bool point1_reached = false;
+
+   BOOST_TEST(cont.try_put(80u));  // fill the object
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // The object is full, so this blocks
+         auto [ec] = co_await cont.put(18u);
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 18u);
+         point1_reached = true;
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // Verify that put() blocked
+         co_await yield();
+         BOOST_TEST_NOT(point1_reached);
+
+         // Unblock put
+         auto [ec] = co_await cont.take();
+         BOOST_TEST_EQ(ec, std::error_code());
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
+
 // put() unblocks take()
+capy::task<> test_put_unblocks_take()
+{
+   flow_controller cont{64u};
+   bool point1_reached = false;
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // The object is empty, so this blocks
+         auto [ec] = co_await cont.take();
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+         point1_reached = true;
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // Verify that take() blocked
+         co_await yield();
+         BOOST_TEST_NOT(point1_reached);
+
+         // Calling put() unblocks take()
+         auto [ec] = co_await cont.put(10u);
+         BOOST_TEST_EQ(ec, std::error_code());
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
+
 // put() can be cancelled
+capy::task<> test_put_cancel()
+{
+   flow_controller cont{64u};
+
+   BOOST_TEST(cont.try_put(80u));  // fill the object
+
+   auto result = co_await capy::when_any(
+      [&]() -> capy::io_task<> {
+         auto [ec] = co_await cont.put(10u);  // will block until cancelled
+         BOOST_TEST_EQ(ec, canceled_condition());
+         co_return {};
+      }(),
+      capy::ready());
+
+   BOOST_TEST_EQ(result.index(), 2u);  // ready finished 1st
+}
+
 // Full cycle
 
 }  // namespace
@@ -195,6 +321,12 @@ int main()
    test_try_put_not_full();
    test_try_put_just_full();
    test_try_put_past_full();
+
+   run_coroutine_test(test_put_initial());
+   run_coroutine_test(test_put_not_full());
+   run_coroutine_test(test_put_full());
+   run_coroutine_test(test_put_unblocks_take());
+   run_coroutine_test(test_put_cancel());
 
    return boost::report_errors();
 }
