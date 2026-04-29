@@ -87,7 +87,48 @@ capy::task<> test_take_initial()
 }
 
 // If take() is called and there are pending bytes, they get consumed.
-//   Subsequent take() calls block, subsequent try_put() calls that would block don't block.
+capy::task<> test_take_pending_bytes()
+{
+   flow_controller cont{64u};
+   bool point1_reached = false, point2_reached = false;
+
+   // Place some bytes in the object
+   BOOST_TEST(cont.try_put(20u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 20u);
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // There are pending bytes, so this does not block
+         auto [ec] = co_await cont.take();
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+         point1_reached = true;
+
+         // Subsequent calls would block
+         auto [ec2] = co_await cont.take();
+         BOOST_TEST_EQ(ec2, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+         point2_reached = true;
+
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // Verify that take() completed immediately and the 2nd one didn't
+         co_await yield();
+         BOOST_TEST(point1_reached);
+
+         co_await yield();
+         BOOST_TEST_NOT(point2_reached);
+
+         // Unblock take()
+         BOOST_TEST(cont.try_put(20));
+
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
+
 // Same, but the object is full
 // take() can be cancelled
 // try_put() returns true if the object is not full (<, <=, >)
@@ -103,6 +144,7 @@ capy::task<> test_take_initial()
 int main()
 {
    run_coroutine_test(test_take_initial());
+   run_coroutine_test(test_take_pending_bytes());
 
    return boost::report_errors();
 }
