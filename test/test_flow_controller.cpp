@@ -20,7 +20,6 @@
 #include "corosio_common.hpp"
 
 #include <coroutine>
-#include <memory>
 #include <system_error>
 
 using namespace boost::redis;
