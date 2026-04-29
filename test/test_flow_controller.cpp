@@ -178,6 +178,17 @@ void test_try_put_past_full()
    BOOST_TEST_EQ(cont.pending_bytes(), 100u);
 }
 
+// try_put() (and in consequence, put()) obey the max_bytes constructor arg
+void test_try_put_ctor_arg()
+{
+   flow_controller cont{100u};
+   BOOST_TEST(cont.try_put(80u));
+   BOOST_TEST(cont.try_put(19u));
+   BOOST_TEST(cont.try_put(2u));
+   BOOST_TEST_NOT(cont.try_put(1u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 101u);
+}
+
 // put() completes immediately in the initial state (no pending bytes)
 capy::task<> test_put_initial()
 {
@@ -309,6 +320,61 @@ capy::task<> test_put_cancel()
 }
 
 // Full cycle
+capy::task<> test_full_cycle()
+{
+   flow_controller cont{64u};
+   int receiver_point = 0, reader_point = 0;
+
+   auto [ec, a, b] = co_await capy::when_all(
+      [&]() -> capy::io_task<> {
+         // This is the receiver. Initially, no push has arrived and it blocks
+         auto [ec] = co_await cont.take();
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+         receiver_point = 1;
+
+         // The pushes have been consumed. Block for more
+         auto [ec2] = co_await cont.take();
+         BOOST_TEST_EQ(ec2, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+
+         // Check that the reader actually blocked
+         co_await yield();
+         BOOST_TEST_EQ(reader_point, 1);
+
+         // The pushes have been consumed. Block for more
+         auto [ec3] = co_await cont.take();
+         BOOST_TEST_EQ(ec3, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);
+
+         co_return {};
+      }(),
+      [&]() -> capy::io_task<> {
+         // A push arrives. There is room, so we just try_put and don't block
+         BOOST_TEST(cont.try_put(23u));
+
+         // No more pushes arrive for now, allow the consumer to catch up
+         co_await yield();
+         BOOST_TEST_EQ(receiver_point, 1);
+
+         // A burst of pushes arrives. It's too much and the controller blocks
+         BOOST_TEST(cont.try_put(21u));
+         BOOST_TEST(cont.try_put(8u));
+         BOOST_TEST(cont.try_put(50u));
+         BOOST_TEST_NOT(cont.try_put(10u));
+         BOOST_TEST_EQ(cont.pending_bytes(), 79u);
+         reader_point = 1;
+
+         // Because the last try_put returned false, we block now
+         auto [ec] = co_await cont.put(10u);
+         BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 10u);
+
+         co_return {};
+      }());
+
+   BOOST_TEST_EQ(ec, std::error_code());
+}
 
 }  // namespace
 
@@ -321,12 +387,15 @@ int main()
    test_try_put_not_full();
    test_try_put_just_full();
    test_try_put_past_full();
+   test_try_put_ctor_arg();
 
    run_coroutine_test(test_put_initial());
    run_coroutine_test(test_put_not_full());
    run_coroutine_test(test_put_full());
    run_coroutine_test(test_put_unblocks_take());
    run_coroutine_test(test_put_cancel());
+
+   run_coroutine_test(test_full_cycle());
 
    return boost::report_errors();
 }
