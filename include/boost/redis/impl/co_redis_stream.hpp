@@ -99,6 +99,14 @@ struct co_redis_stream {
    // Contains the stream that will end up being used
    capy::any_stream stream_;
 
+   void setup_tcp_impl()
+   {
+      // Allocate the object if not there.
+      // TCP uses range connect, so we don't need to close and reopen the socket
+      if (!tcp_.has_value())
+         tcp_.emplace(ctx_);
+   }
+
    void setup_unix()
    {
       if (unix_.has_value()) {
@@ -109,22 +117,23 @@ struct co_redis_stream {
       } else {
          unix_.emplace(ctx_);
       }
+      stream_ = capy::any_stream(&*unix_);
    }
 
    void setup_tcp()
    {
-      // Allocate the object if not there.
-      // TCP uses range connect, so we don't need to close and reopen the socket
-      if (!tcp_.has_value())
-         tcp_.emplace(ctx_);
+      setup_tcp_impl();
+      stream_ = capy::any_stream(&tcp_->sock);
    }
 
-   void setup_tls()
+   void setup_tcp_tls()
    {
+      setup_tcp_impl();
       if (tls_.has_value())
          tls_->reset();
       else
          tls_.emplace(capy::any_stream(&tcp_->sock), tls_ctx_);
+      stream_ = capy::any_stream(&*tls_);
    }
 
    auto unix_connect(const connect_params& params)
@@ -171,12 +180,14 @@ struct co_redis_stream {
          log_debug(lgr, "Connect: UNIX socket connect succeeded");
 
          // Done
-         stream_ = capy::any_stream(&*unix_);
          co_return {};
 
       } else {
          // TCP (with or without TLS)
-         setup_tcp();
+         if (type == transport_type::tcp_tls)
+            setup_tcp_tls();
+         else
+            setup_tcp();
 
          // Resolve names
          auto [ec, endpoints] = co_await tcp_resolve(params);
@@ -194,25 +205,18 @@ struct co_redis_stream {
          }
          log_debug(lgr, "Connect: TCP connect succeeded. Selected endpoint: ", selected_endpoint);
 
-         // If not using TLS, we're done
-         if (type == transport_type::tcp) {
-            stream_ = capy::any_stream(&tcp_->sock);
-            co_return {};
+         // If using TLS, perform the handshake
+         if (type == transport_type::tcp_tls) {
+            // TLS handshake
+            auto [ec_handshake] = co_await tls_handshake(params);
+            if (ec_handshake) {
+               log_info(lgr, "Connect: SSL handshake failed: ", system::error_code(ec_handshake));
+               co_return {ec_handshake};
+            }
+            log_debug(lgr, "Connect: SSL handshake succeeded");
          }
-
-         // Set up a working TLS stream
-         setup_tls();
-
-         // TLS handshake
-         auto [ec_handshake] = co_await tls_handshake(params);
-         if (ec_handshake) {
-            log_info(lgr, "Connect: SSL handshake failed: ", system::error_code(ec_handshake));
-            co_return {ec_handshake};
-         }
-         log_debug(lgr, "Connect: SSL handshake succeeded");
 
          // Done
-         stream_ = capy::any_stream(&*tls_);
          co_return {};
       }
    }
