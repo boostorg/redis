@@ -52,7 +52,8 @@ public:
          return false;
 
       // Add the bytes. We might surpass the limit slightly, but this is OK
-      // because we've already read the bytes.
+      // because we've already read the bytes. This avoids problems in the theoretical
+      // case of reading a very big push.
       // The following messages will wait
       pending_bytes_ += bytes;
       if (pending_bytes_ >= max_bytes_)

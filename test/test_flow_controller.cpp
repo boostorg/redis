@@ -146,8 +146,38 @@ capy::task<> test_take_cancel()
    BOOST_TEST_EQ(result.index(), 2u);  // ready finished 1st
 }
 
-// try_put() returns true if the object is not full (<, <=, >)
-// try_put() returns false if the object is full
+// try_put() returns true if the object is not full
+void test_try_put_not_full()
+{
+   flow_controller cont{64u};
+   BOOST_TEST(cont.try_put(20u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 20u);
+   BOOST_TEST(cont.try_put(41u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 61u);
+   BOOST_TEST(cont.try_put(3u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 64u);
+}
+
+// try_put() returns false if the object is just full
+void test_try_put_just_full()
+{
+   flow_controller cont{64u};
+   BOOST_TEST(cont.try_put(64u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 64u);
+   BOOST_TEST_NOT(cont.try_put(1u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 64u);
+}
+
+// try_put() returns true if we fill past the max pending bytes, but the object is then considered full
+void test_try_put_past_full()
+{
+   flow_controller cont{64u};
+   BOOST_TEST(cont.try_put(100u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 100u);
+   BOOST_TEST_NOT(cont.try_put(1u));
+   BOOST_TEST_EQ(cont.pending_bytes(), 100u);
+}
+
 // put() completes immediately if the object is not full
 // put() blocks until a take() happens if the object is full
 // put() unblocks take()
@@ -161,6 +191,10 @@ int main()
    run_coroutine_test(test_take_initial());
    run_coroutine_test(test_take_pending_bytes());
    run_coroutine_test(test_take_cancel());
+
+   test_try_put_not_full();
+   test_try_put_just_full();
+   test_try_put_past_full();
 
    return boost::report_errors();
 }
