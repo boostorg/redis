@@ -60,11 +60,14 @@ capy::task<> test_take_initial()
    flow_controller cont{64u};
    bool point1_reached = false;
 
+   BOOST_TEST_EQ(cont.pending_bytes(), 0u);  // initially, the object is empty
+
    auto [ec, a, b] = co_await capy::when_all(
       [&]() -> capy::io_task<> {
          // Initially, there are no bytes to be taken, so this blocks
          auto [ec] = co_await cont.take();
          BOOST_TEST_EQ(ec, std::error_code());
+         BOOST_TEST_EQ(cont.pending_bytes(), 0u);  // the object was emptied
 
          // Signal that take has returned
          point1_reached = true;
@@ -83,7 +86,17 @@ capy::task<> test_take_initial()
    BOOST_TEST_EQ(ec, std::error_code());
 }
 
-// If take() is called and there are
+// If take() is called and there are pending bytes, they get consumed.
+//   Subsequent take() calls block, subsequent try_put() calls that would block don't block.
+// Same, but the object is full
+// take() can be cancelled
+// try_put() returns true if the object is not full (<, <=, >)
+// try_put() returns false if the object is full
+// put() completes immediately if the object is not full
+// put() blocks until a take() happens if the object is full
+// put() unblocks take()
+// put() can be cancelled
+// Full cycle
 
 }  // namespace
 

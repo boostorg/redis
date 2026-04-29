@@ -71,6 +71,9 @@ public:
       }
       co_return {};
    }
+
+   // Exposed for testing
+   std::size_t pending_bytes() const { return pending_bytes_; }
 };
 
 }  // namespace boost::redis::detail
