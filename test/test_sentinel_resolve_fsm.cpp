@@ -192,13 +192,17 @@ void test_success_replica()
    });
    BOOST_TEST_EQ(fix.st.cfg.addr.port, "6379");
 
-   // Logs
+   // Logs. The final message depends on the chosen replica
+   const char* const
+      replica_msg = fix.st.cfg.addr.host == "replica.two"
+                       ? "Sentinel at host1:1000 resolved the server address to replica.two:6379"
+                       : "Sentinel at host1:1000 resolved the server address to replica.thr:6379";
    fix.check_log({
       // clang-format off
       {logger::level::info,  "Trying to resolve the address of a replica of master 'mymaster' using Sentinel" },
       {logger::level::debug, "Trying to contact Sentinel at host1:1000"                                       },
       {logger::level::debug, "Executing Sentinel request at host1:1000"                                       },
-      {logger::level::info,  "Sentinel at host1:1000 resolved the server address to replica.two:6379"         },
+      {logger::level::info,  replica_msg                                                                      },
       // clang-format on
    });
 }
