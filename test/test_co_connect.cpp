@@ -22,9 +22,7 @@
 #include "sansio_utils.hpp"
 
 #include <iostream>
-#include <iterator>
 #include <ostream>
-#include <string>
 #include <string_view>
 #include <system_error>
 #include <vector>
@@ -284,183 +282,65 @@ capy::task<> test_tcp_connect_error()
    });
 }
 
-// // SSL handshake error
-// void test_ssl_handshake_error()
-// {
-//    // Setup
-//    fixture fix{transport_type::tcp_tls};
+// SSL handshake error
+capy::task<> test_ssl_handshake_error()
+{
+   // Setup
+   fixture fix;
+   fix.impl.retval.tls_handshake = error::empty_field;
+   address addr{"some.host", "1234"};
 
-//    // Run the algorithm. No SSL stream reset is performed here
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
-//    act = fix.fsm.resume(error::empty_field, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::empty_field));
+   // Call the function
+   auto [ec] = co_await transport_connect(fix.impl, make_connect_params({addr, true}), fix.lgr);
+   BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
-//    // The stream is marked as used
-//    BOOST_TEST(fix.st.ssl_stream_used);
+   // Mock expectations
+   constexpr num_calls expected_calls{
+      .setup_tcp_tls = 1,
+      .tcp_resolve = 1,
+      .tcp_connect = 1,
+      .tls_handshake = 1,
+   };
+   BOOST_TEST_EQ(fix.impl.calls, expected_calls);
 
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
-//       {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"},
-//       {logger::level::info,  "Connect: SSL handshake failed: Expected field value is empty. [boost.redis:5]"},
-//       // clang-format on
-//    });
-// }
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
+      {logger::level::info,  "Connect: SSL handshake failed: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   });
+}
 
-// void test_ssl_handshake_timeout()
-// {
-//    // Setup
-//    fixture fix{transport_type::tcp_tls};
+// UNIX connect errors
+capy::task<> test_unix_connect_error()
+{
+   // Setup
+   fixture fix;
+   fix.impl.retval.unix_connect = error::empty_field;
 
-//    // Run the algorithm. Timeout = operation_aborted without the cancel type set
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
-//    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::ssl_handshake_timeout));
+   // Call the function
+   auto [ec] = co_await transport_connect(
+      fix.impl,
+      make_connect_params(any_address_view{"/tmp/redis.sock"}),
+      fix.lgr);
+   BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
-//    // The stream is marked as used
-//    BOOST_TEST(fix.st.ssl_stream_used);
+   // Mock expectations
+   constexpr num_calls expected_calls{
+      .setup_unix = 1,
+      .unix_connect = 1,
+   };
+   BOOST_TEST_EQ(fix.impl.calls, expected_calls);
 
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
-//       {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"},
-//       {logger::level::info,  "Connect: SSL handshake failed: SSL handshake timeout. [boost.redis:20]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_ssl_handshake_cancel()
-// {
-//    // Setup
-//    fixture fix{transport_type::tcp_tls};
-
-//    // Run the algorithm. Cancel = operation_aborted with the cancel type set
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
-//    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // The stream is marked as used
-//    BOOST_TEST(fix.st.ssl_stream_used);
-
-//    // Logging is system-dependent, so we don't check messages
-//    BOOST_TEST_EQ(fix.msgs.size(), 3u);
-// }
-
-// void test_ssl_handshake_cancel_edge()
-// {
-//    // Setup
-//    fixture fix{transport_type::tcp_tls};
-
-//    // Run the algorithm. No error, but the cancel state is set
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // The stream is marked as used
-//    BOOST_TEST(fix.st.ssl_stream_used);
-
-//    // Logging is system-dependent, so we don't check messages
-//    BOOST_TEST_EQ(fix.msgs.size(), 3u);
-// }
-
-// // UNIX connect errors
-// void test_unix_connect_error()
-// {
-//    // Setup
-//    fixture fix{transport_type::unix_socket};
-
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
-//    act = fix.fsm.resume(error::empty_field, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::empty_field));
-
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::info, "Connect: UNIX socket connect failed: Expected field value is empty. [boost.redis:5]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_unix_connect_timeout()
-// {
-//    // Setup
-//    fixture fix{transport_type::unix_socket};
-
-//    // Run the algorithm. Timeout = operation_aborted without a cancel state
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
-//    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
-
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::info, "Connect: UNIX socket connect failed: Connect timeout. [boost.redis:18]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_unix_connect_cancel()
-// {
-//    // Setup
-//    fixture fix{transport_type::unix_socket};
-
-//    // Run the algorithm. Cancel = operation_aborted with a cancel state
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
-//    act = fix.fsm.resume(asio::error::operation_aborted, fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging is system-dependent
-//    BOOST_TEST_EQ(fix.msgs.size(), 1u);
-// }
-
-// void test_unix_connect_cancel_edge()
-// {
-//    // Setup
-//    fixture fix{transport_type::unix_socket};
-
-//    // Run the algorithm. No error, but cancel state is set
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging is system-dependent
-//    BOOST_TEST_EQ(fix.msgs.size(), 1u);
-// }
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Connect: UNIX socket connect failed: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   });
+}
 
 }  // namespace
 
@@ -469,27 +349,11 @@ int main()
    run_coroutine_test(test_tcp_success());
    run_coroutine_test(test_tcp_tls_success());
    run_coroutine_test(test_unix_success());
-   // test_unix_success_close_error();
 
    run_coroutine_test(test_tcp_resolve_error());
-   // test_tcp_resolve_timeout();
-   // test_tcp_resolve_cancel();
-   // test_tcp_resolve_cancel_edge();
-
    run_coroutine_test(test_tcp_connect_error());
-   // test_tcp_connect_timeout();
-   // test_tcp_connect_cancel();
-   // test_tcp_connect_cancel_edge();
-
-   // test_ssl_handshake_error();
-   // test_ssl_handshake_timeout();
-   // test_ssl_handshake_cancel();
-   // test_ssl_handshake_cancel_edge();
-
-   // test_unix_connect_error();
-   // test_unix_connect_timeout();
-   // test_unix_connect_cancel();
-   // test_unix_connect_cancel_edge();
+   run_coroutine_test(test_ssl_handshake_error());
+   run_coroutine_test(test_unix_connect_error());
 
    return boost::report_errors();
 }
