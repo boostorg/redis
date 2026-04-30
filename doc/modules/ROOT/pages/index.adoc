@@ -20,8 +20,8 @@ https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md[RESP
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* For the Boost.Asio API, pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
-* For the Corosio API, pass:[C++20] or higher. TODO: supported compilers.
+* For the Boost.Asio API, pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and MSVC 14.20 and later.
+* For the Corosio API, pass:[C++20] or higher. Supported compilers include gcc 12 and later, clang 17 and later, MSVC 14.34 and later.
 * Redis 6 or higher, or Valkey (any version). The database server must support RESP3.
   We intend to maintain compatibility with both Redis and Valkey in the long-run.
 * OpenSSL.
@@ -65,6 +65,11 @@ The code below uses a short-lived connection to
 https://redis.io/commands/ping/[ping] a Redis server:
 
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 #include <boost/redis/connection.hpp>
@@ -98,13 +103,73 @@ auto co_main(config const& cfg) -> net::awaitable<void>
    std::cout << "PING: " << std::get<0>(resp).value() << std::endl;
 }
 ----
+--
 
-The roles played by the `async_run` and `async_exec` functions are:
+Corosio::
++
+--
+[source,cpp]
+----
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/config.hpp>
 
-* xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`]: executes the commands contained in the
+#include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
+
+#include <exception>
+#include <iostream>
+
+namespace capy = boost::capy;
+using namespace boost::redis;
+namespace corosio = boost::corosio;
+
+capy::io_task<> run_request(co_connection& conn)
+{
+   // A request containing only a ping command.
+   request req;
+   req.push("PING", "Hello world");
+
+   // Response where the PONG response will be stored.
+   response<std::string> resp;
+
+   // Executes the request.
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec) {
+      std::cout << "Error executing PING: " << ec << std::endl;
+   } else {
+      std::cout << "PING value: " << std::get<0>(resp).value() << std::endl;
+   }
+
+   co_return {};
+}
+
+capy::task<void> co_main()
+{
+   // Create a connection
+   co_connection conn{co_await capy::this_coro::executor};
+
+   // Run the connection and the PING request, in parallel
+   co_await capy::when_any(run_request(conn), conn.run(config{}));
+}
+----
+--
+========
+
+The roles played by the `run` and `exec` functions are:
+
+* xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`] /
+  xref:reference:boost/redis/co_connection/exec-00.adoc[`co_connection::exec`]:
+  executes the commands contained in the
   request and stores the individual responses in the response object. Can
   be called from multiple places in your code concurrently.
-* xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`]: keeps the connection healthy. It takes care of hostname resolution, session establishment, health-checks, reconnection and coordination of low-level read and write operations. It should be called only once per connection, regardless of the number of requests to execute.
+* xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`] /
+  xref:reference:boost/redis/co_connection/run.adoc[`co_connection::run`]:
+  keeps the connection healthy. It takes care of hostname resolution,
+  session establishment, health-checks, reconnection and coordination of low-level read and write
+  operations. It should be called only once per connection, regardless of the number of requests to execute.
 
 
 == Further reading

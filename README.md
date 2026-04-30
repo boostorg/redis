@@ -13,8 +13,8 @@ Full documentation is [here](https://www.boost.org/doc/libs/master/libs/redis/in
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* When using Asio, C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
-* When using Corosio, C++20 or higher. TODO: supported compilers.
+* When using Asio, C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and MSVC 14.20 and later.
+* When using Corosio, C++20 or higher. Supported compilers include gcc 12 and later, clang 17 and later, MSVC 14.34 and later.
 * Redis 6 or higher (must support RESP3).
 * OpenSSL.
 
