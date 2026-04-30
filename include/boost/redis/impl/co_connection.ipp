@@ -85,7 +85,7 @@ capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
       co_return co_await capy::timeout(std::move(aw), timeout);
 }
 
-struct co_redis_stream_impl {
+class co_redis_stream_impl {
    struct tcp_state {
       corosio::resolver resolv;
       corosio::tcp_socket sock;
@@ -115,6 +115,14 @@ struct co_redis_stream_impl {
       if (!tcp_.has_value())
          tcp_.emplace(ctx_);
    }
+
+public:
+   explicit co_redis_stream_impl(capy::execution_context& ctx, corosio::tls_context tls_ctx)
+   : ctx_(ctx)
+   , tls_ctx_(std::move(tls_ctx))
+   { }
+
+   capy::any_stream& stream() { return stream_; }
 
    void setup_unix()
    {
@@ -171,16 +179,6 @@ struct co_redis_stream_impl {
          tls_->handshake(corosio::tls_stream::handshake_type::client),
          params.ssl_handshake_timeout);
    }
-
-   capy::io_task<> connect(const connect_params& params, buffered_logger& lgr)
-   {
-      return co_connect(*this, params, lgr);
-   }
-
-   explicit co_redis_stream_impl(capy::execution_context& ctx, corosio::tls_context tls_ctx)
-   : ctx_(ctx)
-   , tls_ctx_(std::move(tls_ctx))
-   { }
 };
 
 struct co_connection_impl {
@@ -213,7 +211,12 @@ struct co_connection_impl {
       st_.mpx.set_receive_adapter(std::move(adapter));
    }
 
-   capy::any_stream& stream() { return stream_.stream_; }
+   capy::any_stream& stream() { return stream_.stream(); }
+
+   capy::io_task<> connect(const connect_params& params)
+   {
+      return co_connect(stream_, params, st_.logger);
+   }
 
    capy::io_task<> exec(request const& req, any_adapter adapter)
    {
@@ -311,9 +314,8 @@ struct co_connection_impl {
             case sentinel_action::type::done: co_return {act.error()};
             case sentinel_action::type::connect:
             {
-               auto [ec] = co_await stream_.connect(
-                  make_sentinel_connect_params(st_.cfg, act.connect_addr()),
-                  st_.logger);
+               auto [ec] = co_await connect(
+                  make_sentinel_connect_params(st_.cfg, act.connect_addr()));
                act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
@@ -409,7 +411,7 @@ struct co_connection_impl {
             case run_action_type::done:             co_return {act.ec};
             case run_action_type::sentinel_resolve: ec = (co_await sentinel_resolve()).ec; break;
             case run_action_type::connect:
-               ec = (co_await stream_.connect(make_run_connect_params(st_), st_.logger)).ec;
+               ec = (co_await connect(make_run_connect_params(st_))).ec;
                break;
             case run_action_type::parallel_group:
             {
