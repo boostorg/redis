@@ -16,7 +16,6 @@
 #include <boost/redis/detail/flow_controller.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/reader_fsm.hpp>
-#include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/detail/run_fsm.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/detail/transport_type.hpp>
@@ -247,29 +246,7 @@ struct co_connection_impl {
       }
    }
 
-   capy::io_task<> receive()
-   {
-      // Setup
-      receive_fsm fsm;
-      system::error_code ec;
-
-      while (true) {
-         receive_action act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
-
-         switch (act.type) {
-            case receive_action::action_type::setup_cancellation: break;  // not required here
-            case receive_action::action_type::wait:
-            {
-               auto [controller_ec] = co_await controller_.take();
-               ec = controller_ec;
-               break;
-            }
-            case receive_action::action_type::drain_channel: break;  // not required
-            case receive_action::action_type::immediate:     break;  // not required
-            case receive_action::action_type::done:          co_return {act.ec};
-         }
-      }
-   }
+   capy::io_task<> receive() { return controller_.take(); }
 
    capy::io_task<> exec_one(const request& req, any_adapter resp)
    {

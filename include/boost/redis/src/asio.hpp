@@ -6,3 +6,4 @@
 
 #include <boost/redis/impl/connect_fsm.ipp>
 #include <boost/redis/impl/connection.ipp>
+#include <boost/redis/impl/receive_fsm.ipp>

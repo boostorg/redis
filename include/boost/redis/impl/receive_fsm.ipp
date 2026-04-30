@@ -6,16 +6,23 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/error.hpp>
 
+#include <boost/asio/error.hpp>
 #include <boost/asio/experimental/channel_error.hpp>
 #include <boost/assert.hpp>
 
 namespace boost::redis::detail {
+
+constexpr bool is_any_cancel(asio::cancellation_type_t type)
+{
+   return !!(
+      type & (asio::cancellation_type_t::terminal | asio::cancellation_type_t::partial |
+              asio::cancellation_type_t::total));
+}
 
 // We use the receive2_cancelled flag rather than will_reconnect() to
 // avoid entanglement between async_run and async_receive2 cancellations.
@@ -24,7 +31,7 @@ namespace boost::redis::detail {
 receive_action receive_fsm::resume(
    connection_state& st,
    system::error_code ec,
-   cancellation_type cancel_state)
+   asio::cancellation_type_t cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -54,9 +61,9 @@ receive_action receive_fsm::resume(
          }
 
          // Check for cancellations
-         if (cancel_state != cancellation_type::none || st.receive2_cancelled) {
+         if (is_any_cancel(cancel_state) || st.receive2_cancelled) {
             st.receive2_running = false;
-            return make_error_code(system::errc::operation_canceled);
+            return system::error_code(asio::error::operation_aborted);
          }
 
          // If we get any unknown errors, propagate them (shouldn't happen, but just in case)
