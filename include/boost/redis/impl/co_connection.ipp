@@ -85,7 +85,8 @@ capy::task<capy::awaitable_result_t<Aw>> maybe_timeout(
       co_return co_await capy::timeout(std::move(aw), timeout);
 }
 
-class co_redis_stream_impl {
+// An object suitable to be passed to co_connect
+class stream_impl {
    struct tcp_state {
       corosio::resolver resolv;
       corosio::tcp_socket sock;
@@ -105,9 +106,6 @@ class co_redis_stream_impl {
    std::optional<corosio::local_stream_socket> unix_;
    std::optional<corosio::openssl_stream> tls_;
 
-   // Contains the stream that will end up being used
-   capy::any_stream stream_;
-
    void setup_tcp_impl()
    {
       // Allocate the object if not there.
@@ -117,14 +115,12 @@ class co_redis_stream_impl {
    }
 
 public:
-   explicit co_redis_stream_impl(capy::execution_context& ctx, corosio::tls_context tls_ctx)
+   explicit stream_impl(capy::execution_context& ctx, corosio::tls_context tls_ctx)
    : ctx_(ctx)
    , tls_ctx_(std::move(tls_ctx))
    { }
 
-   capy::any_stream& stream() { return stream_; }
-
-   void setup_unix()
+   void setup_unix(capy::any_stream& out)
    {
       if (unix_.has_value()) {
          // UNIX sockets don't use range connect.
@@ -134,23 +130,23 @@ public:
       } else {
          unix_.emplace(ctx_);
       }
-      stream_ = capy::any_stream(&*unix_);
+      out = capy::any_stream(&*unix_);
    }
 
-   void setup_tcp()
+   void setup_tcp(capy::any_stream& out)
    {
       setup_tcp_impl();
-      stream_ = capy::any_stream(&tcp_->sock);
+      out = capy::any_stream(&tcp_->sock);
    }
 
-   void setup_tcp_tls()
+   void setup_tcp_tls(capy::any_stream& out)
    {
       setup_tcp_impl();
       if (tls_.has_value())
          tls_->reset();
       else
          tls_.emplace(capy::any_stream(&tcp_->sock), tls_ctx_);
-      stream_ = capy::any_stream(&*tls_);
+      out = capy::any_stream(&*tls_);
    }
 
    auto unix_connect(const connect_params& params)
@@ -183,7 +179,8 @@ public:
 
 struct co_connection_impl {
    capy::async_event run_cancelled_event_;
-   co_redis_stream_impl stream_;
+   stream_impl stream_impl_;
+   capy::any_stream stream_;
    corosio::timer writer_timer_;     // timer used for write timeouts
    corosio::timer writer_cv_;        // set when there is new data to write
    corosio::timer reader_timer_;     // timer used for read timeouts
@@ -193,7 +190,7 @@ struct co_connection_impl {
    connection_state st_;
 
    co_connection_impl(capy::execution_context& ctx, corosio::tls_context&& ssl_ctx, logger&& lgr)
-   : stream_{ctx, std::move(ssl_ctx)}
+   : stream_impl_{ctx, std::move(ssl_ctx)}
    , writer_timer_{ctx}
    , writer_cv_{ctx}
    , reader_timer_{ctx}
@@ -211,11 +208,9 @@ struct co_connection_impl {
       st_.mpx.set_receive_adapter(std::move(adapter));
    }
 
-   capy::any_stream& stream() { return stream_.stream(); }
-
    capy::io_task<> connect(const connect_params& params)
    {
-      return co_connect(stream_, params, st_.logger);
+      return co_connect(stream_impl_, params, st_.logger, stream_);
    }
 
    capy::io_task<> exec(request const& req, any_adapter adapter)
@@ -286,7 +281,7 @@ struct co_connection_impl {
             case exec_one_action_type::done: co_return {act.ec};
             case exec_one_action_type::write:
             {
-               auto [ec, bytes] = co_await capy::write(stream(), capy::make_buffer(req.payload()));
+               auto [ec, bytes] = co_await capy::write(stream_, capy::make_buffer(req.payload()));
                act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
@@ -294,7 +289,7 @@ struct co_connection_impl {
             {
                // https://github.com/cppalliance/capy/issues/147
                auto buff = rdbuff.get_prepared();
-               auto [ec, bytes] = co_await stream().read_some(
+               auto [ec, bytes] = co_await stream_.read_some(
                   capy::mutable_buffer(buff.data(), buff.size()));
                act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
@@ -344,7 +339,7 @@ struct co_connection_impl {
             case writer_action_type::write_some:
             {
                auto [ec, bytes] = co_await maybe_timeout(
-                  stream().write_some(capy::make_buffer(st_.mpx.get_write_buffer())),
+                  stream_.write_some(capy::make_buffer(st_.mpx.get_write_buffer())),
                   act.timeout());
                act = fsm.resume(st_, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
@@ -372,7 +367,7 @@ struct co_connection_impl {
                // https://github.com/cppalliance/capy/issues/147
                auto buff = st_.mpx.get_prepared_read_buffer();
                auto [ec, bytes] = co_await maybe_timeout(
-                  stream().read_some(capy::mutable_buffer(buff.data(), buff.size())),
+                  stream_.read_some(capy::mutable_buffer(buff.data(), buff.size())),
                   act.timeout());
                act = fsm.resume(st_, bytes, ec, to_cancel(co_await capy::this_coro::stop_token));
                break;

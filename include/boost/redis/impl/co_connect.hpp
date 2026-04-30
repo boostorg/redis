@@ -13,6 +13,7 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/logger.hpp>
 
+#include <boost/capy/io/any_stream.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/corosio/endpoint.hpp>
 #include <boost/corosio/resolver_results.hpp>
@@ -61,15 +62,23 @@ struct log_traits<corosio::resolver_results> {
    }
 };
 
-// Templatized for testing purposes
-template <class StreamImpl>
-capy::io_task<> co_connect(StreamImpl& impl, const connect_params& params, buffered_logger& lgr)
+// Templatized for testing purposes.
+// StreamState should hold members to establish connections using
+// any of the supported transports.
+// Performs connection establishment, and outputs a stream to 'out'.
+// The resulting stream should be non-owning, pointing into impl's data members, allowing re-use.
+template <class StreamState>
+capy::io_task<> co_connect(
+   StreamState& impl,
+   const connect_params& params,
+   buffered_logger& lgr,
+   capy::any_stream& out)
 {
    auto type = params.addr.type();
 
    if (type == transport_type::unix_socket) {
       // Setup
-      impl.setup_unix();
+      impl.setup_unix(out);
 
       // Actual connect
       auto [ec] = co_await impl.unix_connect(params);
@@ -85,9 +94,9 @@ capy::io_task<> co_connect(StreamImpl& impl, const connect_params& params, buffe
    } else {
       // TCP (with or without TLS)
       if (type == transport_type::tcp_tls)
-         impl.setup_tcp_tls();
+         impl.setup_tcp_tls(out);
       else
-         impl.setup_tcp();
+         impl.setup_tcp(out);
 
       // Resolve names
       auto [ec, endpoints] = co_await impl.tcp_resolve(params);
