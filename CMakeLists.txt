@@ -16,19 +16,28 @@ if(NOT OpenSSL_FOUND)
   return()
 endif()
 
-# Library (Asio)
-add_library(boost_redis INTERFACE)
-add_library(Boost::redis ALIAS boost_redis)
-target_include_directories(boost_redis INTERFACE include)
-target_compile_features(boost_redis INTERFACE cxx_std_17)
-target_link_libraries(boost_redis
+# Library (common)
+add_library(boost_redis_proto INTERFACE)
+add_library(Boost::redis_proto ALIAS boost_redis_proto)
+target_include_directories(boost_redis_proto INTERFACE include)
+target_compile_features(boost_redis_proto INTERFACE cxx_std_17)
+target_link_libraries(boost_redis_proto
   INTERFACE
-    Boost::asio
     Boost::assert
     Boost::core
     Boost::mp11
     Boost::system
     Boost::throw_exception
+)
+
+
+# Library (Asio)
+add_library(boost_redis INTERFACE)
+add_library(Boost::redis ALIAS boost_redis)
+target_link_libraries(boost_redis
+  INTERFACE
+    Boost::redis_proto
+    Boost::asio
     Threads::Threads
     OpenSSL::Crypto
     OpenSSL::SSL
@@ -37,15 +46,10 @@ target_link_libraries(boost_redis
 # Library (Corosio)
 add_library(boost_redis_corosio INTERFACE)
 add_library(Boost::redis_corosio ALIAS boost_redis_corosio)
-target_include_directories(boost_redis_corosio INTERFACE include)
 target_compile_features(boost_redis_corosio INTERFACE cxx_std_20)
 target_link_libraries(boost_redis_corosio
   INTERFACE
-    Boost::assert
-    Boost::core
-    Boost::mp11
-    Boost::system
-    Boost::throw_exception
+    Boost::redis_proto
     Boost::capy
     Boost::corosio
     Boost::corosio_openssl
@@ -76,7 +80,7 @@ endif()
 
 if(BOOST_SUPERPROJECT_VERSION AND NOT CMAKE_VERSION VERSION_LESS 3.13)
   boost_install(
-    TARGETS boost_redis_corosio
+    TARGETS boost_redis_proto boost_redis_corosio
     VERSION ${BOOST_SUPERPROJECT_VERSION}
     HEADER_DIRECTORY include
   )

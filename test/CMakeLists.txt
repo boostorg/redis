@@ -12,28 +12,44 @@ endif()
 # Source libraries
 add_library(boost_redis_proto_src STATIC boost_redis_proto.cpp)
 target_link_libraries(boost_redis_proto_src PUBLIC
+  boost_redis_proto
   boost_redis_project_options
-  Boost::unit_test_framework
-  boost_redis
-  boost_redis_corosio
 )
 
 add_library(boost_redis_asio_src STATIC boost_redis_asio.cpp)
-target_link_libraries(boost_redis_asio_src PUBLIC boost_redis_proto_src)
+target_link_libraries(boost_redis_asio_src PUBLIC
+  boost_redis
+  boost_redis_proto_src
+)
 
 add_library(boost_redis_corosio_src STATIC boost_redis_corosio.cpp)
-target_link_libraries(boost_redis_corosio_src PUBLIC boost_redis_proto_src)
+target_link_libraries(boost_redis_corosio_src PUBLIC
+  boost_redis_corosio
+  boost_redis_proto_src
+)
 
 # Test utils
 add_library(boost_redis_tests_proto STATIC common.cpp sansio_utils.cpp)
-target_link_libraries(boost_redis_tests_proto PUBLIC boost_redis_proto_src)
+target_link_libraries(boost_redis_tests_proto
+  PUBLIC
+    boost_redis_proto_src
+    Boost::unit_test_framework
+  PRIVATE
+    Boost::capy # for capy::cond
+)
 target_compile_definitions(boost_redis_tests_proto PUBLIC BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
 add_library(boost_redis_tests_asio STATIC asio_common.cpp)
-target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio_src boost_redis_tests_proto)
+target_link_libraries(boost_redis_tests_asio
+  boost_redis_asio_src
+  boost_redis_tests_proto
+)
 
 add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
-target_link_libraries(boost_redis_tests_corosio PUBLIC boost_redis_corosio_src boost_redis_tests_proto)
+target_link_libraries(boost_redis_tests_corosio PUBLIC
+  boost_redis_corosio_src
+  boost_redis_tests_proto
+)
 
 function(boost_redis_make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")
@@ -56,7 +72,7 @@ boost_redis_make_test(test_conn_logging             boost_redis_tests_asio)
 boost_redis_make_test(test_co_logging               boost_redis_tests_corosio)
 boost_redis_make_test(test_exec_fsm                 boost_redis_tests_proto)
 boost_redis_make_test(test_exec_one_fsm             boost_redis_tests_proto)
-boost_redis_make_test(test_writer_fsm               boost_redis_tests_proto)
+boost_redis_make_test(test_writer_fsm               boost_redis_tests_proto Boost::capy)
 boost_redis_make_test(test_reader_fsm               boost_redis_tests_proto)
 boost_redis_make_test(test_connect_fsm              boost_redis_tests_asio)
 boost_redis_make_test(test_sentinel_resolve_fsm     boost_redis_tests_proto)
