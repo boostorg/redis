@@ -1,7 +1,8 @@
 # Boost.Redis
 
-Boost.Redis is a high-level [Redis](https://redis.io/) client library built on top of
+Boost.Redis is a high-level [Redis](https://redis.io/) client library for
 [Boost.Asio](https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html)
+and [Corosio](https://github.com/cppalliance/corosio/)
 that implements the Redis protocol
 [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md).
 
@@ -12,18 +13,24 @@ Full documentation is [here](https://www.boost.org/doc/libs/master/libs/redis/in
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* When using Asio, C++17 or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* When using Corosio, C++20 or higher. TODO: supported compilers.
 * Redis 6 or higher (must support RESP3).
 * OpenSSL.
 
-The documentation assumes basic-level knowledge about [Redis](https://redis.io/docs/) and [Boost.Asio](https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html).
+The documentation assumes basic-level knowledge about [Redis](https://redis.io/docs/) and either Boost.Asio or Corosio.
 
 ## Building the library
 
 To use the library it is necessary to include the following:
 
 ```cpp
+// If using the Asio API
 #include <boost/redis/src.hpp>
+
+// If using the Corosio API
+#include <boost/redis/src/proto.hpp>
+#include <boost/redis/src/corosio.hpp>
 ```
 
 in exactly one source file in your applications. Otherwise, the library is header-only.
@@ -76,6 +83,55 @@ The roles played by the `async_run` and `async_exec` functions are:
   request and stores the individual responses in the response object. Can
   be called from multiple places in your code concurrently.
 * `connection::async_run`: keeps the connection healthy. It takes care of hostname resolution, session establishment, health-checks, reconnection and coordination of low-level read and write operations. It should be called only once per connection, regardless of the number of requests to execute.
+
+The Corosio API works similarly:
+
+```cpp
+#include <boost/redis/co_connection.hpp>
+#include <boost/redis/config.hpp>
+
+#include <boost/capy/ex/run_async.hpp>
+#include <boost/capy/io_task.hpp>
+#include <boost/capy/task.hpp>
+#include <boost/capy/when_any.hpp>
+#include <boost/corosio/io_context.hpp>
+
+#include <exception>
+#include <iostream>
+
+namespace capy = boost::capy;
+using namespace boost::redis;
+namespace corosio = boost::corosio;
+
+capy::io_task<> run_request(co_connection& conn)
+{
+   // A request containing only a ping command.
+   request req;
+   req.push("PING", "Hello world");
+
+   // Response where the PONG response will be stored.
+   response<std::string> resp;
+
+   // Executes the request.
+   auto [ec] = co_await conn.exec(req, resp);
+   if (ec) {
+      std::cout << "Error executing PING: " << ec << std::endl;
+   } else {
+      std::cout << "PING value: " << std::get<0>(resp).value() << std::endl;
+   }
+
+   co_return {};
+}
+
+capy::task<void> co_main()
+{
+   // Create a connection
+   co_connection conn{co_await capy::this_coro::executor};
+
+   // Run the connection and the PING request, in parallel
+   co_await capy::when_any(run_request(conn), conn.run(config{}));
+}
+```
 
 ## Server pushes
 
