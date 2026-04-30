@@ -69,7 +69,8 @@ make_test(test_generic_flat_response    boost_redis_tests_proto)
 make_test(test_read_buffer              boost_redis_tests_proto)
 make_test(test_subscription_tracker     boost_redis_tests_proto)
 make_test(test_push_parser              boost_redis_tests_proto)
-make_test(test_flow_controller          boost_redis_tests_corosio)
+make_test(test_flow_controller          boost_redis_tests_corosio) # TODO: add to jamfile
+make_test(test_co_connect               boost_redis_tests_corosio) # TODO: add to jamfile
 
 # Tests that require a real Redis server
 make_test(test_conn_quit          boost_redis_tests_asio)

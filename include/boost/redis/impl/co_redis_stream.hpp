@@ -76,6 +76,65 @@ struct log_traits<corosio::resolver_results> {
    }
 };
 
+template <class Impl>
+capy::io_task<> transport_connect(Impl& impl, const connect_params& params, buffered_logger& lgr)
+{
+   auto type = params.addr.type();
+
+   if (type == transport_type::unix_socket) {
+      // Setup
+      impl.setup_unix();
+
+      // Actual connect
+      auto [ec] = co_await impl.unix_connect(params);
+      if (ec) {
+         log_info(lgr, "Connect: UNIX socket connect failed: ", system::error_code(ec));
+         co_return {ec};
+      }
+      log_debug(lgr, "Connect: UNIX socket connect succeeded");
+
+      // Done
+      co_return {};
+
+   } else {
+      // TCP (with or without TLS)
+      if (type == transport_type::tcp_tls)
+         impl.setup_tcp_tls();
+      else
+         impl.setup_tcp();
+
+      // Resolve names
+      auto [ec, endpoints] = co_await impl.tcp_resolve(params);
+      if (ec) {
+         log_info(lgr, "Connect: hostname resolution failed: ", system::error_code(ec));
+         co_return {ec};
+      }
+      log_debug(lgr, "Connect: hostname resolution results: ", endpoints);
+
+      // Now connect to the endpoints returned by the resolver
+      auto [ec_connect, selected_endpoint] = co_await impl.tcp_connect(params, endpoints);
+      if (ec_connect) {
+         log_info(lgr, "Connect: TCP connect failed: ", system::error_code(ec_connect));
+         co_return {ec_connect};
+      }
+      log_debug(lgr, "Connect: TCP connect succeeded. Selected endpoint: ", selected_endpoint);
+
+      // If using TLS, perform the handshake
+      if (type == transport_type::tcp_tls) {
+         // TLS handshake
+         auto [ec_handshake] = co_await impl.tls_handshake(params);
+         if (ec_handshake) {
+            log_info(lgr, "Connect: SSL handshake failed: ", system::error_code(ec_handshake));
+            co_return {ec_handshake};
+         }
+         log_debug(lgr, "Connect: SSL handshake succeeded");
+      }
+
+      // Done
+      co_return {};
+   }
+}
+
 struct co_redis_stream {
    struct tcp_state {
       corosio::resolver resolv;
@@ -165,60 +224,7 @@ struct co_redis_stream {
 
    capy::io_task<> connect(const connect_params& params, buffered_logger& lgr)
    {
-      auto type = params.addr.type();
-
-      if (type == transport_type::unix_socket) {
-         // Setup
-         setup_unix();
-
-         // Actual connect
-         auto [ec] = co_await unix_connect(params);
-         if (ec) {
-            log_info(lgr, "Connect: UNIX socket connect failed: ", system::error_code(ec));
-            co_return {ec};
-         }
-         log_debug(lgr, "Connect: UNIX socket connect succeeded");
-
-         // Done
-         co_return {};
-
-      } else {
-         // TCP (with or without TLS)
-         if (type == transport_type::tcp_tls)
-            setup_tcp_tls();
-         else
-            setup_tcp();
-
-         // Resolve names
-         auto [ec, endpoints] = co_await tcp_resolve(params);
-         if (ec) {
-            log_info(lgr, "Connect: hostname resolution failed: ", system::error_code(ec));
-            co_return {ec};
-         }
-         log_debug(lgr, "Connect: hostname resolution results: ", endpoints);
-
-         // Now connect to the endpoints returned by the resolver
-         auto [ec_connect, selected_endpoint] = co_await tcp_connect(params, endpoints);
-         if (ec_connect) {
-            log_info(lgr, "Connect: TCP connect failed: ", system::error_code(ec_connect));
-            co_return {ec_connect};
-         }
-         log_debug(lgr, "Connect: TCP connect succeeded. Selected endpoint: ", selected_endpoint);
-
-         // If using TLS, perform the handshake
-         if (type == transport_type::tcp_tls) {
-            // TLS handshake
-            auto [ec_handshake] = co_await tls_handshake(params);
-            if (ec_handshake) {
-               log_info(lgr, "Connect: SSL handshake failed: ", system::error_code(ec_handshake));
-               co_return {ec_handshake};
-            }
-            log_debug(lgr, "Connect: SSL handshake succeeded");
-         }
-
-         // Done
-         co_return {};
-      }
+      return transport_connect(*this, params, lgr);
    }
 
    explicit co_redis_stream(capy::execution_context& ctx, corosio::tls_context tls_ctx)
