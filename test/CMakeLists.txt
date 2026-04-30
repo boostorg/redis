@@ -1,7 +1,6 @@
 
 # Common utilities
 add_library(boost_redis_project_options INTERFACE)
-target_link_libraries(boost_redis_project_options INTERFACE boost_redis)
 if (MSVC)
   # C4459: name hides outer scope variable is issued by Asio
   target_compile_options(boost_redis_project_options INTERFACE /bigobj /W4 /WX /wd4459)
@@ -11,25 +10,30 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL 
 endif()
 
 # Source libraries
-add_library(boost_redis_proto STATIC boost_redis_proto.cpp)
-target_link_libraries(boost_redis_proto PUBLIC boost_redis_project_options Boost::unit_test_framework)
+add_library(boost_redis_proto_src STATIC boost_redis_proto.cpp)
+target_link_libraries(boost_redis_proto_src PUBLIC
+  boost_redis_project_options
+  Boost::unit_test_framework
+  boost_redis
+  boost_redis_corosio
+)
 
-add_library(boost_redis_asio STATIC boost_redis_asio.cpp)
-target_link_libraries(boost_redis_asio PUBLIC boost_redis_proto)
+add_library(boost_redis_asio_src STATIC boost_redis_asio.cpp)
+target_link_libraries(boost_redis_asio_src PUBLIC boost_redis_proto_src)
 
-add_library(boost_redis_corosio STATIC boost_redis_corosio.cpp)
-target_link_libraries(boost_redis_corosio PUBLIC boost_redis_proto)
+add_library(boost_redis_corosio_src STATIC boost_redis_corosio.cpp)
+target_link_libraries(boost_redis_corosio_src PUBLIC boost_redis_proto_src)
 
 # Test utils
 add_library(boost_redis_tests_proto STATIC common.cpp sansio_utils.cpp)
-target_link_libraries(boost_redis_tests_proto PUBLIC boost_redis_proto)
+target_link_libraries(boost_redis_tests_proto PUBLIC boost_redis_proto_src)
 target_compile_definitions(boost_redis_tests_proto PUBLIC BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
 add_library(boost_redis_tests_asio STATIC asio_common.cpp)
-target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio boost_redis_tests_proto)
+target_link_libraries(boost_redis_tests_asio PUBLIC boost_redis_asio_src boost_redis_tests_proto)
 
 add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
-target_link_libraries(boost_redis_tests_corosio PUBLIC boost_redis_corosio boost_redis_tests_proto)
+target_link_libraries(boost_redis_tests_corosio PUBLIC boost_redis_corosio_src boost_redis_tests_proto)
 
 function(boost_redis_make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")
