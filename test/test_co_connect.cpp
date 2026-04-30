@@ -228,192 +228,61 @@ capy::task<> test_unix_success()
    });
 }
 
-// // Close errors are ignored
-// void test_unix_success_close_error()
-// {
-//    // Setup
-//    fixture fix{transport_type::unix_socket};
+// Resolve errors
+capy::task<> test_tcp_resolve_error()
+{
+   // Setup
+   fixture fix;
+   fix.impl.retval.tcp_resolve = error::empty_field;
+   address addr{"some.host", "1234"};
 
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_close);
-//    act = fix.fsm.resume(asio::error::bad_descriptor, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::unix_socket_connect);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::done);
+   // Call the function
+   auto [ec] = co_await transport_connect(fix.impl, make_connect_params({addr, false}), fix.lgr);
+   BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
-//    // The transport type was appropriately set
-//    BOOST_TEST_NOT(fix.st.ssl_stream_used);
+   // Mock expectations
+   constexpr num_calls expected_calls{
+      .setup_tcp = 1,
+      .tcp_resolve = 1,
+   };
+   BOOST_TEST_EQ(fix.impl.calls, expected_calls);
 
-//    // Check logging
-//    fix.check_log({
-//       {logger::level::debug, "Connect: UNIX socket connect succeeded"},
-//    });
-// }
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::info, "Connect: hostname resolution failed: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   });
+}
 
-// // Resolve errors
-// void test_tcp_resolve_error()
-// {
-//    // Setup
-//    fixture fix;
+// Connect errors
+capy::task<> test_tcp_connect_error()
+{
+   // Setup
+   fixture fix;
+   fix.impl.retval.tcp_connect = error::empty_field;
+   address addr{"some.host", "1234"};
 
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error::empty_field, resolver_results{}, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::empty_field));
+   // Call the function
+   auto [ec] = co_await transport_connect(fix.impl, make_connect_params({addr, false}), fix.lgr);
+   BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::info, "Connect: hostname resolution failed: Expected field value is empty. [boost.redis:5]"},
-//       // clang-format on
-//    });
-// }
+   // Mock expectations
+   constexpr num_calls expected_calls{
+      .setup_tcp = 1,
+      .tcp_resolve = 1,
+      .tcp_connect = 1,
+   };
+   BOOST_TEST_EQ(fix.impl.calls, expected_calls);
 
-// void test_tcp_resolve_timeout()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Since we use cancel_after, a timeout is an operation_aborted without a cancellation state set
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(
-//       asio::error::operation_aborted,
-//       resolver_results{},
-//       fix.st,
-//       cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::resolve_timeout));
-
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::info, "Connect: hostname resolution failed: Resolve timeout. [boost.redis:17]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_tcp_resolve_cancel()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(
-//       asio::error::operation_aborted,
-//       resolver_results{},
-//       fix.st,
-//       cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging here is system-dependent, so we don't check the message
-//    BOOST_TEST_EQ(fix.msgs.size(), 1u);
-// }
-
-// void test_tcp_resolve_cancel_edge()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Cancel state set but no error
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_results{}, fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging here is system-dependent, so we don't check the message
-//    BOOST_TEST_EQ(fix.msgs.size(), 1u);
-// }
-
-// // Connect errors
-// void test_tcp_connect_error()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error::empty_field, tcp::endpoint{}, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::empty_field));
-
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
-//       {logger::level::info, "Connect: TCP connect failed: Expected field value is empty. [boost.redis:5]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_tcp_connect_timeout()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(
-//       asio::error::operation_aborted,
-//       tcp::endpoint{},
-//       fix.st,
-//       cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, error_code(error::connect_timeout));
-
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
-//       {logger::level::info, "Connect: TCP connect failed: Connect timeout. [boost.redis:18]"},
-//       // clang-format on
-//    });
-// }
-
-// void test_tcp_connect_cancel()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Run the algorithm
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(
-//       asio::error::operation_aborted,
-//       tcp::endpoint{},
-//       fix.st,
-//       cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging here is system-dependent, so we don't check the message
-//    BOOST_TEST_EQ(fix.msgs.size(), 2u);
-// }
-
-// void test_tcp_connect_cancel_edge()
-// {
-//    // Setup
-//    fixture fix;
-
-//    // Run the algorithm. Cancellation state set but no error
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), tcp::endpoint{}, fix.st, cancellation_type_t::terminal);
-//    BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
-
-//    // Logging here is system-dependent, so we don't check the message
-//    BOOST_TEST_EQ(fix.msgs.size(), 2u);
-// }
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::info,  "Connect: TCP connect failed: Expected field value is empty. [boost.redis:5]"},
+      // clang-format on
+   });
+}
 
 // // SSL handshake error
 // void test_ssl_handshake_error()
@@ -602,12 +471,12 @@ int main()
    run_coroutine_test(test_unix_success());
    // test_unix_success_close_error();
 
-   // test_tcp_resolve_error();
+   run_coroutine_test(test_tcp_resolve_error());
    // test_tcp_resolve_timeout();
    // test_tcp_resolve_cancel();
    // test_tcp_resolve_cancel_edge();
 
-   // test_tcp_connect_error();
+   run_coroutine_test(test_tcp_connect_error());
    // test_tcp_connect_timeout();
    // test_tcp_connect_cancel();
    // test_tcp_connect_cancel_edge();
