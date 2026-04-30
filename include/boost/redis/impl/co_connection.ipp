@@ -60,14 +60,6 @@
 namespace boost::redis {
 namespace detail {
 
-// Given a timeout value, compute the expiry time. A zero timeout is considered to mean "no timeout"
-inline std::chrono::steady_clock::time_point compute_expiry(
-   std::chrono::steady_clock::duration timeout)
-{
-   return timeout.count() == 0 ? (std::chrono::steady_clock::time_point::max)()
-                               : std::chrono::steady_clock::now() + timeout;
-}
-
 inline cancellation_type to_cancel(std::stop_token tok)
 {
    return tok.stop_requested() ? cancellation_type::terminal : cancellation_type::none;
@@ -326,7 +318,11 @@ struct co_connection_impl {
             }
             case writer_action_type::wait:
             {
-               writer_cv_.expires_at(compute_expiry(act.timeout()));
+               // A zero timeout value means "no timeout"
+               auto timeout = act.timeout();
+               auto expiry = timeout.count() == 0 ? (std::chrono::steady_clock::time_point::max)()
+                                                  : std::chrono::steady_clock::now() + timeout;
+               writer_cv_.expires_at(expiry);
                auto [ec] = co_await writer_cv_.wait();
                act = fsm.resume(st_, ec, 0u, to_cancel(co_await capy::this_coro::stop_token));
                break;
