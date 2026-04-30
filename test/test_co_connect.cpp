@@ -104,9 +104,9 @@ struct mock_impl {
    num_calls calls;
    return_value retval;
 
-   void setup_unix() { ++calls.setup_unix; }
-   void setup_tcp() { ++calls.setup_tcp; }
-   void setup_tcp_tls() { ++calls.setup_tcp_tls; }
+   void setup_unix(capy::any_stream&) { ++calls.setup_unix; }
+   void setup_tcp(capy::any_stream&) { ++calls.setup_tcp; }
+   void setup_tcp_tls(capy::any_stream&) { ++calls.setup_tcp_tls; }
 
    capy::io_task<> unix_connect(const connect_params&)
    {

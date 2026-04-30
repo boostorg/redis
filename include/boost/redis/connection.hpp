@@ -280,10 +280,7 @@ struct receive2_op {
    template <class Self>
    void operator()(Self& self, system::error_code ec = {}, std::size_t /* push_bytes */ = 0u)
    {
-      receive_action act = fsm_.resume(
-         conn_->st_,
-         ec,
-         to_redis_cancellation(self.get_cancellation_state().cancelled()));
+      receive_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
 
       switch (act.type) {
          case receive_action::action_type::setup_cancellation:

@@ -14,7 +14,6 @@
 #include <boost/redis/impl/push_parser.ipp>
 #include <boost/redis/impl/read_buffer.ipp>
 #include <boost/redis/impl/reader_fsm.ipp>
-#include <boost/redis/impl/receive_fsm.ipp>
 #include <boost/redis/impl/request.ipp>
 #include <boost/redis/impl/response.ipp>
 #include <boost/redis/impl/run_fsm.ipp>
