@@ -166,6 +166,7 @@ public:
 
    auto tcp_connect(const connect_params& params, const corosio::resolver_results& results)
    {
+      // all() prevents corosio from copying results
       return capy::timeout(
          corosio::connect(tcp_->sock, std::ranges::views::all(results)),
          params.connect_timeout);
