@@ -143,12 +143,15 @@ def _build_b2_distro(
 
 # Builds a Boost distribution using cmake, and places it into _cmake_distro.
 # It includes only our library and any dependency.
+# When integration_tests is True, tests requiring a live Redis server are also
+# built and run; otherwise only the unit tests are.
 def _build_cmake_distro(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
-    build_shared_libs: bool = False
+    build_shared_libs: bool = False,
+    integration_tests: bool = False
 ):
     _mkdir_and_cd(_boost_root.joinpath('__build_cmake_test__'))
     _run([
@@ -162,7 +165,7 @@ def _build_cmake_distro(
         '-DBOOST_INCLUDE_LIBRARIES=redis',
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_INSTALL_PREFIX={}'.format(_cmake_distro),
-        '-DBUILD_TESTING=ON',
+        '-DBOOST_REDIS_INTEGRATION_TESTS={}'.format(_cmake_bool(integration_tests)),
         '-DBoost_VERBOSE=ON',
         '-DCMAKE_INSTALL_MESSAGE=NEVER',
         '..'
@@ -170,40 +173,6 @@ def _build_cmake_distro(
     _run(['cmake', '--build', '.', '--target', 'tests', '--config', build_type])
     _run(['ctest', '--output-on-failure', '--build-config', build_type])
     _run(['cmake', '--build', '.', '--target', 'install', '--config', build_type])
-
-
-# Builds our CMake tests as a standalone project
-# (BOOST_REDIS_MAIN_PROJECT is ON) and we find_package Boost.
-# This ensures that all our test suite is run.
-def _build_cmake_standalone_tests(
-    generator: str,
-    build_type: str,
-    cxxstd: str,
-    toolset: str,
-    build_shared_libs: bool = False
-):
-    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', '__build_standalone__'))
-    _run([
-        'cmake',
-        '-DBUILD_TESTING=ON',
-        '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
-        '-DCMAKE_PREFIX_PATH={}'.format(_b2_distro),
-        '-DCMAKE_BUILD_TYPE={}'.format(build_type),
-        '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
-        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '-G',
-        generator,
-        '..'
-    ])
-    _run(['cmake', '--build', '.'])
-
-
-# Runs the tests built in the previous step
-def _run_cmake_standalone_tests(
-    build_type: str
-):
-    os.chdir(str(_boost_root.joinpath('libs', 'redis', '__build_standalone__')))
-    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
 # Tests that the library can be consumed using add_subdirectory()
@@ -321,19 +290,8 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--integration-tests', type=_str2bool, default=True)
     subp.set_defaults(func=_build_cmake_distro)
-
-    subp = subparsers.add_parser('build-cmake-standalone-tests')
-    subp.add_argument('--generator', default='Unix Makefiles')
-    subp.add_argument('--build-type', default='Debug')
-    subp.add_argument('--cxxstd', default='20')
-    subp.add_argument('--toolset', default='gcc')
-    subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
-    subp.set_defaults(func=_build_cmake_standalone_tests)
-
-    subp = subparsers.add_parser('run-cmake-standalone-tests')
-    subp.add_argument('--build-type', default='Debug')
-    subp.set_defaults(func=_run_cmake_standalone_tests)
 
     subp = subparsers.add_parser('run-cmake-add-subdirectory-tests')
     subp.add_argument('--generator', default='Unix Makefiles')

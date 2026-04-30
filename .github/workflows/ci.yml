@@ -39,29 +39,17 @@ jobs:
         python3 tools/ci.py build-b2-distro \
           --toolset ${{ matrix.toolset }}
 
-    - name: Build a Boost distribution using CMake
+    # No Redis server is available on this job, so integration tests are skipped.
+    # Unit tests are built and run via the CMake superproject build.
+    - name: Build a Boost distribution and run the tests using CMake
       run: |
         python3 tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }}
-        
-    - name: Build the project tests
-      run: |
-        python3 tools/ci.py build-cmake-standalone-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
-          --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }}
-
-    # # TODO: re-enable this when a Redis server is available for this job
-    # - name: Run the project tests
-    #   run: |
-    #     python3 tools/ci.py run-cmake-standalone-tests \
-    #       --build-type ${{ matrix.build-type }}
+          --build-shared-libs ${{ matrix.build-shared-libs }} \
+          --integration-tests 0
 
     - name: Run add_subdirectory tests
       run: |
@@ -263,24 +251,14 @@ jobs:
         docker exec builder /boost-redis/tools/ci.py build-b2-distro \
           --toolset ${{ matrix.toolset }}
 
-    - name: Build a Boost distribution using CMake
+    # The CMake superproject build also drives the project tests, including
+    # integration tests against the Redis server set up above.
+    - name: Build a Boost distribution and run the tests using CMake
       run: |
         docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }}
-
-    - name: Build the project tests
-      run: |
-        docker exec builder /boost-redis/tools/ci.py build-cmake-standalone-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
-  
-    - name: Run the project tests
-      run: |
-        docker exec builder /boost-redis/tools/ci.py run-cmake-standalone-tests \
-          --build-type ${{ matrix.build-type }}
 
     - name: Run add_subdirectory tests
       run: |

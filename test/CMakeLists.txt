@@ -103,28 +103,3 @@ make_test(test_co_unix_sockets    boost_redis_tests_corosio)
 make_test(test_conn_cancel_after  boost_redis_tests_asio)
 make_test(test_conn_sentinel      boost_redis_tests_asio)
 make_test(test_co_sentinel        boost_redis_tests_corosio)
-
-# Coverage
-set(
-  COVERAGE_TRACE_COMMAND
-  lcov --capture
-  -output-file "${PROJECT_BINARY_DIR}/coverage.info"
-  --directory "${PROJECT_BINARY_DIR}"
-  --include "${PROJECT_SOURCE_DIR}/include/*"
-)
-
-set(
-  COVERAGE_HTML_COMMAND
-  genhtml --legend -f -q
-  "${PROJECT_BINARY_DIR}/coverage.info"
-  --prefix "${PROJECT_SOURCE_DIR}"
-  --output-directory "${PROJECT_BINARY_DIR}/coverage_html"
-)
-
-add_custom_target(
-  coverage
-  COMMAND ${COVERAGE_TRACE_COMMAND}
-  COMMAND ${COVERAGE_HTML_COMMAND}
-  COMMENT "Generating coverage report"
-  VERBATIM
-)
