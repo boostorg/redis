@@ -12,6 +12,7 @@
 #include <boost/redis/impl/co_connect.hpp>
 #include <boost/redis/logger.hpp>
 
+#include <boost/capy/io/any_stream.hpp>
 #include <boost/capy/io_task.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/corosio/endpoint.hpp>
@@ -143,6 +144,7 @@ struct mock_impl {
 struct fixture : detail::log_fixture {
    buffered_logger lgr{make_logger()};
    mock_impl impl;
+   capy::any_stream stream;
 };
 
 capy::task<> test_tcp_success()
@@ -152,7 +154,11 @@ capy::task<> test_tcp_success()
    address addr{"some.host", "1234"};
 
    // Call the function
-   auto [ec] = co_await co_connect(fix.impl, make_connect_params({addr, false}), fix.lgr);
+   auto [ec] = co_await co_connect(
+      fix.impl,
+      make_connect_params({addr, false}),
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, std::error_code());
 
    // Mock expectations
@@ -179,7 +185,11 @@ capy::task<> test_tcp_tls_success()
    address addr{"some.host", "1234"};
 
    // Call the function
-   auto [ec] = co_await co_connect(fix.impl, make_connect_params({addr, true}), fix.lgr);
+   auto [ec] = co_await co_connect(
+      fix.impl,
+      make_connect_params({addr, true}),
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, std::error_code());
 
    // Mock expectations
@@ -210,7 +220,8 @@ capy::task<> test_unix_success()
    auto [ec] = co_await co_connect(
       fix.impl,
       make_connect_params(any_address_view{"/tmp/redis.sock"}),
-      fix.lgr);
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, std::error_code());
 
    // Mock expectations
@@ -235,7 +246,11 @@ capy::task<> test_tcp_resolve_error()
    address addr{"some.host", "1234"};
 
    // Call the function
-   auto [ec] = co_await co_connect(fix.impl, make_connect_params({addr, false}), fix.lgr);
+   auto [ec] = co_await co_connect(
+      fix.impl,
+      make_connect_params({addr, false}),
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
    // Mock expectations
@@ -262,7 +277,11 @@ capy::task<> test_tcp_connect_error()
    address addr{"some.host", "1234"};
 
    // Call the function
-   auto [ec] = co_await co_connect(fix.impl, make_connect_params({addr, false}), fix.lgr);
+   auto [ec] = co_await co_connect(
+      fix.impl,
+      make_connect_params({addr, false}),
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
    // Mock expectations
@@ -291,7 +310,11 @@ capy::task<> test_ssl_handshake_error()
    address addr{"some.host", "1234"};
 
    // Call the function
-   auto [ec] = co_await co_connect(fix.impl, make_connect_params({addr, true}), fix.lgr);
+   auto [ec] = co_await co_connect(
+      fix.impl,
+      make_connect_params({addr, true}),
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
    // Mock expectations
@@ -324,7 +347,8 @@ capy::task<> test_unix_connect_error()
    auto [ec] = co_await co_connect(
       fix.impl,
       make_connect_params(any_address_view{"/tmp/redis.sock"}),
-      fix.lgr);
+      fix.lgr,
+      fix.stream);
    BOOST_TEST_EQ(ec, error_code(error::empty_field));
 
    // Mock expectations
