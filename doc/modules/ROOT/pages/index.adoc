@@ -9,9 +9,10 @@
 = Introduction
 
 Boost.Redis is a high-level https://redis.io/[Redis] and https://valkey.io/[Valkey]
-client library built on top of
+client library offering APIs for
 https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html[Boost.Asio]
-that implements the Redis protocol
+and https://github.com/cppalliance/corosio/[Corosio].
+It implements the Redis protocol
 https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md[RESP3].
 
 == Requirements
@@ -19,21 +20,39 @@ https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md[RESP
 The requirements for using Boost.Redis are:
 
 * Boost 1.84 or higher. Boost.Redis is included in Boost installations since Boost 1.84.
-* pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* For the Boost.Asio API, pass:[C++17] or higher. Supported compilers include gcc 11 and later, clang 11 and later, and Visual Studio 16 (2019) and later.
+* For the Corosio API, pass:[C++20] or higher. TODO: supported compilers.
 * Redis 6 or higher, or Valkey (any version). The database server must support RESP3.
   We intend to maintain compatibility with both Redis and Valkey in the long-run.
 * OpenSSL.
 
-The documentation assumes basic-level knowledge about https://redis.io/docs/[Redis] and https://www.boost.org/doc/libs/latest/doc/html/boost_asio.html[Boost.Asio].
+The documentation assumes basic-level knowledge about https://redis.io/docs/[Redis] and either Boost.Asio or Corosio.
 
 == Building the library
 
 To use the library it is necessary to include the following:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 #include <boost/redis/src.hpp>
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+#include <boost/redis/src/proto.hpp>
+#include <boost/redis/src/corosio.hpp>
+----
+--
+========
 
 in exactly one source file in your applications. Otherwise, the library is header-only.
 
