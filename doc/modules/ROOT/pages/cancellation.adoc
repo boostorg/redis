@@ -8,15 +8,22 @@
 
 = Cancellation and timeouts
 
-By default, running a request with xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`]
-will wait until a connection to the Redis server is established by `async_run`.
+By default, executing a request will wait until a connection to the Redis server is established by
+`connection::async_run` / `co_connection::run`.
 This may take a very long time if the server is down.
 
-For this reason, it is usually a good idea to set a timeout to `async_exec`
-operations using the
+For this reason, it is usually a good idea to set a timeout to request execution.
+The specifics depend on whether you are using Asio or Corosio, but the
+general idea is similar:
+
+[tabs]
+========
+Asio::
++
+--
+Use the
 https://www.boost.org/doc/libs/latest/doc/html/boost_asio/reference/cancel_after.html[`asio::cancel_after`]
 completion token:
-
 
 [source,cpp]
 ----
@@ -28,32 +35,57 @@ req.push("SET", "my_key", 42);
 
 // If the request hasn't completed after 10 seconds, it will be cancelled
 // and an exception will be thrown.
-co_await conn.async_exec(req, ignore, asio::cancel_after(10s));
+co_await conn->async_exec(req, ignore, asio::cancel_after(10s));
 ----
 
 See our {site-url}/example/cpp20_timeouts.cpp[example on timeouts]
 for a full code listing.
 
-You can also use `cancel_after` with other completion styles, like
-callbacks and futures.
-
-`cancel_after` works because `async_exec` supports the per-operation
-cancellation mechanism. This is used by Boost.Asio to implement features
+`cancel_after` also works with other completion styles, like
+callbacks and futures. It works because `async_exec` supports the per-operation
+cancellation mechanism, which Boost.Asio uses to implement features
 like `cancel_after` and parallel groups. All asynchronous operations
 in the library support this mechanism. Please consult the documentation
 for individual operations for more info.
+--
+
+Corosio::
++
+--
+Wrap the awaitable with `capy::timeout`:
+
+[source,cpp]
+----
+using namespace std::chrono_literals;
+
+// Compose a request with a SET command
+request req;
+req.push("SET", "my_key", 42);
+
+// If the request hasn't completed after 10 seconds, it will be cancelled
+// and exec() will complete with an error matching capy::cond::timeout.
+auto [ec] = co_await capy::timeout(conn.exec(req, ignore), 10s);
+----
+
+See our {site-url}/example/corosio_timeouts.cpp[example on timeouts]
+for a full code listing.
+
+`capy::timeout` can be used with any I/O operation exposed by the library.
+Combinators like `capy::when_any` and `capy::when_all` also work.
+--
+========
 
 
 == Retrying idempotent requests
 
-We mentioned that `async_exec` waits until the server is up
+We mentioned that executing a request waits until the server is up
 before sending the request. But what happens if there is a communication
 error after sending the request, but before receiving a response?
 
 In this situation there is no way to know if the request was processed by the server or not.
 By default, the library will consider the request as failed,
-and `async_exec` will complete with an `capy::error::canceled`
-error code.
+and execution will fail with an error matching
+`std::errc::operation_canceled`.
 
 Some requests can be executed several times and result in the same outcome
 as executing them only once. We say that these requests are _idempotent_.
@@ -66,6 +98,11 @@ You can do so by setting `cancel_if_unresponded`
 in xref:reference:boost/redis/request/config.adoc[`request::config`]
 to false:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 // Compose a request
@@ -75,5 +112,23 @@ req.get_config().cancel_if_unresponded = false; // Retry the request even if it 
 
 // Makes sure that the key is set, even in the presence of network errors.
 // This may suspend for an unspecified period of time if the server is down.
-co_await conn.async_exec(req, ignore);
+co_await conn->async_exec(req, ignore);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+// Compose a request
+request req;
+req.push("SET", "my_key", 42); // idempotent
+req.get_config().cancel_if_unresponded = false; // Retry the request even if it was written but not responded
+
+// Makes sure that the key is set, even in the presence of network errors.
+// This may suspend for an unspecified period of time if the server is down.
+co_await conn.exec(req, ignore);
+----
+--
+========
