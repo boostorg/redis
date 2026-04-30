@@ -52,6 +52,7 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <stop_token>
 #include <system_error>
 #include <utility>
@@ -165,8 +166,9 @@ public:
 
    auto tcp_connect(const connect_params& params, const corosio::resolver_results& results)
    {
-      // TODO: prevent copy here
-      return capy::timeout(corosio::connect(tcp_->sock, results), params.connect_timeout);
+      return capy::timeout(
+         corosio::connect(tcp_->sock, std::ranges::views::all(results)),
+         params.connect_timeout);
    }
 
    auto tls_handshake(const connect_params& params)

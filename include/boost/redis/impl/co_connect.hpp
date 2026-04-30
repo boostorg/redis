@@ -63,13 +63,13 @@ struct log_traits<corosio::resolver_results> {
 };
 
 // Templatized for testing purposes.
-// StreamState should hold members to establish connections using
+// StreamImpl should hold members to establish connections using
 // any of the supported transports.
 // Performs connection establishment, and outputs a stream to 'out'.
 // The resulting stream should be non-owning, pointing into impl's data members, allowing re-use.
-template <class StreamState>
+template <class StreamImpl>
 capy::io_task<> co_connect(
-   StreamState& impl,
+   StreamImpl& impl,
    const connect_params& params,
    buffered_logger& lgr,
    capy::any_stream& out)
