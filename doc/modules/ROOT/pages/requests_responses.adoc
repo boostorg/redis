@@ -36,7 +36,8 @@ req.push_range("HSET", "key", map);
 ----
 
 Sending a request to Redis is performed by
-xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`]
+xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`] /
+xref:reference:boost/redis/co_connection/exec-00.adoc[`co_connection::exec`]
 as already stated. Requests accept a xref:reference:boost/redis/request/config.adoc[`boost::redis::request::config`]
 object when constructed that dictates how requests are handled in situations like
 reconnection. The reader is advised to read it carefully.
@@ -148,21 +149,55 @@ response<
 ----
 
 To execute the request and read the response use
-xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`]:
+xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`] /
+xref:reference:boost/redis/co_connection/exec-00.adoc[`co_connection::exec`]:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 co_await conn->async_exec(req, resp);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+co_await conn.exec(req, resp);
+----
+--
+========
 
 If the intention is to ignore responses altogether, use
 xref:reference:boost/redis/ignore.adoc[`ignore`]:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 // Ignores the response
 co_await conn->async_exec(req, ignore);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+// Ignores the response
+co_await conn.exec(req, ignore);
+----
+--
+========
 
 Responses that contain nested aggregates or heterogeneous data
 types will be given special treatment later in xref:#the-general-case[the general case].  As
@@ -240,7 +275,9 @@ response<
 > resp;
 ----
 
-For a complete example, see {site-url}/example/cpp20_containers.cpp[cpp20_containers.cpp].
+For a complete example, see
+{site-url}/example/cpp20_containers.cpp[cpp20_containers.cpp] (Asio) /
+{site-url}/example/corosio_containers.cpp[corosio_containers.cpp] (Corosio).
 
 [#the-general-case]
 ### The general case
@@ -283,12 +320,30 @@ and its counterpart xref:reference:boost/redis/generic_flat_response.adoc[boost:
 The vector can be seen as a pre-order view of the response tree.
 Using it is not different than using other types:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 // Receives any RESP3 simple or aggregate data type.
 boost::redis::generic_response resp;
 co_await conn->async_exec(req, resp);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+// Receives any RESP3 simple or aggregate data type.
+boost::redis::generic_response resp;
+co_await conn.exec(req, resp);
+----
+--
+========
 
 For example, suppose we want to retrieve a hash data structure
 from Redis with `HGETALL`, some of the options are
