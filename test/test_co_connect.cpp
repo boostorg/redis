@@ -174,33 +174,34 @@ capy::task<> test_tcp_success()
    });
 }
 
-// void test_tcp_tls_success()
-// {
-//    // Setup
-//    fixture fix{transport_type::tcp_tls};
+capy::task<> test_tcp_tls_success()
+{
+   // Setup
+   fixture fix;
+   address addr{"some.host", "1234"};
 
-//    // Run the algorithm. No SSL stream reset is performed here
-//    auto act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_resolve);
-//    act = fix.fsm.resume(error_code(), resolver_data, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::tcp_connect);
-//    act = fix.fsm.resume(error_code(), endpoint, fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::ssl_handshake);
-//    act = fix.fsm.resume(error_code(), fix.st, cancellation_type_t::none);
-//    BOOST_TEST_EQ(act, connect_action_type::done);
+   // Call the function
+   auto [ec] = co_await transport_connect(fix.impl, make_connect_params({addr, true}), fix.lgr);
+   BOOST_TEST_EQ(ec, std::error_code());
 
-//    // The transport type was appropriately set
-//    BOOST_TEST(fix.st.ssl_stream_used);
+   // Mock expectations
+   constexpr num_calls expected_calls{
+      .setup_tcp_tls = 1,
+      .tcp_resolve = 1,
+      .tcp_connect = 1,
+      .tls_handshake = 1,
+   };
+   BOOST_TEST_EQ(fix.impl.calls, expected_calls);
 
-//    // Check logging
-//    fix.check_log({
-//       // clang-format off
-//       {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
-//       {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
-//       {logger::level::debug, "Connect: SSL handshake succeeded"                                          },
-//       // clang-format on
-//    });
-// }
+   // Log
+   fix.check_log({
+      // clang-format off
+      {logger::level::debug, "Connect: hostname resolution results: 192.168.10.1:1234, 192.168.10.2:1235"},
+      {logger::level::debug, "Connect: TCP connect succeeded. Selected endpoint: 192.168.10.1:1234"      },
+      {logger::level::debug, "Connect: SSL handshake succeeded"                                          },
+      // clang-format on
+   });
+}
 
 // void test_tcp_tls_success_reconnect()
 // {
@@ -625,7 +626,7 @@ capy::task<> test_tcp_success()
 int main()
 {
    run_coroutine_test(test_tcp_success());
-   // test_tcp_tls_success();
+   run_coroutine_test(test_tcp_tls_success());
    // test_tcp_tls_success_reconnect();
    // test_unix_success();
    // test_unix_success_close_error();
