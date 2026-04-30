@@ -22,5 +22,7 @@ void boost_redis_from_bulk(mystruct& u, node_view const& node, boost::system::er
 These functions are accessed over ADL and therefore they must be
 imported in the global namespace by the user. The following examples might be of interest:
 
-* {site-url}/example/cpp20_json.cpp[cpp20_json.cpp]: serializes and parses JSON objects.
-* {site-url}/example/cpp20_protobuf.cpp[cpp20_protobuf.cpp]: serializes and parses https://protobuf.dev/[protobuf] objects.
+* {site-url}/example/cpp20_json.cpp[cpp20_json.cpp] (Asio) /
+  {site-url}/example/corosio_json.cpp[corosio_json.cpp] (Corosio):
+  serializes and parses JSON objects.
+* {site-url}/example/cpp20_protobuf.cpp[cpp20_protobuf.cpp]: serializes and parses https://protobuf.dev/[protobuf] objects (Asio only).
