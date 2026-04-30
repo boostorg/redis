@@ -8,9 +8,10 @@
 
 = Sentinel
 
-Boost.Redis supports Redis Sentinel deployments. Sentinel handling
-in `connection` is built-in: xref:reference:boost/redis/basic_connection/async_run-04.adoc[`async_run`]
-automatically connects to Sentinels, resolves the master's address, and connects to the master.
+Boost.Redis supports Redis Sentinel deployments. Sentinel handling is built-in:
+xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`] and
+xref:reference:boost/redis/co_connection/run.adoc[`co_connection::run`]
+automatically connect to Sentinels, resolve the master's address, and connect to the master.
 
 Configuration is done using xref:reference:boost/redis/sentinel_config.adoc[`config::sentinel`]:
 
@@ -31,9 +32,10 @@ cfg.sentinel.addresses = {
 cfg.sentinel.master_name = "mymaster";
 ----
 
-Once set, the connection object can be used normally. See our
-our {site-url}/example/cpp20_sentinel.cpp[Sentinel example]
-for a full program.
+Once set, the connection object can be used normally. See our Sentinel examples for full program listings:
+
+* {site-url}/example/cpp20_sentinel.cpp[cpp20_sentinel.cpp] (Asio)
+* {site-url}/example/corosio_sentinel.cpp[corosio_sentinel.cpp] (Corosio)
 
 == Connecting to replicas
 
@@ -115,7 +117,7 @@ cfg.sentinel.use_ssl = true; // Applies to Sentinels
 
 == Sentinel algorithm
 
-This section details how `async_run` interacts with Sentinel.
+This section details how `connection::async_run` and `co_connection::run` interact with Sentinel.
 Most of the algorithm follows
 https://redis.io/docs/latest/develop/reference/sentinel-clients/[the official Sentinel client guidelines].
 Some of these details may vary between library versions.
