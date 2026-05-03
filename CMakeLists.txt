@@ -30,7 +30,6 @@ target_link_libraries(boost_redis_proto
     Boost::throw_exception
 )
 
-
 # Library (Asio)
 add_library(boost_redis INTERFACE)
 add_library(Boost::redis ALIAS boost_redis)
