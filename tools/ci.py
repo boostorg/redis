@@ -117,6 +117,10 @@ def _setup_boost(
     _run(["git", "submodule", "update", "-q", "--init", "tools/boostdep"])
     _run(["python3", "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
 
+    # Manually add capy and corosio. TODO: remove this once they get accepted into Boost
+    _run(["git", "clone", "-b", "develop", "--depth", "1", "cppalliance/capy", "libs/capy"])
+    _run(["git", "clone", "-b", "develop", "--depth", "1", "cppalliance/corosio", "libs/corosio"])
+
     # Bootstrap
     if _is_windows:
         _run(['cmd', '/q', '/c', 'bootstrap.bat'])
