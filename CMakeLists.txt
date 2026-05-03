@@ -67,12 +67,13 @@ if(BUILD_TESTING)
 
   # Tests and common utilities
   add_subdirectory(test)
-
-  # Benchmarks. Build them with tests to prevent code rotting
-  add_subdirectory(benchmarks)
-
-  # Examples. All of them require a real server running
+  
   if (BOOST_REDIS_INTEGRATION_TESTS)
+    # Benchmarks. Build them with tests to prevent code rotting.
+    # Guarded to prevent them from building in normal builds
+    add_subdirectory(benchmarks)
+
+    # Examples. All of them require a real server running
     add_subdirectory(example)
   endif()
 endif()
