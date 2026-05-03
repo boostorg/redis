@@ -20,7 +20,6 @@ int main() { }
 #include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -37,12 +36,11 @@ using boost::redis::logger;
 using boost::redis::operation;
 using boost::redis::connection;
 using namespace std::chrono_literals;
-using namespace boost::asio::experimental::awaitable_operators;
 
 namespace {
 
 // Test whether the client works after a reconnect.
-net::awaitable<void> test_reconnect_impl()
+net::awaitable<void> test_reconnect()
 {
    auto ex = co_await net::this_coro::executor;
 
@@ -76,14 +74,13 @@ net::awaitable<void> test_reconnect_impl()
    conn->cancel();
 }
 
-auto async_test_reconnect_timeout() -> net::awaitable<void>
+// The connection is usable after a timeout
+auto test_after_timeout() -> net::awaitable<void>
 {
    auto ex = co_await net::this_coro::executor;
 
-   net::steady_timer st{ex};
-
    auto conn = std::make_shared<connection>(ex);
-   error_code ec1, ec3;
+   error_code ec1;
 
    request req1;
    req1.get_config().cancel_if_not_connected = false;
@@ -91,12 +88,8 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    req1.get_config().cancel_if_unresponded = true;
    req1.push("BLPOP", "any", 0);
 
-   st.expires_after(std::chrono::seconds{1});
-   auto cfg = make_test_config();
-   co_await (conn->async_exec(req1, ignore, redir(ec1)) || st.async_wait(redir(ec3)));
-
-   //BOOST_TEST(!ec1);
-   //BOOST_TEST(!ec3);
+   co_await conn->async_exec(req1, ignore, net::cancel_after(1s, net::redirect_error(ec1)));
+   BOOST_TEST_EQ(ec1, net::error::operation_aborted);
 
    request req2;
    req2.get_config().cancel_if_not_connected = false;
@@ -104,23 +97,20 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
    req2.get_config().cancel_if_unresponded = true;
    req2.push("QUIT");
 
-   st.expires_after(std::chrono::seconds{1});
-   co_await (
-      conn->async_exec(req1, ignore, net::redirect_error(net::use_awaitable, ec1)) ||
-      st.async_wait(net::redirect_error(net::use_awaitable, ec3)));
+   co_await conn->async_exec(req1, ignore, net::cancel_after(1s, net::redirect_error(ec1)));
    conn->cancel();
 
    std::cout << "ccc" << std::endl;
 
-   BOOST_TEST_EQ(ec1, boost::asio::error::operation_aborted);
+   BOOST_TEST_EQ(ec1, net::error::operation_aborted);
 }
 
 }  // namespace
 
 int main()
 {
-   run_coroutine_test(test_reconnect_impl(), 5 * test_timeout);
-   run_coroutine_test(async_test_reconnect_timeout());
+   run_coroutine_test(test_reconnect(), 5 * test_timeout);
+   run_coroutine_test(test_after_timeout());
 
    return boost::report_errors();
 }
