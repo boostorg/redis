@@ -4,20 +4,29 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/asio/awaitable.hpp>
+
+#ifndef BOOST_ASIO_HAS_CO_AWAIT
+
+#include <boost/config/pragma_message.hpp>
+
+BOOST_PRAGMA_MESSAGE(
+   "test_conn_echo_stress skipped because BOOST_ASIO_HAS_CO_AWAIT is not defined");
+
+int main() { }
+
+#else
+
 #include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
 
+#include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
-
-#define BOOST_TEST_MODULE conn_reconnect
-#include <boost/test/included/unit_test.hpp>
 
 #include "common.hpp"
 
 #include <iostream>
-
-#ifdef BOOST_ASIO_HAS_CO_AWAIT
-#include <boost/asio/experimental/awaitable_operators.hpp>
 
 namespace net = boost::asio;
 using boost::system::error_code;
@@ -32,6 +41,7 @@ using namespace boost::asio::experimental::awaitable_operators;
 
 namespace {
 
+// Test whether the client works after a reconnect.
 net::awaitable<void> test_reconnect_impl()
 {
    auto ex = co_await net::this_coro::executor;
@@ -50,27 +60,20 @@ net::awaitable<void> test_reconnect_impl()
    run(conn, make_test_config());
 
    for (int i = 0; i < 3; ++i) {
-      BOOST_TEST_CONTEXT("i=" << i)
-      {
-         // Issue a quit request, which will cause the server to close the connection.
-         // This request will succeed, since this happens before the connection is lost.
-         error_code ec;
-         co_await conn->async_exec(quit_req, ignore, net::redirect_error(ec));
-         BOOST_TEST(ec == error_code());
+      // Issue a quit request, which will cause the server to close the connection.
+      // This request will succeed, since this happens before the connection is lost.
+      error_code ec;
+      co_await conn->async_exec(quit_req, ignore, net::redirect_error(ec));
+      if (!BOOST_TEST_EQ(ec, error_code()))
+         std::cerr << "  With i = " << i << std::endl;
 
-         // Reconnection will happen, and this request will succeed, too.
-         co_await conn->async_exec(regular_req, ignore, net::redirect_error(ec));
-         BOOST_TEST(ec == error_code());
-      }
+      // Reconnection will happen, and this request will succeed, too.
+      co_await conn->async_exec(regular_req, ignore, net::redirect_error(ec));
+      if (!BOOST_TEST_EQ(ec, error_code()))
+         std::cerr << "  With i = " << i << std::endl;
    }
 
    conn->cancel();
-}
-
-// Test whether the client works after a reconnect.
-BOOST_AUTO_TEST_CASE(test_reconnect)
-{
-   run_coroutine_test(test_reconnect_impl(), 5 * test_timeout);
 }
 
 auto async_test_reconnect_timeout() -> net::awaitable<void>
@@ -109,16 +112,17 @@ auto async_test_reconnect_timeout() -> net::awaitable<void>
 
    std::cout << "ccc" << std::endl;
 
-   BOOST_CHECK_EQUAL(ec1, boost::asio::error::operation_aborted);
-}
-
-BOOST_AUTO_TEST_CASE(test_reconnect_and_idle)
-{
-   run_coroutine_test(async_test_reconnect_timeout());
+   BOOST_TEST_EQ(ec1, boost::asio::error::operation_aborted);
 }
 
 }  // namespace
 
-#else
-BOOST_AUTO_TEST_CASE(dummy) { }
+int main()
+{
+   run_coroutine_test(test_reconnect_impl(), 5 * test_timeout);
+   run_coroutine_test(async_test_reconnect_timeout());
+
+   return boost::report_errors();
+}
+
 #endif
