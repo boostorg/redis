@@ -21,10 +21,7 @@ target_compile_definitions(boost_redis_tests_common INTERFACE BOOST_ALLOW_DEPREC
 function(boost_redis_make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")
   add_executable(${EXE_NAME} ${TEST_NAME}.cpp)
-  target_link_libraries(${EXE_NAME} PRIVATE
-    boost_redis_tests_common
-    Boost::unit_test_framework
-  )
+  target_link_libraries(${EXE_NAME} PRIVATE boost_redis_tests_common)
   add_test(NAME ${EXE_NAME} COMMAND ${EXE_NAME})
   add_dependencies(tests ${EXE_NAME})
 endfunction()
