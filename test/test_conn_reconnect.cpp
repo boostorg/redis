@@ -10,8 +10,7 @@
 
 #include <boost/config/pragma_message.hpp>
 
-BOOST_PRAGMA_MESSAGE(
-   "test_conn_echo_stress skipped because BOOST_ASIO_HAS_CO_AWAIT is not defined");
+BOOST_PRAGMA_MESSAGE("test_conn_reconnect skipped because BOOST_ASIO_HAS_CO_AWAIT is not defined");
 
 int main() { }
 
