@@ -5,13 +5,25 @@
 
 require-b2 5.2 ;
 
-constant boost_dependencies :
-    /boost/asio//boost_asio
+constant boost_dependencies_proto :
     /boost/assert//boost_assert
     /boost/core//boost_core
     /boost/mp11//boost_mp11
     /boost/system//boost_system
-    /boost/throw_exception//boost_throw_exception ;
+    /boost/throw_exception//boost_throw_exception
+;
+
+constant boost_dependencies_asio :
+    /boost/redis//boost_redis_proto
+    /boost/asio//boost_asio
+;
+
+constant boost_dependencies_corosio :
+    /boost/redis//boost_redis_proto
+    /boost/capy//boost_capy
+    /boost/corosio//boost_corosio
+    /boost/corosio//boost_corosio_openssl
+;
 
 project /boost/redis
     : common-requirements
@@ -19,8 +31,10 @@ project /boost/redis
     ;
 
 explicit
-    [ alias boost_redis : : : : <library>$(boost_dependencies) ]
-    [ alias all : boost_redis test ]
+    [ alias boost_redis_proto : : : : <library>$(boost_dependencies_proto) ]
+    [ alias boost_redis : : : : <library>$(boost_dependencies_asio) ]
+    [ alias boost_redis_corosio : : : : <library>$(boost_dependencies_corosio) ]
+    [ alias all : boost_redis_proto boost_redis boost_redis_corosio test ]
     ;
 
 call-if : boost-library redis

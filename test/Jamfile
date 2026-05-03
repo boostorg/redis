@@ -7,82 +7,120 @@ import ac ;
 using openssl ;
 
 # Use these requirements as both regular and usage requirements across all tests
-local requirements =
-        <library>/boost/redis//boost_redis
-        <define>BOOST_ASIO_NO_DEPRECATED=1
-        <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
-        <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
-        <define>BOOST_ASIO_DISABLE_BOOST_DATE_TIME=1
-        <define>BOOST_ASIO_DISABLE_BOOST_REGEX=1
-        <define>BOOST_ALLOW_DEPRECATED=1  # we need to test deprecated fns
-        <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
-        <toolset>msvc:<cxxflags>"/bigobj"
-        <target-os>windows:<define>_WIN32_WINNT=0x0601
-        [ requires
-            cxx14_constexpr
-            cxx14_generic_lambdas
-            cxx14_initialized_lambda_captures
-            cxx14_aggregate_nsdmi
-            cxx14_return_type_deduction
-            cxx17_hdr_charconv
-            cxx17_hdr_optional
-            cxx17_hdr_string_view
-            cxx17_hdr_variant
-            cxx17_std_apply
-            cxx17_structured_bindings
-        ]
-        [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
-        [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
-        <library>/boost/test//boost_unit_test_framework/<warnings-as-errors>off
-    ;
+local requirements_common =
+    <toolset>msvc:<cxxflags>"/bigobj"
+    <target-os>windows:<define>_WIN32_WINNT=0x0601
+    <library>/boost/test//boost_unit_test_framework/<warnings-as-errors>off
+    [ requires
+        cxx14_constexpr
+        cxx14_generic_lambdas
+        cxx14_initialized_lambda_captures
+        cxx14_aggregate_nsdmi
+        cxx14_return_type_deduction
+        cxx17_hdr_charconv
+        cxx17_hdr_optional
+        cxx17_hdr_string_view
+        cxx17_hdr_variant
+        cxx17_std_apply
+        cxx17_structured_bindings
+    ]
+    [ ac.check-library /openssl//ssl    : <library>/openssl//ssl/<link>shared : <build>no ]
+    [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
+;
 
-
-# Helper library
-lib redis_test_common
+# Helper libraries
+lib redis_tests_proto
     :
-        boost_redis.cpp
+        boost_redis_proto.cpp
         common.cpp
         sansio_utils.cpp
-    : requirements $(requirements)
-    : usage-requirements $(requirements)
+        /boost/capy//boost_capy # for capy::cond
+        /boost/redis//boost_redis_proto
+    : requirements
+        $(requirements_common)
+        <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
+    : usage-requirements
+        $(requirements_common)
+        <define>BOOST_ALLOW_DEPRECATED=1  # we need to test deprecated fns
 ;
+
+explicit redis_tests_proto ;
+
+local requirements_asio =
+    <define>BOOST_ASIO_NO_DEPRECATED=1
+    <define>BOOST_ASIO_DISABLE_BOOST_ARRAY=1
+    <define>BOOST_ASIO_DISABLE_BOOST_BIND=1
+    <define>BOOST_ASIO_DISABLE_BOOST_DATE_TIME=1
+    <define>BOOST_ASIO_DISABLE_BOOST_REGEX=1
+;
+
+lib redis_tests_asio
+    :
+        boost_redis_asio.cpp
+        asio_common.cpp
+        redis_tests_proto
+        /boost/redis//boost_redis
+    : requirements
+        $(requirements_asio)
+    : usage-requirements
+        $(requirements_asio)
+;
+
+explicit redis_tests_asio ;
+
+lib redis_tests_corosio
+    :
+        boost_redis_corosio.cpp
+        corosio_common.cpp
+        redis_tests_proto
+        /boost/redis//boost_redis_corosio
+    : requirements
+        $(requirements_common)
+    : usage-requirements
+;
+
+explicit redis_tests_corosio ;
 
 # B2 runs tests in parallel, and some tests rely on having exclusive
 # access to a Redis server, so we only run the ones that don't require a DB server.
-local tests =
-    test_low_level
-    test_request
-    test_serialization
-    test_low_level_sync_sans_io
-    test_any_adapter
-    test_log_to_file
-    test_conn_logging
-    test_exec_fsm
-    test_exec_one_fsm
-    test_writer_fsm
-    test_reader_fsm
-    test_sentinel_resolve_fsm
-    test_receive_fsm
-    test_run_fsm
-    test_connect_fsm
-    test_compose_setup_request
-    test_setup_adapter
-    test_multiplexer
-    test_parse_sentinel_response
-    test_update_sentinel_list
-    test_flat_tree
-    test_generic_flat_response
-    test_read_buffer
-    test_subscription_tracker
-    test_push_parser
-;
-
-# Build and run the tests
-for local test in $(tests)
+rule make_test (
+    test_name :
+    libs * :
+)
 {
     run
-        $(test).cpp
-        redis_test_common/<link>static
-    : target-name $(test)
+        $(test_name).cpp
+        $(libs)/<link>static
+    : target-name $(test_name)
     ;
 }
+
+make_test test_low_level :                redis_tests_proto ;
+make_test test_request :                  redis_tests_proto ;
+make_test test_serialization :            redis_tests_proto ;
+make_test test_low_level_sync_sans_io :   redis_tests_proto ;
+make_test test_any_adapter :              redis_tests_proto ;
+make_test test_log_to_file :              redis_tests_proto ;
+make_test test_conn_logging :             redis_tests_asio ;
+make_test test_co_logging :               redis_tests_corosio ;
+make_test test_exec_fsm :                 redis_tests_proto ;
+make_test test_exec_one_fsm :             redis_tests_proto ;
+make_test test_writer_fsm :               redis_tests_proto /boost/capy//boost_capy ;
+make_test test_reader_fsm :               redis_tests_proto ;
+make_test test_connect_fsm :              redis_tests_asio ;
+make_test test_sentinel_resolve_fsm :     redis_tests_proto ;
+make_test test_receive_fsm :              redis_tests_asio ;
+make_test test_run_fsm :                  redis_tests_proto ;
+make_test test_compose_setup_request :    redis_tests_proto ;
+make_test test_setup_adapter :            redis_tests_proto ;
+make_test test_multiplexer :              redis_tests_proto ;
+make_test test_parse_sentinel_response :  redis_tests_proto ;
+make_test test_update_sentinel_list :     redis_tests_proto ;
+make_test test_flat_tree :                redis_tests_proto ;
+make_test test_generic_flat_response :    redis_tests_proto ;
+make_test test_read_buffer :              redis_tests_proto ;
+make_test test_subscription_tracker :     redis_tests_proto ;
+make_test test_push_parser :              redis_tests_proto ;
+make_test test_flow_controller :          redis_tests_corosio ;
+make_test test_co_connect :               redis_tests_corosio ;
+make_test test_mix_asio_corosio :         /boost/redis//boost_redis /boost/redis//boost_redis_corosio ;
