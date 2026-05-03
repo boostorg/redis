@@ -19,6 +19,7 @@ int main() { }
 #include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
 
+#include <boost/asio/redirect_error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
