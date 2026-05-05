@@ -21,6 +21,7 @@
 #include <boost/capy/io_task.hpp>
 #include <boost/corosio/tls_context.hpp>
 
+#include <concepts>
 #include <memory>
 #include <utility>
 
@@ -84,7 +85,11 @@ public:
     *             and customize logging. By default, `logger::level::info` messages
     *             and higher are logged to `stderr`.
     */
-   template <capy::Executor Ex>
+   template <class Ex>
+      requires(
+         !std::same_as<Ex, co_connection> &&
+         capy::Executor<Ex>  // if Executor goes before same_as, concept recursion happens
+         )
    co_connection(const Ex& ex, corosio::tls_context tls_ctx = {}, logger lgr = {})
    : co_connection(ex.context(), std::move(tls_ctx), std::move(lgr))
    { }
@@ -129,6 +134,8 @@ public:
     */
    co_connection(co_connection&&) noexcept;
 
+   co_connection(const co_connection&) = delete;
+
    /** @brief Move assignment operator.
     *
     *  Releases the resources currently owned by `*this` (if any) and
@@ -147,6 +154,8 @@ public:
     *  @return Reference to `*this`.
     */
    co_connection& operator=(co_connection&&) noexcept;
+
+   co_connection& operator=(const co_connection&) = delete;
 
    /// Destructor.
    ~co_connection();
