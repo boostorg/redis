@@ -30,7 +30,7 @@ capy::task<> test_cancel_run()
    co_connection conn{co_await capy::this_coro::executor};
 
    auto run_fn = [&]() -> capy::io_task<> {
-      auto [ec] = co_await conn.run(config{});
+      auto [ec] = co_await conn.run(make_test_config());
       BOOST_TEST_EQ(ec, canceled_condition());
       co_return {};
    };
