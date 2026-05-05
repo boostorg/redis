@@ -27,6 +27,7 @@ jobs:
           - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Release', build-shared-libs: 1 }
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: 4
+      CXXFLAGS: /WX
     steps:
     - name: Checkout
       uses: actions/checkout@v4
