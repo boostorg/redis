@@ -8,7 +8,7 @@ endif()
 add_library(boost_redis_project_options INTERFACE)
 if (MSVC)
   # C4459: name hides outer scope variable is issued by Asio
-  target_compile_options(boost_redis_project_options INTERFACE /bigobj /W4 /WX /wd4459)
+  target_compile_options(boost_redis_project_options INTERFACE /bigobj /W4 /wd4459)
   target_compile_definitions(boost_redis_project_options INTERFACE _WIN32_WINNT=0x0601 _CRT_SECURE_NO_WARNINGS=1)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(boost_redis_project_options INTERFACE -Wall -Wextra)
