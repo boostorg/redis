@@ -23,6 +23,7 @@ antora:
     - require: '@cppalliance/antora-cpp-tagfiles-extension'
       cpp-tagfiles:
         missing-symbol-log-level: error
+    - require: '@cppalliance/antora-downloads-extension'
 
 asciidoc:
   attributes:
