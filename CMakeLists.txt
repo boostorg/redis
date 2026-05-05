@@ -58,6 +58,11 @@ target_link_libraries(boost_redis_corosio
 option(BOOST_REDIS_INTEGRATION_TESTS OFF "Whether to build and run integration tests or not")
 mark_as_advanced(BOOST_REDIS_INTEGRATION_TESTS)
 
+# Allows disabling Corosio tests and examples in pre-C++20 CIs
+option(BOOST_REDIS_COROSIO_TESTS ON "Whether to build and run corosio tests and examples or not")
+mark_as_advanced(BOOST_REDIS_COROSIO_TESTS)
+
+
 # Examples and tests
 if(BUILD_TESTING)
   # Custom target tests; required by the Boost superproject
