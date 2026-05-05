@@ -16,7 +16,6 @@
 
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
-#include <boost/capy/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
@@ -247,7 +246,7 @@ void test_wait_canceled_other_code()
    fix.st.mpx.add(item.elm);
 
    // The wait is cancelled (with a non-empty ec signal) to indicate new data
-   act = fix.fsm.resume(fix.st, boost::capy::error::canceled, 0u, cancellation_type::none);
+   act = fix.fsm.resume(fix.st, make_error_code(errc::protocol_error), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
