@@ -19,90 +19,90 @@
 | *Unstable low-level APIs*
 
 |
-xref:reference:boost/redis/connection.adoc[`connection`]
+cpp:connection[]
 
-xref:reference:boost/redis/basic_connection.adoc[`basic_connection`]
+cpp:basic_connection[]
 
-xref:reference:boost/redis/address.adoc[`address`]
+cpp:address[]
 
-xref:reference:boost/redis/role.adoc[`role`]
+cpp:role[]
 
-xref:reference:boost/redis/config.adoc[`config`]
+cpp:config[]
 
-xref:reference:boost/redis/sentinel_config.adoc[`sentinel_config`]
+cpp:sentinel_config[]
 
-xref:reference:boost/redis/error.adoc[`error`]
+cpp:error[]
 
-xref:reference:boost/redis/logger.adoc[`logger`]
+cpp:logger[]
 
-xref:reference:boost/redis/logger/level.adoc[`logger::level`]
+cpp:logger::level[]
 
-xref:reference:boost/redis/operation.adoc[`operation`]
+cpp:operation[]
 
-xref:reference:boost/redis/usage.adoc[`usage`]
-
-
-|
-xref:reference:boost/redis/ignore_t.adoc[`ignore_t`]
-
-xref:reference:boost/redis/ignore.adoc[`ignore`]
-
-xref:reference:boost/redis/request.adoc[`request`]
-
-xref:reference:boost/redis/request/config.adoc[`request::config`]
-
-xref:reference:boost/redis/response.adoc[`response`]
-
-xref:reference:boost/redis/generic_response.adoc[`generic_response`]
-
-xref:reference:boost/redis/generic_flat_response.adoc[`generic_flat_response`]
-
-xref:reference:boost/redis/consume_one-08.adoc[`consume_one`]
-
-xref:reference:boost/redis/push_view.adoc[`push_view`]
-
-xref:reference:boost/redis/push_parser.adoc[`push_parser`]
+cpp:usage[]
 
 
 |
-xref:reference:boost/redis/adapter/boost_redis_adapt.adoc[`boost_redis_adapt`]
+cpp:ignore_t[]
 
-xref:reference:boost/redis/adapter/ignore.adoc[`adapter::ignore`]
+cpp:ignore[]
 
-xref:reference:boost/redis/adapter/error.adoc[`adapter::error`]
+cpp:request[]
 
-xref:reference:boost/redis/adapter/result.adoc[`adapter::result`]
+cpp:request::config[]
 
-xref:reference:boost/redis/any_adapter.adoc[`any_adapter`]
+cpp:response[]
 
-|
-xref:reference:boost/redis/resp3/basic_node.adoc[`resp3::basic_node`]
+cpp:generic_response[]
 
-xref:reference:boost/redis/resp3/node.adoc[`resp3::node`]
+cpp:generic_flat_response[]
 
-xref:reference:boost/redis/resp3/node_view.adoc[`resp3::node_view`]
+cpp:consume_one[]
 
-xref:reference:boost/redis/resp3/basic_tree.adoc[`resp3::basic_tree`]
+cpp:push_view[]
 
-xref:reference:boost/redis/resp3/tree.adoc[`resp3::tree`]
-
-xref:reference:boost/redis/resp3/view_tree.adoc[`resp3::view_tree`]
-
-xref:reference:boost/redis/resp3/flat_tree.adoc[`resp3::flat_tree`]
-
-xref:reference:boost/redis/resp3/boost_redis_to_bulk-08.adoc[`boost_redis_to_bulk`]
-
-xref:reference:boost/redis/resp3/type.adoc[`resp3::type`]
-
-xref:reference:boost/redis/resp3/is_aggregate.adoc[`resp3::is_aggregate`]
+cpp:push_parser[]
 
 
 |
+cpp:adapter::boost_redis_adapt[`boost_redis_adapt`]
 
-xref:reference:boost/redis/adapter/adapt2.adoc[`adapter::adapt2`]
+cpp:adapter::ignore[]
 
-xref:reference:boost/redis/resp3/parser.adoc[`resp3::parser`]
+cpp:adapter::error[]
 
-xref:reference:boost/redis/resp3/parse.adoc[`resp3::parse`]
+cpp:adapter::result[]
+
+cpp:any_adapter[]
+
+|
+cpp:resp3::basic_node[]
+
+cpp:resp3::node[]
+
+cpp:resp3::node_view[]
+
+cpp:resp3::basic_tree[]
+
+cpp:resp3::tree[]
+
+cpp:resp3::view_tree[]
+
+cpp:resp3::flat_tree[]
+
+cpp:resp3::boost_redis_to_bulk[`boost_redis_to_bulk`]
+
+cpp:resp3::type[]
+
+cpp:resp3::is_aggregate[]
+
+
+|
+
+cpp:adapter::adapt2[]
+
+cpp:resp3::parser[]
+
+cpp:resp3::parse[]
 
 |===

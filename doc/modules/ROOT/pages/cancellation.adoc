@@ -8,7 +8,7 @@
 
 = Cancellation and timeouts
 
-By default, running a request with xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`]
+By default, running a request with cpp:basic_connection::async_exec[`async_exec`]
 will wait until a connection to the Redis server is established by `async_run`.
 This may take a very long time if the server is down.
 
@@ -63,8 +63,7 @@ If you know that a `request` object contains only idempotent commands,
 you can instruct Boost.Redis to retry the request on failure, even
 if the library is unsure about the server having processed the request or not.
 You can do so by setting `cancel_if_unresponded`
-in xref:reference:boost/redis/request/config.adoc[`request::config`]
-to false:
+in cpp:request::config[] to false:
 
 [source,cpp]
 ----

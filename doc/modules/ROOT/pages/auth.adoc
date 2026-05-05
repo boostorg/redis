@@ -16,7 +16,7 @@ to customize this handshake by using a _setup request_: a request that
 is run automatically before any other request,
 every time a physical connection to the server is established.
 
-Configuration is done on xref:reference:boost/redis/config.adoc[`config`].
+Configuration is done on cpp:config[].
 Set `use_setup` to `true` (required for backwards compatibility)
 and build the desired setup request in
 `config::setup`. By default, the library sends a plain `HELLO 3` (RESP3

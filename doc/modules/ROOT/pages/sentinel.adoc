@@ -9,10 +9,10 @@
 = Sentinel
 
 Boost.Redis supports Redis Sentinel deployments. Sentinel handling
-in `connection` is built-in: xref:reference:boost/redis/basic_connection/async_run-04.adoc[`async_run`]
+in `connection` is built-in: cpp:basic_connection::async_run[`async_run`]
 automatically connects to Sentinels, resolves the master's address, and connects to the master.
 
-Configuration is done using xref:reference:boost/redis/sentinel_config.adoc[`config::sentinel`]:
+Configuration is done using cpp:sentinel_config[`config::sentinel`]:
 
 [source,cpp]
 ----
@@ -39,7 +39,7 @@ for a full program.
 
 By default, the library connects to the Redis master.
 You can connect to one of its replicas by using
-xref:reference:boost/redis/sentinel_config/server_role.adoc[`config::sentinel::server_role`].
+cpp:sentinel_config::server_role[`config::sentinel::server_role`].
 This can be used to balance load, if all your commands read data from
 the server and never write to it. The particular replica will be chosen randomly.
 
@@ -63,7 +63,7 @@ cfg.sentinel.server_role = role::replica;
 == Sentinel authentication
 
 If your Sentinels require authentication, 
-you can use xref:reference:boost/redis/sentinel_config/setup.adoc[`config::sentinel::setup`]
+you can use cpp:sentinel_config::setup[`config::sentinel::setup`]
 to provide credentials.
 This request is executed immediately after connecting to Sentinels, and
 before any other command:
@@ -94,8 +94,8 @@ cfg.setup.push("HELLO", 3, "AUTH", "master_user", "master_password");
 == Using TLS with Sentinels
 
 You might use TLS with Sentinels only, masters/replicas only, or both by adjusting
-xref:reference:boost/redis/sentinel_config/use_ssl.adoc[`config::sentinel::use_ssl`]
-and xref:reference:boost/redis/config/use_ssl.adoc[`config::use_ssl`]:
+cpp:sentinel_config::use_ssl[`config::sentinel::use_ssl`]
+and cpp:config::use_ssl[]:
 
 [source,cpp]
 ----
@@ -121,7 +121,7 @@ https://redis.io/docs/latest/develop/reference/sentinel-clients/[the official Se
 Some of these details may vary between library versions.
 
 * Connections maintain an internal list of Sentinels, bootstrapped from
-  xref:reference:boost/redis/sentinel_config/addresses.adoc[`config::sentinel::addresses`].
+  cpp:sentinel_config::addresses[`config::sentinel::addresses`].
 * The first Sentinel in the list is contacted by performing the following:
 ** A physical connection is established.
 ** The setup request is executed.

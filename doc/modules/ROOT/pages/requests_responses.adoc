@@ -36,8 +36,8 @@ req.push_range("HSET", "key", map);
 ----
 
 Sending a request to Redis is performed by
-xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`]
-as already stated. Requests accept a xref:reference:boost/redis/request/config.adoc[`boost::redis::request::config`]
+cpp:basic_connection::async_exec[`connection::async_exec`]
+as already stated. Requests accept a cpp:request::config[]
 object when constructed that dictates how requests are handled in situations like
 reconnection. The reader is advised to read it carefully.
 
@@ -45,9 +45,9 @@ reconnection. The reader is advised to read it carefully.
 
 Boost.Redis uses the following strategy to deal with Redis responses:
 
-* xref:reference:boost/redis/response.adoc[`boost::redis::response`] should be used
+* cpp:response[] should be used
   when the request's number of commands is known at compile-time.
-* xref:reference:boost/redis/generic_response.adoc[`boost::redis::generic_response`] should be
+* cpp:generic_response[] should be
   used when the number of commands is dynamic.
 
 For example, the request below has three commands:
@@ -74,7 +74,7 @@ It is also necessary that each tuple element is capable of storing the
 response to the command it refers to, otherwise an error will occur.
 
 To ignore responses to individual commands in the request use the tag
-xref:reference:boost/redis/ignore_t.adoc[`boost::redis::ignore_t`]. For example:
+cpp:ignore_t[]. For example:
 
 [source,cpp]
 ----
@@ -148,7 +148,7 @@ response<
 ----
 
 To execute the request and read the response use
-xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`]:
+cpp:basic_connection::async_exec[`async_exec`]:
 
 [source,cpp]
 ----
@@ -156,7 +156,7 @@ co_await conn->async_exec(req, resp);
 ----
 
 If the intention is to ignore responses altogether, use
-xref:reference:boost/redis/ignore.adoc[`ignore`]:
+cpp:ignore[]:
 
 [source,cpp]
 ----
@@ -254,7 +254,7 @@ commands won't fit in the model presented above. Some examples are:
 * RESP3 aggregates that contain nested aggregates can't be read in STL containers.
 * Transactions with a dynamic number of commands can't be read in a `response`.
 
-To deal with these cases Boost.Redis provides the xref:reference:boost/redis/resp3/node.adoc[`boost::redis::resp3::node`] type
+To deal with these cases Boost.Redis provides the cpp:resp3::node[] type
 abstraction, that is the most general form of an element in a
 response, be it a simple RESP3 type or the element of an aggregate. It
 is defined like:
@@ -277,9 +277,8 @@ struct basic_node {
 };
 ----
 
-Any response to a Redis command can be parsed into a
-xref:reference:boost/redis/generic_response.adoc[boost::redis::generic_response]
-and its counterpart xref:reference:boost/redis/generic_flat_response.adoc[boost::redis::generic_flat_response].
+Any response to a Redis command can be parsed into a cpp:generic_response[]
+and its counterpart cpp:generic_flat_response[].
 The vector can be seen as a pre-order view of the response tree.
 Using it is not different than using other types:
 
