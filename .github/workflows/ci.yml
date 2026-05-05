@@ -125,7 +125,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '17'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -134,7 +133,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '17'
             build-type: 'Release'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
 
@@ -143,7 +141,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '20'
             build-type: 'Release'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
             corosio-tests: '0'
 
@@ -152,7 +149,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -162,7 +158,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '17'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
 
@@ -171,7 +166,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
             corosio-tests: '0'
 
@@ -180,7 +174,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Release'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -189,7 +182,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
 
           # gcc-13 is the default in Ubuntu 24.04, defaults to c++17
@@ -198,7 +190,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '17'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
             corosio-tests: '0'
 
@@ -207,7 +198,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
 
           - toolset: gcc-13
@@ -215,7 +205,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Release'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
 
           - toolset: gcc-14
@@ -223,7 +212,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
 
           # gcc-15 is the default in Ubuntu 26.04, defaults to c++17
@@ -232,7 +220,6 @@ jobs:
             container: ubuntu:26.04
             cxxstd: '17'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -250,7 +237,6 @@ jobs:
             container: ubuntu:26.04
             cxxstd: '26'
             build-type: 'Release'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
 
           # clang-10 is the default in Ubuntu 20.04
@@ -259,7 +245,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
             corosio-tests: '0'
 
@@ -268,7 +253,6 @@ jobs:
             container: ubuntu:20.04
             cxxstd: '17'
             build-type: 'Release'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
           
@@ -278,7 +262,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -287,7 +270,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
 
@@ -296,7 +278,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
             corosio-tests: '0'
 
@@ -306,7 +287,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -334,7 +314,6 @@ jobs:
             container: ubuntu:22.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
             corosio-tests: '0'
 
@@ -344,7 +323,6 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system has no UNIX socket support, we build correctly
-            ldflags: ''
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
 
@@ -353,7 +331,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
 
           # clang-18 is the default in Ubuntu 24.04
@@ -362,7 +339,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '20'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
 
           - toolset: clang-18
@@ -388,7 +364,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:7.4.5-alpine"
 
           - toolset: clang-20
@@ -396,7 +371,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "redis:8.2.1-alpine"
 
           # clang-21 is the default in Ubuntu 26.04
@@ -432,7 +406,6 @@ jobs:
             container: ubuntu:26.04
             cxxstd: '23'
             build-type: 'Debug'
-            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
 
     runs-on: ubuntu-latest
