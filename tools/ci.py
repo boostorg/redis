@@ -149,8 +149,8 @@ def _build_b2_distro(
 # It includes only our library and any dependency.
 # When integration_tests is True, tests requiring a live Redis server are also
 # built and run; otherwise only the unit tests are.
-# When corosio_tests is False, Corosio-based tests and examples are skipped
-# (used for compilers that don't support C++20).
+# When corosio_api is False, the Corosio API target and its tests/examples are
+# skipped (used for compilers that don't support Corosio).
 def _build_cmake_distro(
     generator: str,
     build_type: str,
@@ -158,7 +158,7 @@ def _build_cmake_distro(
     toolset: str,
     build_shared_libs: bool = False,
     integration_tests: bool = False,
-    corosio_tests: bool = True
+    corosio_api: bool = True
 ):
     _mkdir_and_cd(_boost_root.joinpath('__build_cmake_test__'))
     _run([
@@ -173,7 +173,7 @@ def _build_cmake_distro(
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_INSTALL_PREFIX={}'.format(_cmake_distro),
         '-DBOOST_REDIS_INTEGRATION_TESTS={}'.format(_cmake_bool(integration_tests)),
-        '-DBOOST_REDIS_COROSIO_TESTS={}'.format(_cmake_bool(corosio_tests)),
+        '-DBOOST_REDIS_COROSIO_API={}'.format(_cmake_bool(corosio_api)),
         '-DBoost_VERBOSE=ON',
         '-DCMAKE_INSTALL_MESSAGE=NEVER',
         '..'
@@ -299,7 +299,7 @@ def main():
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.add_argument('--integration-tests', type=_str2bool, default=True)
-    subp.add_argument('--corosio-tests', type=_str2bool, default=True)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.set_defaults(func=_build_cmake_distro)
 
     subp = subparsers.add_parser('run-cmake-add-subdirectory-tests')

@@ -1,6 +1,6 @@
 # Report whether we're building the Corosio tests or not, for CI traceability
-if (NOT BOOST_REDIS_COROSIO_TESTS)
-  message(STATUS "Skipping Corosio tests and examples because BOOST_REDIS_COROSIO_TESTS is not defined")
+if (NOT BOOST_REDIS_COROSIO_API)
+  message(STATUS "Skipping Corosio tests and examples because BOOST_REDIS_COROSIO_API is not defined")
 endif()
 
 
@@ -27,11 +27,13 @@ target_link_libraries(boost_redis_asio_src PUBLIC
   boost_redis_proto_src
 )
 
-add_library(boost_redis_corosio_src STATIC boost_redis_corosio.cpp)
-target_link_libraries(boost_redis_corosio_src PUBLIC
-  boost_redis_corosio
-  boost_redis_proto_src
-)
+if (BOOST_REDIS_COROSIO_API)
+  add_library(boost_redis_corosio_src STATIC boost_redis_corosio.cpp)
+  target_link_libraries(boost_redis_corosio_src PUBLIC
+    boost_redis_corosio
+    boost_redis_proto_src
+  )
+endif()
 
 # Test utils
 add_library(boost_redis_tests_proto STATIC common.cpp sansio_utils.cpp)
@@ -44,11 +46,13 @@ target_link_libraries(boost_redis_tests_asio
   boost_redis_tests_proto
 )
 
-add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
-target_link_libraries(boost_redis_tests_corosio PUBLIC
-  boost_redis_corosio_src
-  boost_redis_tests_proto
-)
+if (BOOST_REDIS_COROSIO_API)
+  add_library(boost_redis_tests_corosio STATIC corosio_common.cpp)
+  target_link_libraries(boost_redis_tests_corosio PUBLIC
+    boost_redis_corosio_src
+    boost_redis_tests_proto
+  )
+endif()
 
 function(boost_redis_make_test TEST_NAME)
   set(EXE_NAME "boost_redis_${TEST_NAME}")
@@ -88,7 +92,7 @@ boost_redis_make_test(test_conn_logging             boost_redis_tests_asio)
 boost_redis_make_test(test_connect_fsm              boost_redis_tests_asio)
 boost_redis_make_test(test_receive_fsm              boost_redis_tests_asio)
 
-if (BOOST_REDIS_COROSIO_TESTS)
+if (BOOST_REDIS_COROSIO_API)
   boost_redis_make_test(test_co_logging               boost_redis_tests_corosio)
   boost_redis_make_test(test_flow_controller          boost_redis_tests_corosio)
   boost_redis_make_test(test_co_connect               boost_redis_tests_corosio)
@@ -119,7 +123,7 @@ if (BOOST_REDIS_INTEGRATION_TESTS)
   boost_redis_make_test(test_conn_cancel_after  boost_redis_tests_asio)
   boost_redis_make_test(test_conn_sentinel      boost_redis_tests_asio)
 
-  if (BOOST_REDIS_COROSIO_TESTS)
+  if (BOOST_REDIS_COROSIO_API)
     boost_redis_make_test(test_co_run_cancel      boost_redis_tests_corosio)
     boost_redis_make_test(test_co_check_health    boost_redis_tests_corosio)
     boost_redis_make_test(test_co_push2           boost_redis_tests_corosio)

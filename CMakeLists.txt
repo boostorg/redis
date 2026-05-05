@@ -16,6 +16,11 @@ if(NOT OpenSSL_FOUND)
   return()
 endif()
 
+# Allow explicit control over the Corosio API.
+# TODO: this is temporary, until Capy gets into Boost.
+# https://github.com/cppalliance/capy/issues/274 
+option(BOOST_REDIS_COROSIO_API OFF "Whether to build the Corosio API")
+
 # Library (common)
 add_library(boost_redis_proto INTERFACE)
 add_library(Boost::redis_proto ALIAS boost_redis_proto)
@@ -43,24 +48,22 @@ target_link_libraries(boost_redis
 )
 
 # Library (Corosio)
-add_library(boost_redis_corosio INTERFACE)
-add_library(Boost::redis_corosio ALIAS boost_redis_corosio)
-target_compile_features(boost_redis_corosio INTERFACE cxx_std_20)
-target_link_libraries(boost_redis_corosio
-  INTERFACE
-    Boost::redis_proto
-    Boost::capy
-    Boost::corosio
-    Boost::corosio_openssl
-)
+if (BOOST_REDIS_COROSIO_API)
+  add_library(boost_redis_corosio INTERFACE)
+  add_library(Boost::redis_corosio ALIAS boost_redis_corosio)
+  target_compile_features(boost_redis_corosio INTERFACE cxx_std_20)
+  target_link_libraries(boost_redis_corosio
+    INTERFACE
+      Boost::redis_proto
+      Boost::capy
+      Boost::corosio
+      Boost::corosio_openssl
+  )
+endif()
 
 # Don't run integration testing unless explicitly requested, since these require a running server
 option(BOOST_REDIS_INTEGRATION_TESTS OFF "Whether to build and run integration tests or not")
 mark_as_advanced(BOOST_REDIS_INTEGRATION_TESTS)
-
-# Allows disabling Corosio tests and examples in pre-C++20 CIs
-option(BOOST_REDIS_COROSIO_TESTS ON "Whether to build and run corosio tests and examples or not")
-mark_as_advanced(BOOST_REDIS_COROSIO_TESTS)
 
 
 # Examples and tests
@@ -84,8 +87,12 @@ if(BUILD_TESTING)
 endif()
 
 if(BOOST_SUPERPROJECT_VERSION AND NOT CMAKE_VERSION VERSION_LESS 3.13)
+  set(_boost_redis_install_targets boost_redis boost_redis_proto)
+  if (BOOST_REDIS_COROSIO_API)
+    list(APPEND _boost_redis_install_targets boost_redis_corosio)
+  endif()
   boost_install(
-    TARGETS boost_redis_proto boost_redis_corosio
+    TARGETS ${_boost_redis_install_targets}
     VERSION ${BOOST_SUPERPROJECT_VERSION}
     HEADER_DIRECTORY include
   )
