@@ -83,7 +83,7 @@ capy::task<> test_receive_waiting_for_push()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -117,7 +117,7 @@ capy::task<> test_receive_push_available()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -156,7 +156,7 @@ capy::task<> test_receive_batch()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -197,7 +197,7 @@ capy::task<> test_receive_subsequent_calls()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -212,7 +212,7 @@ capy::task<> test_receive_cancellation()
 
    auto receive_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.receive();
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -268,7 +268,7 @@ capy::task<> test_receive_reconnection()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -314,7 +314,7 @@ capy::task<> test_exec_push_interleaved()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -343,7 +343,7 @@ capy::task<> test_push_adapter_error()
    auto receive_fn = [&]() -> capy::io_task<> {
       // Will be cancelled by when_any
       auto [ec] = co_await conn.receive();
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -356,7 +356,7 @@ capy::task<> test_push_adapter_error()
       req.push("PING");
 
       auto [ec] = co_await conn.exec(req, ignore);
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -380,7 +380,7 @@ capy::task<> test_push_adapter_error_reconnection()
    // receive() will be cancelled by when_any
    auto receive_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.receive();
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -393,7 +393,7 @@ capy::task<> test_push_adapter_error_reconnection()
       req.push("PING");
 
       auto [ec1] = co_await conn.exec(req, ignore);
-      BOOST_TEST_EQ(ec1, canceled_condition());
+      BOOST_TEST_EQ(ec1, capy_canceled_condition());
 
       // This one will succeed after reconnection
       request req2;
@@ -410,7 +410,7 @@ capy::task<> test_push_adapter_error_reconnection()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -430,7 +430,7 @@ capy::task<> test_push_consumer()
          auto [ec] = co_await conn.receive();
          resp.clear();
          if (ec) {
-            BOOST_TEST_EQ(ec, canceled_condition());
+            BOOST_TEST_EQ(ec, capy_canceled_condition());
             co_return {};
          }
       }
@@ -456,7 +456,7 @@ capy::task<> test_push_consumer()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -509,7 +509,7 @@ capy::task<> test_unsubscribe()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 
@@ -635,7 +635,7 @@ capy::task<> test_pubsub_state_restoration()
 
    auto run_fn = [&]() -> capy::io_task<> {
       auto [ec] = co_await conn.run(make_test_config());
-      BOOST_TEST_EQ(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, capy_canceled_condition());
       co_return {};
    };
 

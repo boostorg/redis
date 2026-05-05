@@ -16,7 +16,6 @@
 #include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
 
-#include "common.hpp"
 #include "corosio_common.hpp"
 
 #include <coroutine>
@@ -137,7 +136,7 @@ capy::task<> test_take_cancel()
    auto result = co_await capy::when_any(
       [&]() -> capy::io_task<> {
          auto [ec] = co_await cont.take();
-         BOOST_TEST_EQ(ec, canceled_condition());
+         BOOST_TEST_EQ(ec, capy_canceled_condition());
          co_return {};
       }(),
       capy::ready());
@@ -310,7 +309,7 @@ capy::task<> test_put_cancel()
    auto result = co_await capy::when_any(
       [&]() -> capy::io_task<> {
          auto [ec] = co_await cont.put(10u);  // will block until cancelled
-         BOOST_TEST_EQ(ec, canceled_condition());
+         BOOST_TEST_EQ(ec, capy_canceled_condition());
          co_return {};
       }(),
       capy::ready());

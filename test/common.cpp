@@ -1,6 +1,5 @@
 #include <boost/redis/config.hpp>
 
-#include <boost/capy/cond.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
@@ -9,6 +8,7 @@
 #include <cstdlib>
 #include <ostream>
 #include <string_view>
+#include <system_error>
 
 using namespace std::chrono_literals;
 
@@ -67,6 +67,4 @@ std::ostream& operator<<(std::ostream& os, const condition_wrapper& val)
              << val.value.message() << ')';
 }
 
-// TODO: this should use std::errc::operation_canceled
-// https://github.com/cppalliance/capy/issues/267
-condition_wrapper canceled_condition() { return {boost::capy::cond::canceled}; }
+condition_wrapper canceled_condition() { return {std::errc::operation_canceled}; }

@@ -9,6 +9,8 @@
 #include <boost/redis/co_connection.hpp>
 
 #include <boost/assert/source_location.hpp>
+#include <boost/capy/cond.hpp>
+#include <boost/capy/error.hpp>
 #include <boost/capy/ex/run_async.hpp>
 #include <boost/capy/when_any.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -75,3 +77,5 @@ capy::task<void> boost::redis::test::create_user(
    if (!BOOST_TEST_EQ(result.index(), 1u))  // Exec finished 1st
       std::cerr << "  Called from " << loc << std::endl;
 }
+
+condition_wrapper boost::redis::test::capy_canceled_condition() { return {capy::cond::canceled}; }
