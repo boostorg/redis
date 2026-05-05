@@ -132,7 +132,7 @@ int main()
    bool run_finished = false, subscribe_finished = false;
    conn.async_run(cfg, logger{logger::level::crit}, [&run_finished](error_code ec) {
       run_finished = true;
-      BOOST_CHECK_EQUAL(ec, canceled_condition());
+      BOOST_TEST_EQ(ec, canceled_condition());
       std::clog << "async_run finished" << std::endl;
    });
 

@@ -31,11 +31,8 @@ target_link_libraries(boost_redis_corosio_src PUBLIC
 # Test utils
 add_library(boost_redis_tests_proto STATIC common.cpp sansio_utils.cpp)
 target_link_libraries(boost_redis_tests_proto
-  PUBLIC
-    boost_redis_proto_src
-    Boost::unit_test_framework
-  PRIVATE
-    Boost::capy # for capy::cond
+  PUBLIC boost_redis_proto_src
+  PRIVATE Boost::capy # for capy::cond
 )
 target_compile_definitions(boost_redis_tests_proto PUBLIC BOOST_ALLOW_DEPRECATED=1) # we need to still test deprecated fns
 
