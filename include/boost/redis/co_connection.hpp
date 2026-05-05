@@ -217,7 +217,7 @@ public:
     * @return A task that yields a `capy::io_result` holding the
     *         operation's `std::error_code` on completion.
     */
-   capy::io_task<> run(config const& cfg);
+   capy::io_task<> run(config cfg);
 
    /** @brief Wait for server pushes.
     *

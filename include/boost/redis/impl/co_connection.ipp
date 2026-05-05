@@ -364,7 +364,7 @@ struct co_connection_impl {
       }
    }
 
-   capy::io_task<> run(const config& cfg)
+   capy::io_task<> run(config cfg)
    {
       // corosio only runs in systems that support UNIX sockets
       constexpr bool unix_sockets_supported = true;
@@ -372,8 +372,8 @@ struct co_connection_impl {
       system::error_code ec;
 
       // Setup
-      st_.cfg = cfg;
       st_.mpx.set_config(cfg);
+      st_.cfg = std::move(cfg);
 
       while (true) {
          auto act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
@@ -421,7 +421,7 @@ co_connection::co_connection(co_connection&&) noexcept = default;
 co_connection& co_connection::operator=(co_connection&&) noexcept = default;
 co_connection::~co_connection() = default;
 
-capy::io_task<> co_connection::run(config const& cfg) { return impl_->run(cfg); }
+capy::io_task<> co_connection::run(config cfg) { return impl_->run(std::move(cfg)); }
 
 capy::io_task<> co_connection::receive() { return impl_->receive(); }
 
