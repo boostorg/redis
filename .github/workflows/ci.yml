@@ -119,96 +119,320 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - toolset: gcc-11
-            install: g++-11
-            container: ubuntu:22.04
+          # gcc-9 is the default in Ubuntu 20.04 
+          - toolset: gcc-9
+            install: g++-9
+            container: ubuntu:20.04
             cxxstd: '17'
             build-type: 'Debug'
             ldflags: ''
             server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
 
-          - toolset: gcc-11
-            install: g++-11
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Release'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
-
-          - toolset: clang-11
-            install: clang-11
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Debug'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
-
-          - toolset: clang-11
-            install: clang-11
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Debug'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
-
-          - toolset: clang-13
-            install: clang-13
-            container: ubuntu:22.04
+          - toolset: gcc-9
+            install: g++-9
+            container: ubuntu:20.04
             cxxstd: '17'
             build-type: 'Release'
             ldflags: ''
             server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
 
-          - toolset: clang-13
-            install: clang-13
-            container: ubuntu:22.04
+          - toolset: gcc-9
+            install: g++-9
+            container: ubuntu:20.04
             cxxstd: '20'
             build-type: 'Release'
             ldflags: ''
-            server: "redis:8.2.1-alpine"
-
-          - toolset: clang-14
-            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Debug'
-            cxxflags: '-stdlib=libc++'
-            ldflags: '-lc++'
-            server: "redis:8.2.1-alpine"
-
-          - toolset: clang-14
-            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Release'
-            cxxflags: '-stdlib=libc++'
-            ldflags: '-lc++'
-            server: "redis:8.2.1-alpine"
-          
-          - toolset: clang-19
-            install: 'clang-19'
-            container: ubuntu:24.04
-            cxxstd: '23'
-            build-type: 'Debug'
-            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
-            ldflags: '-fsanitize=address -fsanitize=undefined'
-            server: "redis:8.2.1-alpine"
-
-          - toolset: gcc-14
-            install: 'g++-14'
-            container: ubuntu:24.04
-            cxxstd: '23'
-            build-type: 'Debug'
-            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system had no UNIX socket support, we build correctly
             server: "valkey/valkey:8.1.3-alpine"
-          
-          - toolset: gcc-14
-            install: 'g++-14'
+            corosio-tests: '0'
+
+          - toolset: gcc-10
+            install: g++-10
+            container: ubuntu:20.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          # gcc-11 is the default in Ubuntu 22.04, defaults to c++17
+          - toolset: gcc-11
+            install: g++-11
+            container: ubuntu:22.04
+            cxxstd: '17'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
+
+          - toolset: gcc-11
+            install: g++-11
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+            corosio-tests: '0'
+
+          - toolset: gcc-11
+            install: g++-11
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Release'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          - toolset: gcc-12
+            install: g++-12
+            container: ubuntu:22.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+
+          # gcc-13 is the default in Ubuntu 24.04, defaults to c++17
+          - toolset: gcc-13
+            install: g++-13
             container: ubuntu:24.04
+            cxxstd: '17'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+            corosio-tests: '0'
+
+          - toolset: gcc-13
+            install: g++-13
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+
+          - toolset: gcc-13
+            install: g++-13
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Release'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+
+          - toolset: gcc-14
+            install: g++-14
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+
+          # gcc-15 is the default in Ubuntu 26.04, defaults to c++17
+          - toolset: gcc-15
+            install: g++-15
+            container: ubuntu:26.04
+            cxxstd: '17'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          - toolset: gcc-15
+            install: g++-15
+            container: ubuntu:26.04
+            cxxstd: '26'
+            build-type: 'Debug'
+            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
+            ldflags: '-fsanitize=address -fsanitize=undefined'
+            server: "valkey/valkey:8.1.3-alpine"
+
+          - toolset: gcc-15
+            install: g++-15
+            container: ubuntu:26.04
+            cxxstd: '26'
+            build-type: 'Release'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+
+          # clang-10 is the default in Ubuntu 20.04
+          - toolset: clang-10
+            install: clang-10
+            container: ubuntu:20.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-10
+            install: clang-10
+            container: ubuntu:20.04
+            cxxstd: '17'
+            build-type: 'Release'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
+          
+
+          - toolset: clang-11
+            install: clang-11
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-12
+            install: clang-12
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-13
+            install: clang-13
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+            corosio-tests: '0'
+
+          # clang-14 is the default in Ubuntu 22.04
+          - toolset: clang-14
+            install: clang-14
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-14
+            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-14
+            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Release'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "valkey/valkey:8.1.3-alpine"
+
+          - toolset: clang-15
+            install: clang-15
+            container: ubuntu:22.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-16
+            install: clang-16
+            container: ubuntu:24.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system has no UNIX socket support, we build correctly
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
+
+          - toolset: clang-17
+            install: clang-17
+            container: ubuntu:24.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "valkey/valkey:8.1.3-alpine"
+
+          # clang-18 is the default in Ubuntu 24.04
+          - toolset: clang-18
+            install: clang-18
+            container: ubuntu:24.04
+            cxxstd: '20'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+
+          - toolset: clang-18
+            install: 'clang-18 libc++-18-dev libc++abi-18-dev'
+            container: ubuntu:24.04
+            cxxstd: '20'
+            build-type: 'Release'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "valkey/valkey:8.1.3-alpine"
+
+          - toolset: clang-18
+            install: 'clang-18 libc++-18-dev libc++abi-18-dev'
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "redis:8.2.1-alpine"
+
+          - toolset: clang-19
+            install: clang-19
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:7.4.5-alpine"
+
+          - toolset: clang-20
+            install: clang-20
+            container: ubuntu:24.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
+            server: "redis:8.2.1-alpine"
+
+          # clang-21 is the default in Ubuntu 26.04
+          - toolset: clang-21
+            install: clang-21
+            container: ubuntu:26.04
             cxxstd: '23'
             build-type: 'Debug'
             cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
             ldflags: '-fsanitize=address -fsanitize=undefined'
+            server: "valkey/valkey:8.1.3-alpine"
+
+          - toolset: clang-21
+            install: 'clang-21 libc++-21-dev libc++abi-21-dev'
+            container: ubuntu:26.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "redis:7.4.5-alpine"
+
+          - toolset: clang-21
+            install: 'clang-21 libc++-21-dev libc++abi-21-dev'
+            container: ubuntu:26.04
+            cxxstd: '23'
+            build-type: 'Release'
+            cxxflags: '-stdlib=libc++'
+            ldflags: '-stdlib=libc++'
+            server: "redis:8.2.1-alpine"
+
+          - toolset: clang-22
+            install: clang-22
+            container: ubuntu:26.04
+            cxxstd: '23'
+            build-type: 'Debug'
+            ldflags: ''
             server: "valkey/valkey:8.1.3-alpine"
 
     runs-on: ubuntu-latest
