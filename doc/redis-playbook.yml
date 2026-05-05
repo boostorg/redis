@@ -23,6 +23,8 @@ antora:
     - require: '@cppalliance/antora-cpp-tagfiles-extension'
       cpp-tagfiles:
         missing-symbol-log-level: error
+        using-namespaces:
+          - 'boost::redis::'
     - require: '@cppalliance/antora-downloads-extension'
 
 asciidoc:
@@ -47,4 +49,5 @@ output:
 
 runtime:
   log:
+    level: info
     failure_level: error
