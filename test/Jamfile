@@ -10,7 +10,6 @@ using openssl ;
 local requirements_common =
     <toolset>msvc:<cxxflags>"/bigobj"
     <target-os>windows:<define>_WIN32_WINNT=0x0601
-    <library>/boost/test//boost_unit_test_framework/<warnings-as-errors>off
     [ requires
         cxx14_constexpr
         cxx14_generic_lambdas
