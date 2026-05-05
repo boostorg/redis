@@ -183,80 +183,85 @@ def _build_cmake_distro(
     _run(['cmake', '--build', '.', '--target', 'install', '--config', build_type])
 
 
-# Tests that the library can be consumed using add_subdirectory()
+# Configures, builds and tests a CMake consumer test directory under libs/redis/test/<name>.
+# Extra cmake args (e.g. -DCMAKE_PREFIX_PATH=...) can be supplied via extra_args.
+def _run_cmake_consumer_test(
+    name: str,
+    generator: str,
+    build_type: str,
+    cxxstd: str,
+    toolset: str,
+    build_shared_libs: bool,
+    extra_args: List[str]
+):
+    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', name, '__build'))
+    _run([
+        'cmake',
+        '-G',
+        generator,
+        '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
+        '-DBUILD_TESTING=ON',
+        '-DCMAKE_BUILD_TYPE={}'.format(build_type),
+        '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
+        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
+        *extra_args,
+        '..'
+    ])
+    _run(['cmake', '--build', '.', '--config', build_type])
+    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
+
+
+# Tests that the library can be consumed using add_subdirectory().
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_add_subdirectory_tests(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
-    build_shared_libs: bool = False
+    build_shared_libs: bool = False,
+    corosio_api: bool = True
 ):
-    test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_subdir_test', '__build')
-    _mkdir_and_cd(test_folder)
-    _run([
-        'cmake',
-        '-G',
-        generator,
-        '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
-        '-DBUILD_TESTING=ON',
-        '-DCMAKE_BUILD_TYPE={}'.format(build_type),
-        '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
-        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '..'
-    ])
-    _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
+    test_dirs = ['cmake_subdir_test']
+    if corosio_api:
+        test_dirs.append('cmake_subdir_corosio_test')
+    for d in test_dirs:
+        _run_cmake_consumer_test(d, generator, build_type, cxxstd, toolset, build_shared_libs, [])
 
 
-# Tests that the library can be consumed using find_package on a distro built by cmake
+# Tests that the library can be consumed using find_package on a distro built by cmake.
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_find_package_tests(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
-    build_shared_libs: bool = False
+    build_shared_libs: bool = False,
+    corosio_api: bool = True
 ):
-    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_install_test', '__build'))
-    _run([
-        'cmake',
-        '-G',
-        generator,
-        '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
-        '-DBUILD_TESTING=ON',
-        '-DCMAKE_BUILD_TYPE={}'.format(build_type),
-        '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
-        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '-DCMAKE_PREFIX_PATH={}'.format(_cmake_distro),
-        '..'
-    ])
-    _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
+    extra = ['-DCMAKE_PREFIX_PATH={}'.format(_cmake_distro)]
+    test_dirs = ['cmake_install_test']
+    if corosio_api:
+        test_dirs.append('cmake_install_corosio_test')
+    for d in test_dirs:
+        _run_cmake_consumer_test(d, generator, build_type, cxxstd, toolset, build_shared_libs, extra)
 
 
-# Tests that the library can be consumed using find_package on a distro built by b2
+# Tests that the library can be consumed using find_package on a distro built by b2.
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_b2_find_package_tests(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
-    build_shared_libs: bool = False
+    build_shared_libs: bool = False,
+    corosio_api: bool = True
 ):
-    _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_b2_test', '__build'))
-    _run([
-        'cmake',
-        '-G',
-        generator,
-        '-DCMAKE_CXX_COMPILER={}'.format(_compiler_from_toolset(toolset)),
-        '-DBUILD_TESTING=ON',
-        '-DCMAKE_PREFIX_PATH={}'.format(_b2_distro),
-        '-DCMAKE_BUILD_TYPE={}'.format(build_type),
-        '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
-        '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '-DBUILD_TESTING=ON',
-        '..'
-    ])
-    _run(['cmake', '--build', '.', '--config', build_type])
-    _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
+    extra = ['-DCMAKE_PREFIX_PATH={}'.format(_b2_distro)]
+    test_dirs = ['cmake_b2_test']
+    if corosio_api:
+        test_dirs.append('cmake_b2_corosio_test')
+    for d in test_dirs:
+        _run_cmake_consumer_test(d, generator, build_type, cxxstd, toolset, build_shared_libs, extra)
 
 
 # Builds and runs the library tests using b2
@@ -308,6 +313,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.set_defaults(func=_run_cmake_add_subdirectory_tests)
 
     subp = subparsers.add_parser('run-cmake-find-package-tests')
@@ -316,6 +322,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.set_defaults(func=_run_cmake_find_package_tests)
 
     subp = subparsers.add_parser('run-cmake-b2-find-package-tests')
@@ -324,6 +331,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.set_defaults(func=_run_cmake_b2_find_package_tests)
 
     subp = subparsers.add_parser('run-b2-tests')

@@ -271,21 +271,24 @@ jobs:
         docker exec builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
         docker exec builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
         docker exec builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }}
 
   posix-b2:
     name: "B2 ${{ matrix.toolset }}"
