@@ -488,17 +488,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # We don't have integration tests here, so we only test the compilers
+          # that get installed by default in Ubuntu 22.04, 24.04 and 26.04
           - toolset: gcc-11
             install: g++-11
             cxxstd: "11,17,20" # Having C++11 shouldn't break the build
-            os: ubuntu-latest
             container: ubuntu:22.04
-          - toolset: clang-14
-            install: clang-14
-            os: ubuntu-latest
-            container: ubuntu:22.04
-            cxxstd: "17,20"
-    runs-on: ${{ matrix.os }}
+          - toolset: gcc-13
+            install: g++-13
+            cxxstd: "17,20,23"
+            container: ubuntu:24.04
+          - toolset: gcc-15
+            install: g++-15
+            cxxstd: "17,20,23"
+            container: ubuntu:26.04
+          - toolset: clang-18
+            install: clang-18
+            cxxstd: "11,17,20"
+            container: ubuntu:24.04
+          - toolset: clang-21
+            install: clang-21
+            cxxstd: "17,20,23"
+            container: ubuntu:26.04
+    runs-on: ubuntu-latest
     container: ${{matrix.container}}
     steps:
     - name: Checkout
@@ -507,13 +519,9 @@ jobs:
     - name: Setup container environment
       if: matrix.container
       run: |
+        export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get -y install sudo python3 git g++ libssl-dev
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get -y install python3 ${{ matrix.install }}
+        apt-get -y install python3 git g++ libssl-dev ${{ matrix.install }}
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
