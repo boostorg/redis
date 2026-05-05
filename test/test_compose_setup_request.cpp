@@ -13,7 +13,6 @@
 #include <boost/redis/request.hpp>
 #include <boost/redis/resp3/type.hpp>
 
-#include <boost/asio/error.hpp>
 #include <boost/assert/source_location.hpp>
 #include <boost/core/lightweight_test.hpp>
 
@@ -21,7 +20,6 @@
 #include <string_view>
 
 using namespace boost::redis;
-namespace asio = boost::asio;
 using detail::compose_setup_request;
 using detail::subscription_tracker;
 using boost::system::error_code;

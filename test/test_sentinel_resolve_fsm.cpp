@@ -12,7 +12,6 @@
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/error.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/detail/errc.hpp>
@@ -33,7 +32,6 @@ using detail::sentinel_action;
 using detail::connection_state;
 using detail::tree_from_resp3;
 using boost::system::error_code;
-using boost::asio::cancellation_type_t;
 
 static char const* to_string(sentinel_action::type t)
 {

@@ -13,7 +13,6 @@
 #include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/errc.hpp>
@@ -27,7 +26,6 @@
 #include <utility>
 
 using namespace boost::redis;
-namespace asio = boost::asio;
 namespace errc = boost::system::errc;
 using detail::cancellation_type;
 using detail::exec_fsm;
