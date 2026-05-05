@@ -126,6 +126,7 @@ jobs:
             build-type: 'Debug'
             ldflags: ''
             server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
 
           - toolset: gcc-11
             install: g++-11
@@ -142,6 +143,7 @@ jobs:
             build-type: 'Debug'
             ldflags: ''
             server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
 
           - toolset: clang-11
             install: clang-11
@@ -150,6 +152,7 @@ jobs:
             build-type: 'Debug'
             ldflags: ''
             server: "redis:7.4.5-alpine"
+            corosio-tests: '0'
 
           - toolset: clang-13
             install: clang-13
@@ -158,6 +161,7 @@ jobs:
             build-type: 'Release'
             ldflags: ''
             server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
 
           - toolset: clang-13
             install: clang-13
@@ -175,6 +179,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
+            corosio-tests: '0'
 
           - toolset: clang-14
             install: 'clang-14 libc++-14-dev libc++abi-14-dev'
@@ -258,7 +263,8 @@ jobs:
         docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --corosio-tests ${{ matrix.corosio-tests == '' && '1' || matrix.corosio-tests }}
 
     - name: Run add_subdirectory tests
       run: |
