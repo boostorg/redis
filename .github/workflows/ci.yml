@@ -37,7 +37,8 @@ jobs:
     - name: Build a Boost distribution using B2
       run: |
         python3 tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }}
 
     # No Redis server is available on this job, so integration tests are skipped.
     # Unit tests are built and run via the CMake superproject build.
@@ -254,7 +255,8 @@ jobs:
     - name: Build a Boost distribution using B2
       run: |
         docker exec builder /boost-redis/tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }}
 
     # The CMake superproject build also drives the project tests, including
     # integration tests against the Redis server set up above.

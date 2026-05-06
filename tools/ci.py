@@ -132,7 +132,8 @@ def _setup_boost(
 # Builds a Boost distribution using ./b2 install, and places it into _b2_distro.
 # This emulates a regular Boost distribution, like the ones in releases
 def _build_b2_distro(
-    toolset: str
+    toolset: str,
+    cxxstd: str
 ):
     os.chdir(str(_boost_root))
     _run([
@@ -141,6 +142,7 @@ def _build_b2_distro(
         '--with-capy',
         '--with-corosio',
         'toolset={}'.format(toolset),
+        'cxxstd={}'.format(cxxstd),
         '-d0',
         'install'
     ])
@@ -296,6 +298,7 @@ def main():
 
     subp = subparsers.add_parser('build-b2-distro')
     subp.add_argument('--toolset', default='gcc')
+    subp.add_argument('--cxxstd', default='20')
     subp.set_defaults(func=_build_b2_distro)
 
     subp = subparsers.add_parser('build-cmake-distro')
