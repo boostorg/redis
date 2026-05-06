@@ -3,8 +3,10 @@
 # Layout matches the Shining Light Productions OpenSSL installer that ships in
 # the actions/runner-images Windows 2022 image:
 #   <root>/include/                  headers
-#   <root>/lib/VC/x64/MD/*.lib       release libs (linked against /MD runtime)
-#   <root>/lib/VC/x64/MDd/*.lib      debug libs (linked against /MDd runtime)
+#   <root>/lib/VC/x64/MD/*.lib       release libs (linked against /MD  runtime)
+#   <root>/lib/VC/x64/MDd/*.lib      debug   libs (linked against /MDd runtime)
+#   <root>/lib/VC/x64/MT/*.lib       release libs (linked against /MT  runtime)
+#   <root>/lib/VC/x64/MTd/*.lib      debug   libs (linked against /MTd runtime)
 #
 # Conditional <search> paths route b2 to the right .lib for the variant being built.
 
@@ -12,8 +14,10 @@ local openssl_root = "C:/Program Files/OpenSSL" ;
 
 using openssl : :
     <include>$(openssl_root)/include
-    <variant>release:<search>$(openssl_root)/lib/VC/x64/MD
-    <variant>debug:<search>$(openssl_root)/lib/VC/x64/MDd
+    <runtime-link>shared,<variant>release:<search>$(openssl_root)/lib/VC/x64/MD
+    <runtime-link>shared,<variant>debug:<search>$(openssl_root)/lib/VC/x64/MDd
+    <runtime-link>static,<variant>release:<search>$(openssl_root)/lib/VC/x64/MT
+    <runtime-link>static,<variant>debug:<search>$(openssl_root)/lib/VC/x64/MTd
     <ssl-name>libssl
     <crypto-name>libcrypto
 ;
