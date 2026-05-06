@@ -68,10 +68,18 @@ def _compiler_from_toolset(toolset: str) -> str:
         return toolset
 
 
-# Sets an environment variable for CMake to use the right number of jobs
-def _set_cmake_parallel_jobs() -> None:
+# Sets the environment variables that affect CMake.
+# CXXFLAGS should be used instead of CMAKE_CXX_FLAGS because otherwise
+# the default flags for MSVC (like /EHsc) are overwritten
+def _set_cmake_env(cxxflags: str = '', ldflags: str = '') -> None:
     print('+ CMAKE_BUILD_PARALLEL_LEVEL={}'.format(_num_jobs), flush=True)
     os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(_num_jobs)
+
+    print('+ CXXFLAGS={}'.format(cxxflags), flush=True)
+    os.environ['CXXFLAGS'] = cxxflags
+
+    print('+ LDFLAGS={}'.format(ldflags), flush=True)
+    os.environ['LDFLAGS'] = ldflags
 
 
 # If we're on the master branch, we should use the Boost superproject master branch.
@@ -163,7 +171,7 @@ def _build_cmake_distro(
     cxxflags: str = '',
     ldflags: str = ''
 ):
-    _set_cmake_parallel_jobs()
+    _set_cmake_env(cxxflags, ldflags)
     _mkdir_and_cd(_boost_root.joinpath('__build_cmake_test__'))
     _run([
         'cmake',
@@ -179,8 +187,6 @@ def _build_cmake_distro(
         '-DBOOST_REDIS_INTEGRATION_TESTS={}'.format(_cmake_bool(integration_tests)),
         '-DBoost_VERBOSE=ON',
         '-DCMAKE_INSTALL_MESSAGE=NEVER',
-        '-DCMAKE_CXX_FLAGS={}'.format(cxxflags),
-        '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ldflags),
         '..'
     ])
     _run(['cmake', '--build', '.', '--target', 'tests', '--config', build_type])
@@ -198,7 +204,7 @@ def _run_cmake_add_subdirectory_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
-    _set_cmake_parallel_jobs()
+    _set_cmake_env(cxxflags, ldflags)
     test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_subdir_test', '__build')
     _mkdir_and_cd(test_folder)
     _run([
@@ -210,8 +216,6 @@ def _run_cmake_add_subdirectory_tests(
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
-        '-DCMAKE_CXX_FLAGS={}'.format(cxxflags),
-        '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ldflags),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
@@ -228,7 +232,7 @@ def _run_cmake_find_package_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
-    _set_cmake_parallel_jobs()
+    _set_cmake_env(cxxflags, ldflags)
     _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_install_test', '__build'))
     _run([
         'cmake',
@@ -240,8 +244,6 @@ def _run_cmake_find_package_tests(
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '-DCMAKE_PREFIX_PATH={}'.format(_cmake_distro),
-        '-DCMAKE_CXX_FLAGS={}'.format(cxxflags),
-        '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ldflags),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
@@ -258,7 +260,7 @@ def _run_cmake_b2_find_package_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
-    _set_cmake_parallel_jobs()
+    _set_cmake_env(cxxflags, ldflags)
     _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_b2_test', '__build'))
     _run([
         'cmake',
@@ -271,8 +273,6 @@ def _run_cmake_b2_find_package_tests(
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
         '-DBUILD_TESTING=ON',
-        '-DCMAKE_CXX_FLAGS={}'.format(cxxflags),
-        '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ldflags),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
