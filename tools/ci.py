@@ -138,7 +138,8 @@ def _build_b2_distro(
     _run([
         _b2_command,
         '--prefix={}'.format(_b2_distro),
-        '--with-headers',
+        '--with-capy',
+        '--with-corosio',
         'toolset={}'.format(toolset),
         '-d0',
         'install'
