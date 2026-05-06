@@ -10,6 +10,7 @@ import os
 import stat
 from shutil import rmtree, copytree, ignore_patterns
 import argparse
+import multiprocessing
 
 
 # Variables
@@ -19,6 +20,7 @@ _boost_root = _home.joinpath('boost-root')
 _b2_distro = _home.joinpath('boost-b2-distro')
 _cmake_distro = _home.joinpath('boost-cmake-distro')
 _b2_command = str(_boost_root.joinpath('b2'))
+_num_jobs = multiprocessing.cpu_count() * 2
 
 
 # Utilities
@@ -64,6 +66,12 @@ def _compiler_from_toolset(toolset: str) -> str:
         return 'cl'
     else:
         return toolset
+
+
+# Sets an environment variable for CMake to use the right number of jobs
+def _set_cmake_parallel_jobs() -> None:
+    print('+ CMAKE_BUILD_PARALLEL_LEVEL={}'.format(_num_jobs), flush=True)
+    os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(_num_jobs)
 
 
 # If we're on the master branch, we should use the Boost superproject master branch.
@@ -155,6 +163,7 @@ def _build_cmake_distro(
     cxxflags: str = '',
     ldflags: str = ''
 ):
+    _set_cmake_parallel_jobs()
     _mkdir_and_cd(_boost_root.joinpath('__build_cmake_test__'))
     _run([
         'cmake',
@@ -189,6 +198,7 @@ def _run_cmake_add_subdirectory_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
+    _set_cmake_parallel_jobs()
     test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_subdir_test', '__build')
     _mkdir_and_cd(test_folder)
     _run([
@@ -218,6 +228,7 @@ def _run_cmake_find_package_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
+    _set_cmake_parallel_jobs()
     _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_install_test', '__build'))
     _run([
         'cmake',
@@ -247,6 +258,7 @@ def _run_cmake_b2_find_package_tests(
     cxxflags: str = '',
     ldflags: str = ''
 ):
+    _set_cmake_parallel_jobs()
     _mkdir_and_cd(_boost_root.joinpath('libs', 'redis', 'test', 'cmake_b2_test', '__build'))
     _run([
         'cmake',
