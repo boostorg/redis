@@ -39,6 +39,7 @@ jobs:
 
     # No Redis server is available on this job, so integration tests are skipped.
     # Unit tests are built and run via the CMake superproject build.
+    # Double backslash '//' prevents MSYS from interpreting flags as paths
     - name: Build a Boost distribution and run the tests using CMake
       run: |
         python3 tools/ci.py build-cmake-distro \
@@ -48,7 +49,7 @@ jobs:
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
           --integration-tests 0 \
-          --cxxflags "/WX"
+          --cxxflags "//WX"
 
     - name: Run add_subdirectory tests
       run: |
@@ -58,7 +59,7 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --cxxflags "/WX"
+          --cxxflags "//WX"
 
     - name: Run find_package tests with the built cmake distribution
       run: |
@@ -68,7 +69,7 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --cxxflags "/WX"
+          --cxxflags "//WX"
 
     - name: Run find_package tests with the built b2 distribution
       run: |
@@ -78,7 +79,7 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --cxxflags "/WX"
+          --cxxflags "//WX"
 
   windows-b2:
     name: "B2 ${{matrix.toolset}}"
