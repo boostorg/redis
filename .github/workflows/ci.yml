@@ -90,8 +90,6 @@ jobs:
         include:
           #- { toolset: msvc-14.2, os: windows-2019 }
           - { toolset: msvc-14.3, os: windows-2022 }
-    env:
-      OPENSSL_ROOT: "C:\\Program Files\\OpenSSL"
     steps:
     - name: Checkout
       uses: actions/checkout@v4
