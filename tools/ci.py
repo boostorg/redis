@@ -266,6 +266,7 @@ def _run_b2_tests(
         'variant={}'.format(variant),
         'warnings=extra',
         'warnings-as-errors=on',
+        '-d+4',
         '-j4',
         'libs/redis/test',
         'libs/redis/test//fail_if_no_openssl'
