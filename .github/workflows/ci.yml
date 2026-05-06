@@ -248,7 +248,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
             corosio-tests: '0'
 
@@ -258,7 +258,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Release'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "valkey/valkey:8.1.3-alpine"
 
           - toolset: clang-15
@@ -299,7 +299,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Release'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "valkey/valkey:8.1.3-alpine"
 
           - toolset: clang-18
@@ -308,7 +308,7 @@ jobs:
             cxxstd: '23'
             build-type: 'Debug'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
 
           - toolset: clang-19
@@ -327,7 +327,7 @@ jobs:
 
           # clang-21 is the default in Ubuntu 26.04
           - toolset: clang-21
-            install: clang-21
+            install: 'clang-21 libclang-rt-21-dev'
             container: ubuntu:26.04
             cxxstd: '23'
             build-type: 'Debug'
@@ -341,7 +341,7 @@ jobs:
             cxxstd: '23'
             build-type: 'Debug'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "redis:7.4.5-alpine"
 
           - toolset: clang-21
@@ -350,7 +350,7 @@ jobs:
             cxxstd: '23'
             build-type: 'Release'
             cxxflags: '-stdlib=libc++'
-            ldflags: '-stdlib=libc++'
+            ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
 
           - toolset: clang-22
