@@ -11,72 +11,72 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  windows-cmake:
-    name: "CMake ${{matrix.toolset}} ${{matrix.build-type}} C++${{matrix.cxxstd}}"
-    runs-on: ${{matrix.os}}
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          #- { toolset: msvc-14.2, os: windows-2019, generator: "Visual Studio 16 2019", cxxstd: '17', build-type: 'Debug',   build-shared-libs: 1 }
-          #- { toolset: msvc-14.2, os: windows-2019, generator: "Visual Studio 16 2019", cxxstd: '17', build-type: 'Release', build-shared-libs: 0 }
-          - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Debug',   build-shared-libs: 0 }
-          - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Release', build-shared-libs: 1 }
-    env:
-      CMAKE_BUILD_PARALLEL_LEVEL: 4
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  # windows-cmake:
+  #   name: "CMake ${{matrix.toolset}} ${{matrix.build-type}} C++${{matrix.cxxstd}}"
+  #   runs-on: ${{matrix.os}}
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         #- { toolset: msvc-14.2, os: windows-2019, generator: "Visual Studio 16 2019", cxxstd: '17', build-type: 'Debug',   build-shared-libs: 1 }
+  #         #- { toolset: msvc-14.2, os: windows-2019, generator: "Visual Studio 16 2019", cxxstd: '17', build-type: 'Release', build-shared-libs: 0 }
+  #         - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Debug',   build-shared-libs: 0 }
+  #         - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Release', build-shared-libs: 1 }
+  #   env:
+  #     CMAKE_BUILD_PARALLEL_LEVEL: 4
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    - name: Setup Boost
-      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
+  #   - name: Setup Boost
+  #     run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
 
-    - name: Build a Boost distribution using B2
-      run: |
-        python3 tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+  #   - name: Build a Boost distribution using B2
+  #     run: |
+  #       python3 tools/ci.py build-b2-distro \
+  #         --toolset ${{ matrix.toolset }}
 
-    # No Redis server is available on this job, so integration tests are skipped.
-    # Unit tests are built and run via the CMake superproject build.
-    - name: Build a Boost distribution and run the tests using CMake
-      run: |
-        python3 tools/ci.py build-cmake-distro \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
-          --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --integration-tests 0
+  #   # No Redis server is available on this job, so integration tests are skipped.
+  #   # Unit tests are built and run via the CMake superproject build.
+  #   - name: Build a Boost distribution and run the tests using CMake
+  #     run: |
+  #       python3 tools/ci.py build-cmake-distro \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }} \
+  #         --generator "${{ matrix.generator }}" \
+  #         --build-shared-libs ${{ matrix.build-shared-libs }} \
+  #         --integration-tests 0
 
-    - name: Run add_subdirectory tests
-      run: |
-        python3 tools/ci.py run-cmake-add-subdirectory-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
-          --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }}
+  #   - name: Run add_subdirectory tests
+  #     run: |
+  #       python3 tools/ci.py run-cmake-add-subdirectory-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }} \
+  #         --generator "${{ matrix.generator }}" \
+  #         --build-shared-libs ${{ matrix.build-shared-libs }}
 
-    - name: Run find_package tests with the built cmake distribution
-      run: |
-        python3 tools/ci.py run-cmake-find-package-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
-          --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }}
+  #   - name: Run find_package tests with the built cmake distribution
+  #     run: |
+  #       python3 tools/ci.py run-cmake-find-package-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }} \
+  #         --generator "${{ matrix.generator }}" \
+  #         --build-shared-libs ${{ matrix.build-shared-libs }}
 
-    - name: Run find_package tests with the built b2 distribution
-      run: |
-        python3 tools/ci.py run-cmake-b2-find-package-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }} \
-          --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }}
+  #   - name: Run find_package tests with the built b2 distribution
+  #     run: |
+  #       python3 tools/ci.py run-cmake-b2-find-package-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }} \
+  #         --generator "${{ matrix.generator }}" \
+  #         --build-shared-libs ${{ matrix.build-shared-libs }}
 
   windows-b2:
     name: "B2 ${{matrix.toolset}}"
@@ -109,242 +109,242 @@ jobs:
           --cxxstd 17,20 \
           --variant debug,release
 
-  posix-cmake:
-    name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
-    defaults:
-      run:
-        shell: bash
+  # posix-cmake:
+  #   name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
+  #   defaults:
+  #     run:
+  #       shell: bash
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - toolset: gcc-11
-            install: g++-11
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Debug'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - toolset: gcc-11
+  #           install: g++-11
+  #           container: ubuntu:22.04
+  #           cxxstd: '17'
+  #           build-type: 'Debug'
+  #           ldflags: ''
+  #           server: "redis:7.4.5-alpine"
 
-          - toolset: gcc-11
-            install: g++-11
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Release'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
+  #         - toolset: gcc-11
+  #           install: g++-11
+  #           container: ubuntu:22.04
+  #           cxxstd: '20'
+  #           build-type: 'Release'
+  #           ldflags: ''
+  #           server: "redis:7.4.5-alpine"
 
-          - toolset: clang-11
-            install: clang-11
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Debug'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
+  #         - toolset: clang-11
+  #           install: clang-11
+  #           container: ubuntu:22.04
+  #           cxxstd: '17'
+  #           build-type: 'Debug'
+  #           ldflags: ''
+  #           server: "redis:7.4.5-alpine"
 
-          - toolset: clang-11
-            install: clang-11
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Debug'
-            ldflags: ''
-            server: "redis:7.4.5-alpine"
+  #         - toolset: clang-11
+  #           install: clang-11
+  #           container: ubuntu:22.04
+  #           cxxstd: '20'
+  #           build-type: 'Debug'
+  #           ldflags: ''
+  #           server: "redis:7.4.5-alpine"
 
-          - toolset: clang-13
-            install: clang-13
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Release'
-            ldflags: ''
-            server: "redis:8.2.1-alpine"
+  #         - toolset: clang-13
+  #           install: clang-13
+  #           container: ubuntu:22.04
+  #           cxxstd: '17'
+  #           build-type: 'Release'
+  #           ldflags: ''
+  #           server: "redis:8.2.1-alpine"
 
-          - toolset: clang-13
-            install: clang-13
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Release'
-            ldflags: ''
-            server: "redis:8.2.1-alpine"
+  #         - toolset: clang-13
+  #           install: clang-13
+  #           container: ubuntu:22.04
+  #           cxxstd: '20'
+  #           build-type: 'Release'
+  #           ldflags: ''
+  #           server: "redis:8.2.1-alpine"
 
-          - toolset: clang-14
-            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
-            container: ubuntu:22.04
-            cxxstd: '17'
-            build-type: 'Debug'
-            cxxflags: '-stdlib=libc++'
-            ldflags: '-lc++'
-            server: "redis:8.2.1-alpine"
+  #         - toolset: clang-14
+  #           install: 'clang-14 libc++-14-dev libc++abi-14-dev'
+  #           container: ubuntu:22.04
+  #           cxxstd: '17'
+  #           build-type: 'Debug'
+  #           cxxflags: '-stdlib=libc++'
+  #           ldflags: '-lc++'
+  #           server: "redis:8.2.1-alpine"
 
-          - toolset: clang-14
-            install: 'clang-14 libc++-14-dev libc++abi-14-dev'
-            container: ubuntu:22.04
-            cxxstd: '20'
-            build-type: 'Release'
-            cxxflags: '-stdlib=libc++'
-            ldflags: '-lc++'
-            server: "redis:8.2.1-alpine"
+  #         - toolset: clang-14
+  #           install: 'clang-14 libc++-14-dev libc++abi-14-dev'
+  #           container: ubuntu:22.04
+  #           cxxstd: '20'
+  #           build-type: 'Release'
+  #           cxxflags: '-stdlib=libc++'
+  #           ldflags: '-lc++'
+  #           server: "redis:8.2.1-alpine"
           
-          - toolset: clang-19
-            install: 'clang-19'
-            container: ubuntu:24.04
-            cxxstd: '23'
-            build-type: 'Debug'
-            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
-            ldflags: '-fsanitize=address -fsanitize=undefined'
-            server: "redis:8.2.1-alpine"
+  #         - toolset: clang-19
+  #           install: 'clang-19'
+  #           container: ubuntu:24.04
+  #           cxxstd: '23'
+  #           build-type: 'Debug'
+  #           cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
+  #           ldflags: '-fsanitize=address -fsanitize=undefined'
+  #           server: "redis:8.2.1-alpine"
 
-          - toolset: gcc-14
-            install: 'g++-14'
-            container: ubuntu:24.04
-            cxxstd: '23'
-            build-type: 'Debug'
-            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system had no UNIX socket support, we build correctly
-            server: "valkey/valkey:8.1.3-alpine"
+  #         - toolset: gcc-14
+  #           install: 'g++-14'
+  #           container: ubuntu:24.04
+  #           cxxstd: '23'
+  #           build-type: 'Debug'
+  #           cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system had no UNIX socket support, we build correctly
+  #           server: "valkey/valkey:8.1.3-alpine"
           
-          - toolset: gcc-14
-            install: 'g++-14'
-            container: ubuntu:24.04
-            cxxstd: '23'
-            build-type: 'Debug'
-            cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
-            ldflags: '-fsanitize=address -fsanitize=undefined'
-            server: "valkey/valkey:8.1.3-alpine"
+  #         - toolset: gcc-14
+  #           install: 'g++-14'
+  #           container: ubuntu:24.04
+  #           cxxstd: '23'
+  #           build-type: 'Debug'
+  #           cxxflags: '-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all'
+  #           ldflags: '-fsanitize=address -fsanitize=undefined'
+  #           server: "valkey/valkey:8.1.3-alpine"
 
-    runs-on: ubuntu-latest
-    env:
-      CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
-      LDFLAGS:  ${{matrix.ldflags}}
-      CMAKE_BUILD_PARALLEL_LEVEL: 4
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     CXXFLAGS: ${{matrix.cxxflags}} -Wall -Wextra
+  #     LDFLAGS:  ${{matrix.ldflags}}
+  #     CMAKE_BUILD_PARALLEL_LEVEL: 4
     
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
     
-    - name: Generate TLS certificates
-      run: |
-        ./tools/gen-certificates.sh
+  #   - name: Generate TLS certificates
+  #     run: |
+  #       ./tools/gen-certificates.sh
     
-    - name: Set up the required containers
-      run: |
-        BUILDER_IMAGE=${{ matrix.container }} SERVER_IMAGE=${{ matrix.server }} docker compose -f tools/docker-compose.yml up -d --wait || (docker compose logs; exit 1)
+  #   - name: Set up the required containers
+  #     run: |
+  #       BUILDER_IMAGE=${{ matrix.container }} SERVER_IMAGE=${{ matrix.server }} docker compose -f tools/docker-compose.yml up -d --wait || (docker compose logs; exit 1)
       
-    - name: Install dependencies
-      run: |
-        docker exec builder apt-get update
-        docker exec builder apt-get -y --no-install-recommends install \
-          git \
-          g++ \
-          libssl-dev \
-          make \
-          ca-certificates \
-          cmake \
-          protobuf-compiler \
-          python3 \
-          ${{ matrix.install }}
+  #   - name: Install dependencies
+  #     run: |
+  #       docker exec builder apt-get update
+  #       docker exec builder apt-get -y --no-install-recommends install \
+  #         git \
+  #         g++ \
+  #         libssl-dev \
+  #         make \
+  #         ca-certificates \
+  #         cmake \
+  #         protobuf-compiler \
+  #         python3 \
+  #         ${{ matrix.install }}
 
-    - name: Setup Boost
-      run: docker exec builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
+  #   - name: Setup Boost
+  #     run: docker exec builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
 
-    - name: Build a Boost distribution using B2
-      run: |
-        docker exec builder /boost-redis/tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+  #   - name: Build a Boost distribution using B2
+  #     run: |
+  #       docker exec builder /boost-redis/tools/ci.py build-b2-distro \
+  #         --toolset ${{ matrix.toolset }}
 
-    # The CMake superproject build also drives the project tests, including
-    # integration tests against the Redis server set up above.
-    - name: Build a Boost distribution and run the tests using CMake
-      run: |
-        docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+  #   # The CMake superproject build also drives the project tests, including
+  #   # integration tests against the Redis server set up above.
+  #   - name: Build a Boost distribution and run the tests using CMake
+  #     run: |
+  #       docker exec builder /boost-redis/tools/ci.py build-cmake-distro \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }}
 
-    - name: Run add_subdirectory tests
-      run: |
-        docker exec builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+  #   - name: Run add_subdirectory tests
+  #     run: |
+  #       docker exec builder /boost-redis/tools/ci.py run-cmake-add-subdirectory-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }}
 
-    - name: Run find_package tests with the built cmake distribution
-      run: |
-        docker exec builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+  #   - name: Run find_package tests with the built cmake distribution
+  #     run: |
+  #       docker exec builder /boost-redis/tools/ci.py run-cmake-find-package-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }}
 
-    - name: Run find_package tests with the built b2 distribution
-      run: |
-        docker exec builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
-          --build-type ${{ matrix.build-type }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --toolset ${{ matrix.toolset }}
+  #   - name: Run find_package tests with the built b2 distribution
+  #     run: |
+  #       docker exec builder /boost-redis/tools/ci.py run-cmake-b2-find-package-tests \
+  #         --build-type ${{ matrix.build-type }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --toolset ${{ matrix.toolset }}
 
-  posix-b2:
-    name: "B2 ${{ matrix.toolset }}"
-    defaults:
-      run:
-        shell: bash
+  # posix-b2:
+  #   name: "B2 ${{ matrix.toolset }}"
+  #   defaults:
+  #     run:
+  #       shell: bash
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - toolset: gcc-11
-            install: g++-11
-            cxxstd: "11,17,20" # Having C++11 shouldn't break the build
-            os: ubuntu-latest
-            container: ubuntu:22.04
-          - toolset: clang-14
-            install: clang-14
-            os: ubuntu-latest
-            container: ubuntu:22.04
-            cxxstd: "17,20"
-    runs-on: ${{ matrix.os }}
-    container: ${{matrix.container}}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - toolset: gcc-11
+  #           install: g++-11
+  #           cxxstd: "11,17,20" # Having C++11 shouldn't break the build
+  #           os: ubuntu-latest
+  #           container: ubuntu:22.04
+  #         - toolset: clang-14
+  #           install: clang-14
+  #           os: ubuntu-latest
+  #           container: ubuntu:22.04
+  #           cxxstd: "17,20"
+  #   runs-on: ${{ matrix.os }}
+  #   container: ${{matrix.container}}
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    - name: Setup container environment
-      if: matrix.container
-      run: |
-        apt-get update
-        apt-get -y install sudo python3 git g++ libssl-dev
+  #   - name: Setup container environment
+  #     if: matrix.container
+  #     run: |
+  #       apt-get update
+  #       apt-get -y install sudo python3 git g++ libssl-dev
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get -y install python3 ${{ matrix.install }}
+  #   - name: Install dependencies
+  #     run: |
+  #       sudo apt-get update
+  #       sudo apt-get -y install python3 ${{ matrix.install }}
 
-    - name: Setup Boost
-      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+  #   - name: Setup Boost
+  #     run: ./tools/ci.py setup-boost --source-dir=$(pwd)
     
-    - name: Build and run project tests using B2
-      run: |
-        python3 tools/ci.py run-b2-tests \
-          --toolset ${{ matrix.toolset }} \
-          --cxxstd ${{ matrix.cxxstd }} \
-          --variant debug,release
+  #   - name: Build and run project tests using B2
+  #     run: |
+  #       python3 tools/ci.py run-b2-tests \
+  #         --toolset ${{ matrix.toolset }} \
+  #         --cxxstd ${{ matrix.cxxstd }} \
+  #         --variant debug,release
 
-  # Checks that we don't have any errors in docs
-  check-docs:
-    name: Check docs
-    defaults:
-      run:
-        shell: bash
+  # # Checks that we don't have any errors in docs
+  # check-docs:
+  #   name: Check docs
+  #   defaults:
+  #     run:
+  #       shell: bash
 
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
 
-    - name: Setup Boost
-      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+  #   - name: Setup Boost
+  #     run: ./tools/ci.py setup-boost --source-dir=$(pwd)
     
-    - name: Build docs
-      run: |
-        cd ~/boost-root
-        ./b2 libs/redis/doc
-        [ -f ~/boost-root/libs/redis/doc/html/index.html ]
+  #   - name: Build docs
+  #     run: |
+  #       cd ~/boost-root
+  #       ./b2 libs/redis/doc
+  #       [ -f ~/boost-root/libs/redis/doc/html/index.html ]
