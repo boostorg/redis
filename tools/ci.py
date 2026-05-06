@@ -258,19 +258,26 @@ def _run_b2_tests(
     toolset: str
 ):
     os.chdir(str(_boost_root))
-    _run([
-        _b2_command,
-        '--abbreviate-paths',
-        'toolset={}'.format(toolset),
-        'cxxstd={}'.format(cxxstd),
-        'variant={}'.format(variant),
-        'warnings=extra',
-        'warnings-as-errors=on',
-        '-d+4',
-        '-j4',
-        'libs/redis/test',
-        'libs/redis/test//fail_if_no_openssl'
-    ])
+    try:
+        _run([
+            _b2_command,
+            '--abbreviate-paths',
+            'toolset={}'.format(toolset),
+            'cxxstd={}'.format(cxxstd),
+            'variant={}'.format(variant),
+            'warnings=extra',
+            'warnings-as-errors=on',
+            '-d+4',
+            '-j4',
+            'libs/redis/test',
+            'libs/redis/test//fail_if_no_openssl'
+        ])
+    except:
+        with open(_boost_root.joinpath('bin.v2', 'config.log'), 'rt') as f:
+            contents = f.read()
+        print('Config log')
+        print(contents, flush=True)
+        raise
 
 
 def main():
