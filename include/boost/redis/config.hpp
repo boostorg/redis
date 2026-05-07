@@ -162,7 +162,7 @@ struct config {
     *
     * UNIX domain sockets can't be used with Sentinel.
     */
-   std::string unix_socket;
+   std::string unix_socket{};
 
    /** @brief (Deprecated) Username used for authentication during connection establishment.
     * 
@@ -212,7 +212,7 @@ struct config {
     * cfg.setup.hello("my_username", "my_password");
     * @endcode
     */
-   std::string password;
+   std::string password{};
 
    /** @brief (Deprecated) Client name parameter to use during connection establishment.
     * 

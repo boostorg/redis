@@ -91,6 +91,7 @@ local tests =
     test_read_buffer
     test_subscription_tracker
     test_push_parser
+    test_config
 ;
 
 # Build and run the tests
