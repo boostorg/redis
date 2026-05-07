@@ -11,6 +11,7 @@ import stat
 from shutil import rmtree, copytree, ignore_patterns
 import argparse
 import multiprocessing
+import sys
 
 
 # Variables
@@ -138,7 +139,7 @@ def _setup_boost(
     # Install Boost dependencies
     _run(["git", "config", "submodule.fetchJobs", "8"])
     _run(["git", "submodule", "update", "-q", "--init", "tools/boostdep"])
-    _run(["python3", "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
+    _run([sys.executable, "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
 
     # Bootstrap
     if _is_windows:

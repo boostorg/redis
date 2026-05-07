@@ -22,7 +22,6 @@ environment:
     - TOOLSET: msvc-14.2
 
 install:
-  - cmd: python --version
   - cmd: copy tools\user-config-win-gha.jam %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cmd: python tools\ci.py setup-boost --source-dir=%CD%
 
