@@ -22,11 +22,12 @@ environment:
     - TOOLSET: msvc-14.2
 
 install:
+  - cmd: python --version
   - cmd: copy tools\user-config-win-gha.jam %HOMEDRIVE%%HOMEPATH%\user-config.jam
-  - cmd: python3 tools\ci.py setup-boost --source-dir=%CD%
+  - cmd: python tools\ci.py setup-boost --source-dir=%CD%
 
 build_script:
-  - cmd: python3 tools\ci.py run-b2-tests --toolset %TOOLSET% --cxxstd 17,20 --variant debug,release
+  - cmd: python tools\ci.py run-b2-tests --toolset %TOOLSET% --cxxstd 17,20 --variant debug,release
 
 # All testing happens inside the b2 invocation above; AppVeyor's default test
 # discovery has nothing to do.
