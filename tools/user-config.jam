@@ -1,14 +1,11 @@
 # Used on CI. This is required on Windows to make b2 find OpenSSL.
 #
-# Layout matches the Shining Light Productions OpenSSL installer that ships in
-# the actions/runner-images Windows 2022 image:
+# Layout matches the Shining Light Productions OpenSSL installer:
 #   <root>/include/                  headers
 #   <root>/lib/VC/x64/MD/*.lib       release libs (linked against /MD  runtime)
 #   <root>/lib/VC/x64/MDd/*.lib      debug   libs (linked against /MDd runtime)
 #   <root>/lib/VC/x64/MT/*.lib       release libs (linked against /MT  runtime)
 #   <root>/lib/VC/x64/MTd/*.lib      debug   libs (linked against /MTd runtime)
-#
-# Conditional <search> paths route b2 to the right .lib for the variant being built.
 
 local openssl_root = "C:/Program Files/OpenSSL" ;
 
