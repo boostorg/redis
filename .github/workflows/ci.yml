@@ -27,7 +27,7 @@ jobs:
           - { toolset: msvc-14.3, os: windows-2022, generator: "Visual Studio 17 2022", cxxstd: '20', build-type: 'Release', build-shared-libs: 1 }
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
@@ -97,7 +97,7 @@ jobs:
       OPENSSL_ROOT: "C:\\Program Files\\OpenSSL"
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup user-config.jam
       run: cp tools/user-config.jam "${HOMEDRIVE}${HOMEPATH}/"
@@ -364,7 +364,7 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     
     - name: Generate TLS certificates
       run: |
@@ -470,7 +470,7 @@ jobs:
     container: ${{matrix.container}}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup container environment
       if: matrix.container
@@ -499,7 +499,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Setup Boost
       run: ./tools/ci.py setup-boost --source-dir=$(pwd)
