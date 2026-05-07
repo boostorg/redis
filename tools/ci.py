@@ -295,7 +295,7 @@ def _run_b2_tests(
         'variant={}'.format(variant),
         'warnings=extra',
         'warnings-as-errors=on',
-    ] + ['address-model={}'.format(address_model)] if address_model else [] + [
+    ] + (['address-model={}'.format(address_model)] if address_model else []) + [
         '-j4',
         'libs/redis/test',
         'libs/redis/test//fail_if_no_openssl'
