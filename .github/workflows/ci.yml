@@ -29,13 +29,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
 
-  #   - name: Setup Boost
-  #     run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
+    - name: Setup Boost
+      run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
 
-  #   - name: Build a Boost distribution using B2
-  #     run: |
-  #       python3 tools/ci.py build-b2-distro \
-  #         --toolset ${{ matrix.toolset }}
+    - name: Build a Boost distribution using B2
+      run: |
+        python3 tools/ci.py build-b2-distro \
+          --toolset ${{ matrix.toolset }}
 
     # No Redis server is available on this job, so integration tests are skipped.
     # Unit tests are built and run via the CMake superproject build.
@@ -93,6 +93,8 @@ jobs:
         include:
           #- { toolset: msvc-14.2, os: windows-2019 }
           - { toolset: msvc-14.3, os: windows-2022 }
+    env:
+      OPENSSL_ROOT: "C:\\Program Files\\OpenSSL"
     steps:
     - name: Checkout
       uses: actions/checkout@v6
@@ -110,11 +112,11 @@ jobs:
           --cxxstd 17,20 \
           --variant debug,release
 
-  # posix-cmake:
-  #   name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
-  #   defaults:
-  #     run:
-  #       shell: bash
+  posix-cmake:
+    name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
+    defaults:
+      run:
+        shell: bash
 
     strategy:
       fail-fast: false
@@ -364,13 +366,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
     
-  #   - name: Generate TLS certificates
-  #     run: |
-  #       ./tools/gen-certificates.sh
+    - name: Generate TLS certificates
+      run: |
+        ./tools/gen-certificates.sh
     
-  #   - name: Set up the required containers
-  #     run: |
-  #       BUILDER_IMAGE=${{ matrix.container }} SERVER_IMAGE=${{ matrix.server }} docker compose -f tools/docker-compose.yml up -d --wait || (docker compose logs; exit 1)
+    - name: Set up the required containers
+      run: |
+        BUILDER_IMAGE=${{ matrix.container }} SERVER_IMAGE=${{ matrix.server }} docker compose -f tools/docker-compose.yml up -d --wait || (docker compose logs; exit 1)
       
     - name: Install dependencies
       run: |
@@ -386,13 +388,13 @@ jobs:
           python3 \
           ${{ matrix.install }}
 
-  #   - name: Setup Boost
-  #     run: docker exec builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
+    - name: Setup Boost
+      run: docker exec builder /boost-redis/tools/ci.py setup-boost --source-dir=/boost-redis
 
-  #   - name: Build a Boost distribution using B2
-  #     run: |
-  #       docker exec builder /boost-redis/tools/ci.py build-b2-distro \
-  #         --toolset ${{ matrix.toolset }}
+    - name: Build a Boost distribution using B2
+      run: |
+        docker exec builder /boost-redis/tools/ci.py build-b2-distro \
+          --toolset ${{ matrix.toolset }}
 
     # The CMake superproject build also drives the project tests, including
     # integration tests against the Redis server set up above.
@@ -432,11 +434,11 @@ jobs:
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 
-  # posix-b2:
-  #   name: "B2 ${{ matrix.toolset }}"
-  #   defaults:
-  #     run:
-  #       shell: bash
+  posix-b2:
+    name: "B2 ${{ matrix.toolset }}"
+    defaults:
+      run:
+        shell: bash
 
     strategy:
       fail-fast: false
@@ -477,33 +479,33 @@ jobs:
         apt-get update
         apt-get -y install python3 git g++ libssl-dev ${{ matrix.install }}
 
-  #   - name: Setup Boost
-  #     run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
     
-  #   - name: Build and run project tests using B2
-  #     run: |
-  #       python3 tools/ci.py run-b2-tests \
-  #         --toolset ${{ matrix.toolset }} \
-  #         --cxxstd ${{ matrix.cxxstd }} \
-  #         --variant debug,release
+    - name: Build and run project tests using B2
+      run: |
+        python3 tools/ci.py run-b2-tests \
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }} \
+          --variant debug,release
 
-  # # Checks that we don't have any errors in docs
-  # check-docs:
-  #   name: Check docs
-  #   defaults:
-  #     run:
-  #       shell: bash
+  # Checks that we don't have any errors in docs
+  check-docs:
+    name: Check docs
+    defaults:
+      run:
+        shell: bash
 
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v6
 
-  #   - name: Setup Boost
-  #     run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
     
-  #   - name: Build docs
-  #     run: |
-  #       cd ~/boost-root
-  #       ./b2 libs/redis/doc
-  #       [ -f ~/boost-root/libs/redis/doc/html/index.html ]
+    - name: Build docs
+      run: |
+        cd ~/boost-root
+        ./b2 libs/redis/doc
+        [ -f ~/boost-root/libs/redis/doc/html/index.html ]
