@@ -1,5 +1,5 @@
 add_library(boost_redis_examples_main STATIC main.cpp)
-target_link_libraries(boost_redis_examples_main PRIVATE boost_redis_project_options)
+target_link_libraries(boost_redis_examples_main PRIVATE boost_redis_project_options boost_redis_src)
 
 function(boost_redis_make_example EXAMPLE_NAME)
   set(EXE_NAME "boost_redis_${EXAMPLE_NAME}")
