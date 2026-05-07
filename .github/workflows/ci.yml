@@ -98,7 +98,7 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Setup user-config.jam
-      run: cp tools/user-config.jam "${HOMEDRIVE}${HOMEPATH}/"
+      run: cp tools/user-config-win-gha.jam "${HOMEDRIVE}${HOMEPATH}/user-config.jam"
 
     - name: Setup Boost
       run: python3 tools/ci.py setup-boost --source-dir=$(pwd)
@@ -110,7 +110,7 @@ jobs:
           --cxxstd 17,20 \
           --variant debug,release
 
-  posix-cmake:
+  linux-cmake:
     name: "CMake ${{ matrix.toolset }} ${{ matrix.cxxstd }} ${{ matrix.build-type }} ${{ matrix.cxxflags }}"
     defaults:
       run:
@@ -432,7 +432,7 @@ jobs:
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 
-  posix-b2:
+  linux-b2:
     name: "B2 ${{ matrix.toolset }}"
     defaults:
       run:
@@ -486,6 +486,81 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --variant debug,release
+
+  osx-cmake:
+    name: "CMake OSX"
+
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+    
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+
+    - name: Build a Boost distribution using B2
+      run: |
+        ./tools/ci.py build-b2-distro \
+          --toolset clang
+
+    - name: Build a Boost distribution and run the tests using CMake
+      run: |
+        ./tools/ci.py build-cmake-distro \
+          --build-type Debug \
+          --cxxstd 20 \
+          --toolset clang \
+          "--cxxflags=-Werror" \
+          --integration-tests 0
+
+    - name: Run add_subdirectory tests
+      run: |
+        ./tools/ci.py run-cmake-add-subdirectory-tests \
+          --build-type Debug \
+          --cxxstd 20 \
+          --toolset clang \
+          "--cxxflags=-Werror"
+
+    - name: Run find_package tests with the built cmake distribution
+      run: |
+        ./tools/ci.py run-cmake-find-package-tests \
+          --build-type Debug \
+          --cxxstd 20 \
+          --toolset clang \
+          "--cxxflags=-Werror"
+
+    - name: Run find_package tests with the built b2 distribution
+      run: |
+        ./tools/ci.py run-cmake-b2-find-package-tests \
+          --build-type Debug \
+          --cxxstd 20 \
+          --toolset clang \
+          "--cxxflags=-Werror"
+
+  osx-b2:
+    name: "B2 ${{ matrix.os }}"
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Setup user-config.jam
+      run: cp tools/user-config-osx-gha.jam ~/user-config.jam
+
+    - name: Setup Boost
+      run: ./tools/ci.py setup-boost --source-dir=$(pwd)
+    
+    - name: Build and run project tests using B2
+      run: |
+        ./tools/ci.py run-b2-tests \
+          --toolset clang \
+          --cxxstd 20 \
+          --variant debug,release
+  
 
   # Checks that we don't have any errors in docs
   check-docs:
