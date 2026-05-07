@@ -18,6 +18,6 @@ using openssl : :
     <runtime-link>shared,<variant>debug:<search>$(openssl_root)/lib/VC/x64/MDd
     <runtime-link>static,<variant>release:<search>$(openssl_root)/lib/VC/x64/MT
     <runtime-link>static,<variant>debug:<search>$(openssl_root)/lib/VC/x64/MTd
-    <ssl-name>libssl
-    <crypto-name>libcrypto
+    <ssl-name>libssl.lib
+    <crypto-name>libcrypto.lib
 ;
