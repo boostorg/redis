@@ -283,7 +283,8 @@ def _run_cmake_b2_find_package_tests(
 def _run_b2_tests(
     variant: str,
     cxxstd: str,
-    toolset: str
+    toolset: str,
+    address_model: str = ''
 ):
     os.chdir(str(_boost_root))
     _run([
@@ -294,6 +295,7 @@ def _run_b2_tests(
         'variant={}'.format(variant),
         'warnings=extra',
         'warnings-as-errors=on',
+    ] + ['address-model={}'.format(address_model)] if address_model else [] + [
         '-j4',
         'libs/redis/test',
         'libs/redis/test//fail_if_no_openssl'
@@ -358,6 +360,7 @@ def main():
     subp.add_argument('--variant', default='debug,release')
     subp.add_argument('--cxxstd', default='17,20')
     subp.add_argument('--toolset', default='gcc')
+    subp.add_argument('--address-model', default='')
     subp.set_defaults(func=_run_b2_tests)
 
     # Actually parse the arguments
