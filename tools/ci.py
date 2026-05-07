@@ -94,6 +94,13 @@ def _deduce_boost_branch() -> str:
         ref = os.environ.get('DRONE_BRANCH', '')
         ci = 'Drone'
         res = 'master' if ref == 'master' else 'develop'
+    elif os.environ.get('APPVEYOR') is not None:
+        # APPVEYOR_REPO_BRANCH holds the target branch for both regular builds
+        # and PR builds (the PR's base branch), so it's the right analogue of
+        # GitHub's GITHUB_BASE_REF.
+        ref = os.environ.get('APPVEYOR_REPO_BRANCH', '')
+        ci = 'AppVeyor'
+        res = 'master' if ref == 'master' else 'develop'
     else:
         ci = 'Unknown'
         ref = ''
