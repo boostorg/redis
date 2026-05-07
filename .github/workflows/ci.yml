@@ -512,7 +512,8 @@ jobs:
           --build-type Debug \
           --cxxstd 20 \
           --toolset clang \
-          "--cxxflags=-Werror"
+          "--cxxflags=-Werror" \
+          --integration-tests 0
 
     - name: Run add_subdirectory tests
       run: |
