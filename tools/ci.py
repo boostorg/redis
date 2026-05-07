@@ -295,7 +295,8 @@ def _run_b2_tests(
         'warnings=extra',
         'warnings-as-errors=on',
         '-j4',
-        'libs/redis/test'
+        'libs/redis/test',
+        'libs/redis/test//fail_if_no_openssl'
     ])
 
 
