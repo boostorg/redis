@@ -304,6 +304,9 @@ def _run_b2_tests(
     cxxstd: str,
     toolset: str
 ):
+    # TODO: recover this after https://github.com/cppalliance/corosio/issues/245
+    werror = 'off' if _is_windows else 'off'
+
     os.chdir(str(_boost_root))
     _run([
         _b2_command,
@@ -312,7 +315,7 @@ def _run_b2_tests(
         'cxxstd={}'.format(cxxstd),
         'variant={}'.format(variant),
         'warnings=extra',
-        'warnings-as-errors=on',
+        'warnings-as-errors={}'.format(werror),
         '-j4',
         'libs/redis/test',
         'libs/redis/test//fail_if_no_openssl'
