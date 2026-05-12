@@ -7,24 +7,8 @@ import indirect ;
 # Configure openssl and zlib if it hasn't been done yet
 using openssl ;
 
-# Provide a way to fail the build if OpenSSL is not found - used by CIs
-rule do_fail_impl ( a * )
-{
-    exit "OpenSSL could not be found. Don't build target fail_if_no_openssl to skip this check" ;
-}
-
-local do_fail = [ indirect.make do_fail_impl ] ;
-
-alias fail_if_no_openssl
-    : requirements
-        [ ac.check-library /openssl//ssl    : : <conditional>@$(do_fail) ]
-        [ ac.check-library /openssl//crypto : : <conditional>@$(do_fail) ]
-;
-
-explicit fail_if_no_openssl ;
-
-# Use these requirements as both regular and usage requirements across all tests
-local requirements_common =
+# Use these requirements across all tests
+project : requirements
     <toolset>msvc:<cxxflags>"/bigobj"
     <target-os>windows:<define>_WIN32_WINNT=0x0601
     <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
@@ -45,6 +29,22 @@ local requirements_common =
     [ ac.check-library /openssl//crypto : <library>/openssl//crypto/<link>shared : <build>no ]
 ;
 
+# Provide a way to fail the build if OpenSSL is not found - used by CIs
+rule do_fail_impl ( a * )
+{
+    exit "OpenSSL could not be found. Don't build target fail_if_no_openssl to skip this check" ;
+}
+
+local do_fail = [ indirect.make do_fail_impl ] ;
+
+alias fail_if_no_openssl
+    : requirements
+        [ ac.check-library /openssl//ssl    : : <conditional>@$(do_fail) ]
+        [ ac.check-library /openssl//crypto : : <conditional>@$(do_fail) ]
+;
+
+explicit fail_if_no_openssl ;
+
 # Helper libraries
 lib redis_tests_proto
     :
@@ -52,10 +52,7 @@ lib redis_tests_proto
         common.cpp
         sansio_utils.cpp
         /boost/redis//boost_redis_proto
-    : requirements
-        $(requirements_common)
     : usage-requirements
-        $(requirements_common)
         <define>BOOST_ALLOW_DEPRECATED=1  # we need to test deprecated fns
 ;
 
@@ -75,10 +72,6 @@ lib redis_tests_asio
         asio_common.cpp
         redis_tests_proto
         /boost/redis//boost_redis
-    : requirements
-        $(requirements_asio)
-    : usage-requirements
-        $(requirements_asio)
 ;
 
 explicit redis_tests_asio ;
@@ -89,9 +82,6 @@ lib redis_tests_corosio
         corosio_common.cpp
         redis_tests_proto
         /boost/redis//boost_redis_corosio/<warnings-as-errors>off
-    : requirements
-        $(requirements_common)
-    : usage-requirements
 ;
 
 explicit redis_tests_corosio ;
