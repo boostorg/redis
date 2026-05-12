@@ -8,10 +8,21 @@
 _triggers = { "branch": [ "master", "develop" ] }
 
 
-def pipeline():
+def pipeline(
+    name,
+    toolset,
+    build_type,
+    cxxstd,
+    generator,
+    build_shared_libs,
+    cxxflags = ""
+):
+
+    common_args = "--build-type {} --cxxstd {} --toolset {} --generator \"{}\" --build-shared-libs {} --cxxflags={}".format(
+        build_type, cxxstd, toolset, generator, build_shared_libs, cxxflags)
 
     return {
-        "name": "Windows test",
+        "name": name,
         "kind": "pipeline",
         "type": "docker",
         "trigger": _triggers,
@@ -28,43 +39,12 @@ def pipeline():
             "pull": "if-not-exists",
             "commands": [
                 "choco install -y openssl",
-    #             python tools\ci.py setup-boost --source-dir=%CD%
-    #             python tools\ci.py build-b2-distro --toolset %TOOLSET%
-
-    #   python tools\ci.py build-cmake-distro
-    #   --build-type %BUILD_TYPE%
-    #   --cxxstd %CXXSTD%
-    #   --toolset %TOOLSET%
-    #   --generator "%GENERATOR%"
-    #   --build-shared-libs %BUILD_SHARED_LIBS%
-    #   --integration-tests 0
-    #   --cxxflags=%CXXFLAGS%
-
-    #   python tools\ci.py run-cmake-add-subdirectory-tests
-    #   --build-type %BUILD_TYPE%
-    #   --cxxstd %CXXSTD%
-    #   --toolset %TOOLSET%
-    #   --generator "%GENERATOR%"
-    #   --build-shared-libs %BUILD_SHARED_LIBS%
-    #   --cxxflags=%CXXFLAGS%
-  
-
-    #   python tools\ci.py run-cmake-find-package-tests
-    #   --build-type %BUILD_TYPE%
-    #   --cxxstd %CXXSTD%
-    #   --toolset %TOOLSET%
-    #   --generator "%GENERATOR%"
-    #   --build-shared-libs %BUILD_SHARED_LIBS%
-    #   --cxxflags=%CXXFLAGS%
-  
-
-    #   python tools\ci.py run-cmake-b2-find-package-tests
-    #   --build-type %BUILD_TYPE%
-    #   --cxxstd %CXXSTD%
-    #   --toolset %TOOLSET%
-    #   --generator "%GENERATOR%"
-    #   --build-shared-libs %BUILD_SHARED_LIBS%
-    #   --cxxflags=%CXXFLAGS%
+                "python tools\\ci.py setup-boost --source-dir=%CD%",
+                "python tools\\ci.py build-b2-distro --toolset {}".format(toolset),
+                "python tools\\ci.py build-cmake-distro {} --integration-tests 0".format(common_args),
+                "python tools\\ci.py run-cmake-add-subdirectory-tests {}".format(common_args),
+                "python tools\\ci.py run-cmake-find-package-tests {}".format(common_args),
+                "python tools\\ci.py run-cmake-b2-find-package-tests {}".format(common_args),
             ]
         }]
     }
@@ -72,6 +52,12 @@ def pipeline():
 
 def main(ctx):
     return [
-        pipeline()
+        pipeline(
+            name = "MSVC 14.2"
+            toolset = "msvc-14.2",
+            build_type = "Release",
+            cxxstd = "20",
+            generator = "Visual Studio 16 2019",
+            build_shared_libs = 0,
+        ),
     ]
-
