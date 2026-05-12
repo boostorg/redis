@@ -18,11 +18,12 @@ constant boost_dependencies_asio :
     /boost/asio//boost_asio
 ;
 
+# Workaround for https://github.com/bfgroup/b2/issues/596
 constant boost_dependencies_corosio :
     /boost/redis//boost_redis_proto
-    /boost/capy//boost_capy
-    /boost/corosio//boost_corosio
-    /boost/corosio//boost_corosio_openssl
+    /boost/capy//boost_capy/<link>shared
+    /boost/corosio//boost_corosio/<link>shared
+    /boost/corosio//boost_corosio_openssl/<link>shared
 ;
 
 project /boost/redis
