@@ -6,7 +6,6 @@ import indirect ;
 
 # Configure openssl and zlib if it hasn't been done yet
 using openssl ;
-using zlib ;
 
 # Provide a way to fail the build if OpenSSL is not found - used by CIs
 rule do_fail_impl ( a * )
@@ -90,7 +89,6 @@ lib redis_tests_corosio
         corosio_common.cpp
         redis_tests_proto
         /boost/redis//boost_redis_corosio/<warnings-as-errors>off
-        /zlib//zlib/<link>shared # Workaround for OpenSSL requiring zlib on Ubuntu 26.04+
     : requirements
         $(requirements_common)
     : usage-requirements
