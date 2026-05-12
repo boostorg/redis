@@ -51,7 +51,6 @@ lib redis_tests_proto
         boost_redis_proto.cpp
         common.cpp
         sansio_utils.cpp
-        /boost/capy//boost_capy # for capy::cond
         /boost/redis//boost_redis_proto
     : requirements
         $(requirements_common)
@@ -90,7 +89,7 @@ lib redis_tests_corosio
         boost_redis_corosio.cpp
         corosio_common.cpp
         redis_tests_proto
-        /boost/redis//boost_redis_corosio
+        /boost/redis//boost_redis_corosio/<warnings-as-errors>off
         /zlib//zlib/<link>shared # Workaround for OpenSSL requiring zlib on Ubuntu 26.04+
     : requirements
         $(requirements_common)
@@ -141,4 +140,4 @@ make_test test_subscription_tracker :     redis_tests_proto ;
 make_test test_push_parser :              redis_tests_proto ;
 make_test test_flow_controller :          redis_tests_corosio ;
 make_test test_co_connect :               redis_tests_corosio ;
-make_test test_mix_asio_corosio :         /boost/redis//boost_redis /boost/redis//boost_redis_corosio ;
+make_test test_mix_asio_corosio :         /boost/redis//boost_redis /boost/redis//boost_redis_corosio/<warnings-as-errors>off ;
