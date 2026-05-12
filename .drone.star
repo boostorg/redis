@@ -18,7 +18,7 @@ def pipeline(
     cxxflags = ""
 ):
 
-    common_args = "--build-type {} --cxxstd {} --toolset {} --generator \"{}\" --build-shared-libs {} --cxxflags={}".format(
+    common_args = "--build-type {} --cxxstd {} --toolset {} --generator '{}' --build-shared-libs {} --cxxflags={}".format(
         build_type, cxxstd, toolset, generator, build_shared_libs, cxxflags)
 
     return {
