@@ -53,7 +53,7 @@ def pipeline(
 def main(ctx):
     return [
         pipeline(
-            name = "MSVC 14.2"
+            name = "MSVC 14.2",
             toolset = "msvc-14.2",
             build_type = "Release",
             cxxstd = "20",
