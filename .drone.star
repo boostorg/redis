@@ -39,7 +39,7 @@ def pipeline(
             "pull": "if-not-exists",
             "commands": [
                 "choco install -y --no-progress openssl",
-                "python tools/ci.py setup-boost --source-dir=%CD%",
+                "python tools/ci.py setup-boost --source-dir=$Env:DRONE_WORKSPACE",
                 "python tools/ci.py build-b2-distro --toolset {}".format(toolset),
                 "python tools/ci.py build-cmake-distro {} --integration-tests 0".format(common_args),
                 "python tools/ci.py run-cmake-add-subdirectory-tests {}".format(common_args),
