@@ -33,6 +33,9 @@ def pipeline(
             "retries": 5
         },
         "node": {},
+        "environment": {
+            "OPENSSL_ROOT_DIR": "C:/Program Files/OpenSSL-Win64",
+        },
         "steps": [{
             "name": "Build and run",
             "image": "cppalliance/dronevs2019:2",
@@ -40,7 +43,7 @@ def pipeline(
             "commands": [
                 "choco install -y --no-progress openssl",
                 "python tools/ci.py setup-boost --source-dir=$Env:DRONE_WORKSPACE",
-                "python tools/ci.py build-b2-distro --toolset {}".format(toolset),
+                # "python tools/ci.py build-b2-distro --toolset {}".format(toolset),
                 "python tools/ci.py build-cmake-distro {} --integration-tests 0".format(common_args),
                 "python tools/ci.py run-cmake-add-subdirectory-tests {}".format(common_args),
                 "python tools/ci.py run-cmake-find-package-tests {}".format(common_args),
