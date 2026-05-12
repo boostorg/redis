@@ -15,6 +15,7 @@
 
 #include <boost/capy/io/any_stream.hpp>
 #include <boost/capy/io_task.hpp>
+#include <boost/config.hpp>
 #include <boost/corosio/endpoint.hpp>
 #include <boost/corosio/resolver_results.hpp>
 
@@ -67,6 +68,7 @@ struct log_traits<corosio::resolver_results> {
 // any of the supported transports.
 // Performs connection establishment, and outputs a stream to 'out'.
 // The resulting stream should be non-owning, pointing into impl's data members, allowing re-use.
+
 template <class StreamImpl>
 capy::io_task<> co_connect(
    StreamImpl& impl,
@@ -74,6 +76,11 @@ capy::io_task<> co_connect(
    buffered_logger& lgr,
    capy::any_stream& out)
 {
+   // gcc-15 emits a bogus diagnostic for structured bindings here
+#if defined(BOOST_GCC) && BOOST_GCC >= 150000 && BOOST_GCC < 160000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
    auto type = params.addr.type();
 
    if (type == transport_type::unix_socket) {
@@ -99,10 +106,10 @@ capy::io_task<> co_connect(
          impl.setup_tcp(out);
 
       // Resolve names
-      auto [ec, endpoints] = co_await impl.tcp_resolve(params);
-      if (ec) {
-         log_info(lgr, "Connect: hostname resolution failed: ", system::error_code(ec));
-         co_return {ec};
+      auto [ec_resolve, endpoints] = co_await impl.tcp_resolve(params);
+      if (ec_resolve) {
+         log_info(lgr, "Connect: hostname resolution failed: ", system::error_code(ec_resolve));
+         co_return {ec_resolve};
       }
       log_debug(lgr, "Connect: hostname resolution results: ", endpoints);
 
@@ -128,6 +135,9 @@ capy::io_task<> co_connect(
       // Done
       co_return {};
    }
+#if defined(BOOST_GCC) && BOOST_GCC >= 150000 && BOOST_GCC < 160000
+#pragma GCC diagnostic pop
+#endif
 }
 
 }  // namespace boost::redis::detail
