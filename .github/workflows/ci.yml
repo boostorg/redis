@@ -259,6 +259,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "valkey/valkey:8.1.3-alpine"
+            corosio-api: '0'
 
           - toolset: clang-15
             install: clang-15
