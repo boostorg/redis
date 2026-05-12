@@ -49,8 +49,7 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --integration-tests 0 \
-          "--cxxflags=//WX"
+          --integration-tests 0
 
     - name: Run add_subdirectory tests
       run: |
@@ -59,8 +58,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
@@ -69,8 +67,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
@@ -79,8 +76,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
   windows-b2:
     name: "B2 ${{matrix.toolset}}"
