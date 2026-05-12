@@ -318,7 +318,7 @@ struct exec_one_op {
    void operator()(Self& self, system::error_code ec = {}, std::size_t bytes_written = 0u)
    {
       exec_one_action act = fsm_.resume(
-         conn_->st_.mpx.get_read_buffer(),
+         conn_->st_.mpx,
          ec,
          bytes_written,
          to_redis_cancellation(self.get_cancellation_state().cancelled()));
