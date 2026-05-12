@@ -243,10 +243,10 @@ struct co_connection_impl {
    capy::io_task<> exec_one(const request& req, any_adapter resp)
    {
       exec_one_fsm fsm{std::move(resp), req.get_expected_responses()};
-      auto& rdbuff = st_.mpx.get_read_buffer();
+      auto& mpx = st_.mpx;
 
       // First invocation
-      auto act = fsm.resume(rdbuff, system::error_code(), 0u, cancellation_type::none);
+      auto act = fsm.resume(st_.mpx, system::error_code(), 0u, cancellation_type::none);
 
       while (true) {
          switch (act.type) {
@@ -254,16 +254,16 @@ struct co_connection_impl {
             case exec_one_action_type::write:
             {
                auto [ec, bytes] = co_await capy::write(stream_, capy::make_buffer(req.payload()));
-               act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
+               act = fsm.resume(mpx, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
             case exec_one_action_type::read_some:
             {
                // https://github.com/cppalliance/capy/issues/147
-               auto buff = rdbuff.get_prepared();
+               auto buff = mpx.get_read_buffer().get_prepared();
                auto [ec, bytes] = co_await stream_.read_some(
                   capy::mutable_buffer(buff.data(), buff.size()));
-               act = fsm.resume(rdbuff, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
+               act = fsm.resume(mpx, ec, bytes, to_cancel(co_await capy::this_coro::stop_token));
                break;
             }
          }
