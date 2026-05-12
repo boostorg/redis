@@ -38,7 +38,7 @@ def pipeline(
             "image": "cppalliance/dronevs2019:2",
             "pull": "if-not-exists",
             "commands": [
-                "choco install -y openssl",
+                "choco install -y --no-progress openssl",
                 "python tools/ci.py setup-boost --source-dir=%CD%",
                 "python tools/ci.py build-b2-distro --toolset {}".format(toolset),
                 "python tools/ci.py build-cmake-distro {} --integration-tests 0".format(common_args),
