@@ -233,7 +233,7 @@ struct co_connection_impl {
                ignore_unused(ec);  // TODO: we should likely use this
                break;
             }
-            case exec_action_type::done: co_return {act.error()};
+            case exec_action_type::done: co_return {std::error_code(act.error())};
          }
       }
    }
@@ -250,7 +250,7 @@ struct co_connection_impl {
 
       while (true) {
          switch (act.type) {
-            case exec_one_action_type::done: co_return {act.ec};
+            case exec_one_action_type::done: co_return {std::error_code(act.ec)};
             case exec_one_action_type::write:
             {
                auto [ec, bytes] = co_await capy::write(stream_, capy::make_buffer(req.payload()));
@@ -278,7 +278,7 @@ struct co_connection_impl {
 
       while (true) {
          switch (act.get_type()) {
-            case sentinel_action::type::done: co_return {act.error()};
+            case sentinel_action::type::done: co_return {std::error_code(act.error())};
             case sentinel_action::type::connect:
             {
                auto [ec] = co_await connect(
@@ -307,7 +307,7 @@ struct co_connection_impl {
 
       while (true) {
          switch (act.type()) {
-            case writer_action_type::done: co_return {{}, act.error()};
+            case writer_action_type::done: co_return {{}, std::error_code(act.error())};
             case writer_action_type::write_some:
             {
                auto [ec, bytes] = co_await maybe_timeout(
@@ -359,7 +359,7 @@ struct co_connection_impl {
                }
                break;
             }
-            case reader_fsm::action::type::done: co_return {{}, act.error()};
+            case reader_fsm::action::type::done: co_return {{}, std::error_code(act.error())};
          }
       }
    }
@@ -379,7 +379,7 @@ struct co_connection_impl {
          auto act = fsm.resume(st_, ec, to_cancel(co_await capy::this_coro::stop_token));
 
          switch (act.type) {
-            case run_action_type::done:             co_return {act.ec};
+            case run_action_type::done:             co_return {std::error_code(act.ec)};
             case run_action_type::sentinel_resolve: ec = (co_await sentinel_resolve()).ec; break;
             case run_action_type::connect:
                ec = (co_await connect(make_run_connect_params(st_))).ec;
