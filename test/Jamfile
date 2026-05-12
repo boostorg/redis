@@ -27,6 +27,7 @@ explicit fail_if_no_openssl ;
 local requirements_common =
     <toolset>msvc:<cxxflags>"/bigobj"
     <target-os>windows:<define>_WIN32_WINNT=0x0601
+    <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
     [ requires
         cxx14_constexpr
         cxx14_generic_lambdas
@@ -53,7 +54,6 @@ lib redis_tests_proto
         /boost/redis//boost_redis_proto
     : requirements
         $(requirements_common)
-        <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
     : usage-requirements
         $(requirements_common)
         <define>BOOST_ALLOW_DEPRECATED=1  # we need to test deprecated fns
