@@ -76,8 +76,8 @@ def _set_cmake_env(cxxflags: str = '', ldflags: str = '') -> None:
     print('+ CMAKE_BUILD_PARALLEL_LEVEL={}'.format(_num_jobs), flush=True)
     os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(_num_jobs)
 
-    print('+ CXXFLAGS={}'.format(cxxflags), flush=True)
-    os.environ['CXXFLAGS'] = cxxflags
+    # print('+ CXXFLAGS={}'.format(cxxflags), flush=True)
+    # os.environ['CXXFLAGS'] = cxxflags
 
     print('+ LDFLAGS={}'.format(ldflags), flush=True)
     os.environ['LDFLAGS'] = ldflags
