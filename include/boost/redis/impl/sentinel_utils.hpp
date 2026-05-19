@@ -25,6 +25,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 namespace boost::redis::detail {
 

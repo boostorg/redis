@@ -322,8 +322,8 @@ struct config {
 
    /** @brief Maximum size of the socket read-buffer in bytes.
     *  
-    * Sets a limit on how much data is allowed to be read into the
-    * read buffer. It can be used to prevent DDOS.
+    * Sets a limit on how large the read-buffer is allowed to grow. It can be
+    * used to prevent DDOS.
     *
     * When using Sentinel, this setting applies to masters, replicas and Sentinels.
     */
