@@ -105,8 +105,11 @@ capy::io_task<> co_connect(
       else
          impl.setup_tcp(out);
 
-      // Resolve names
-      auto [ec_resolve, endpoints] = co_await impl.tcp_resolve(params);
+      // Resolve names. Destructuring here hits a gcc-15 memory leak bug
+      // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=124584
+      auto resolve_result = co_await impl.tcp_resolve(params);
+      auto ec_resolve = resolve_result.ec;
+      const auto& endpoints = resolve_result.template get<1>();
       if (ec_resolve) {
          log_info(lgr, "Connect: hostname resolution failed: ", system::error_code(ec_resolve));
          co_return {ec_resolve};
