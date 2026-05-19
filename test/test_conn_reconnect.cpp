@@ -23,6 +23,7 @@ int main() { }
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "asio_common.hpp"
 #include "common.hpp"
 
 #include <iostream>
@@ -89,7 +90,7 @@ auto test_after_timeout() -> net::awaitable<void>
    req1.push("BLPOP", "any", 0);
 
    co_await conn->async_exec(req1, ignore, net::cancel_after(1s, net::redirect_error(ec1)));
-   BOOST_TEST_EQ(ec1, net::error::operation_aborted);
+   BOOST_TEST_EQ(ec1, canceled_condition());
 
    request req2;
    req2.get_config().cancel_if_not_connected = false;
@@ -102,7 +103,7 @@ auto test_after_timeout() -> net::awaitable<void>
 
    std::cout << "ccc" << std::endl;
 
-   BOOST_TEST_EQ(ec1, net::error::operation_aborted);
+   BOOST_TEST_EQ(ec1, canceled_condition());
 }
 
 }  // namespace

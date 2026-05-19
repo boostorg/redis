@@ -20,7 +20,6 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/impl/sentinel_utils.hpp>
 
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 
 #include <cstddef>
@@ -43,7 +42,7 @@ void log_sentinel_error(connection_state& st, std::size_t current_idx, const Arg
 sentinel_action sentinel_resolve_fsm::resume(
    connection_state& st,
    system::error_code ec,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -69,7 +68,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Sentinel resolve: cancelled (1)");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // Check for errors
@@ -86,7 +85,7 @@ sentinel_action sentinel_resolve_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Sentinel resolve: cancelled (2)");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // Check for errors

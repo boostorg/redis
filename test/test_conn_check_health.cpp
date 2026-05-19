@@ -56,7 +56,7 @@ void test_reconnection()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    // This request will complete after the health checker deems the connection
@@ -64,7 +64,7 @@ void test_reconnection()
    // on connection lost).
    conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
       exec1_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
 
       // Execute the second request. This one will succeed after reconnection
       conn.async_exec(req2, ignore, [&](error_code ec2, std::size_t) {
@@ -109,7 +109,7 @@ void test_error_code()
    // if unresponded).
    conn.async_exec(req, ignore, [&](error_code ec, std::size_t) {
       exec_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -139,7 +139,7 @@ void test_disabled()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
@@ -225,12 +225,12 @@ public:
 
       conn1.async_run(cfg, [&](error_code ec) {
          run1_finished = true;
-         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         BOOST_TEST_EQ(ec, canceled_condition());
       });
 
       conn2.async_run(cfg, [&](error_code ec) {
          run2_finished = true;
-         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         BOOST_TEST_EQ(ec, canceled_condition());
       });
 
       // BLPOP will return NIL, so we can't use ignore

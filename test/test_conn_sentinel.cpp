@@ -18,7 +18,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 #include "print_node.hpp"
 
 #include <string>
@@ -67,7 +67,7 @@ void test_exec()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -113,7 +113,7 @@ void test_receive()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -171,7 +171,7 @@ void test_reconnect()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -209,7 +209,7 @@ void test_sentinel_not_reachable()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -254,7 +254,7 @@ void test_auth()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -299,7 +299,7 @@ void test_tls()
 
    conn.async_run(cfg, {}, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST(ec == net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -346,7 +346,7 @@ void test_replica()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);

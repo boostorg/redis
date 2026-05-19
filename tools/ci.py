@@ -133,6 +133,10 @@ def _setup_boost(
     _run(["git", "submodule", "update", "-q", "--init", "tools/boostdep"])
     _run(["python3", "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
 
+    # Manually add capy and corosio. TODO: remove this once they get accepted into Boost
+    _run(["git", "clone", "-b", "develop", "--depth", "1", "https://github.com/cppalliance/capy.git", "libs/capy"])
+    _run(["git", "clone", "-b", "develop", "--depth", "1", "https://github.com/cppalliance/corosio.git", "libs/corosio"])
+
     # Bootstrap
     if _is_windows:
         _run(['cmd', '/q', '/c', 'bootstrap.bat'])
@@ -144,14 +148,17 @@ def _setup_boost(
 # Builds a Boost distribution using ./b2 install, and places it into _b2_distro.
 # This emulates a regular Boost distribution, like the ones in releases
 def _build_b2_distro(
-    toolset: str
+    toolset: str,
+    cxxstd: str
 ):
     os.chdir(str(_boost_root))
     _run([
         _b2_command,
         '--prefix={}'.format(_b2_distro),
-        '--with-headers',
+        '--with-capy',
+        '--with-corosio',
         'toolset={}'.format(toolset),
+        'cxxstd={}'.format(cxxstd),
         '-d0',
         'install'
     ])
@@ -161,6 +168,8 @@ def _build_b2_distro(
 # It includes only our library and any dependency.
 # When integration_tests is True, tests requiring a live Redis server are also
 # built and run; otherwise only the unit tests are.
+# When corosio_api is False, the Corosio API target and its tests/examples are
+# skipped (used for compilers that don't support Corosio).
 def _build_cmake_distro(
     generator: str,
     build_type: str,
@@ -168,6 +177,7 @@ def _build_cmake_distro(
     toolset: str,
     build_shared_libs: bool = False,
     integration_tests: bool = False,
+    corosio_api: bool = True,
     cxxflags: str = '',
     ldflags: str = ''
 ):
@@ -185,6 +195,7 @@ def _build_cmake_distro(
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_INSTALL_PREFIX={}'.format(_cmake_distro),
         '-DBOOST_REDIS_INTEGRATION_TESTS={}'.format(_cmake_bool(integration_tests)),
+        '-DBOOST_REDIS_COROSIO_API={}'.format(_cmake_bool(corosio_api)),
         '-DBoost_VERBOSE=ON',
         '-DCMAKE_INSTALL_MESSAGE=NEVER',
         '..'
@@ -194,7 +205,8 @@ def _build_cmake_distro(
     _run(['cmake', '--build', '.', '--target', 'install', '--config', build_type])
 
 
-# Tests that the library can be consumed using add_subdirectory()
+# Tests that the library can be consumed using add_subdirectory().
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_add_subdirectory_tests(
     generator: str,
     build_type: str,
@@ -202,7 +214,8 @@ def _run_cmake_add_subdirectory_tests(
     toolset: str,
     build_shared_libs: bool = False,
     cxxflags: str = '',
-    ldflags: str = ''
+    ldflags: str = '',
+    corosio_api: bool = True
 ):
     _set_cmake_env(cxxflags, ldflags)
     test_folder = _boost_root.joinpath('libs', 'redis', 'test', 'cmake_subdir_test', '__build')
@@ -216,19 +229,22 @@ def _run_cmake_add_subdirectory_tests(
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
+        '-DBOOST_REDIS_COROSIO_API={}'.format(_cmake_bool(corosio_api)),
         '..'
     ])
     _run(['cmake', '--build', '.', '--config', build_type])
     _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
-# Tests that the library can be consumed using find_package on a distro built by cmake
+# Tests that the library can be consumed using find_package on a distro built by cmake.
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_find_package_tests(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
     build_shared_libs: bool = False,
+    corosio_api: bool = True,
     cxxflags: str = '',
     ldflags: str = ''
 ):
@@ -243,6 +259,7 @@ def _run_cmake_find_package_tests(
         '-DCMAKE_BUILD_TYPE={}'.format(build_type),
         '-DBUILD_SHARED_LIBS={}'.format(_cmake_bool(build_shared_libs)),
         '-DCMAKE_CXX_STANDARD={}'.format(cxxstd),
+        '-DBOOST_REDIS_COROSIO_API={}'.format(_cmake_bool(corosio_api)),
         '-DCMAKE_PREFIX_PATH={}'.format(_cmake_distro),
         '..'
     ])
@@ -250,13 +267,15 @@ def _run_cmake_find_package_tests(
     _run(['ctest', '--output-on-failure', '--build-config', build_type, '--no-tests=error'])
 
 
-# Tests that the library can be consumed using find_package on a distro built by b2
+# Tests that the library can be consumed using find_package on a distro built by b2.
+# When corosio_api is True, the Corosio variant of the test is also exercised.
 def _run_cmake_b2_find_package_tests(
     generator: str,
     build_type: str,
     cxxstd: str,
     toolset: str,
     build_shared_libs: bool = False,
+    corosio_api: bool = True,
     cxxflags: str = '',
     ldflags: str = ''
 ):
@@ -285,6 +304,9 @@ def _run_b2_tests(
     cxxstd: str,
     toolset: str
 ):
+    # TODO: recover this after https://github.com/cppalliance/corosio/issues/245
+    werror = 'off' if _is_windows else 'off'
+
     os.chdir(str(_boost_root))
     _run([
         _b2_command,
@@ -293,7 +315,7 @@ def _run_b2_tests(
         'cxxstd={}'.format(cxxstd),
         'variant={}'.format(variant),
         'warnings=extra',
-        'warnings-as-errors=on',
+        'warnings-as-errors={}'.format(werror),
         '-j4',
         'libs/redis/test',
         'libs/redis/test//fail_if_no_openssl'
@@ -311,6 +333,7 @@ def main():
 
     subp = subparsers.add_parser('build-b2-distro')
     subp.add_argument('--toolset', default='gcc')
+    subp.add_argument('--cxxstd', default='20')
     subp.set_defaults(func=_build_b2_distro)
 
     subp = subparsers.add_parser('build-cmake-distro')
@@ -320,6 +343,7 @@ def main():
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
     subp.add_argument('--integration-tests', type=_str2bool, default=True)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.add_argument('--cxxflags', default='')
     subp.add_argument('--ldflags', default='')
     subp.set_defaults(func=_build_cmake_distro)
@@ -330,6 +354,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.add_argument('--cxxflags', default='')
     subp.add_argument('--ldflags', default='')
     subp.set_defaults(func=_run_cmake_add_subdirectory_tests)
@@ -340,6 +365,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.add_argument('--cxxflags', default='')
     subp.add_argument('--ldflags', default='')
     subp.set_defaults(func=_run_cmake_find_package_tests)
@@ -350,6 +376,7 @@ def main():
     subp.add_argument('--cxxstd', default='20')
     subp.add_argument('--toolset', default='gcc')
     subp.add_argument('--build-shared-libs', type=_str2bool, default=False)
+    subp.add_argument('--corosio-api', type=_str2bool, default=True)
     subp.add_argument('--cxxflags', default='')
     subp.add_argument('--ldflags', default='')
     subp.set_defaults(func=_run_cmake_b2_find_package_tests)

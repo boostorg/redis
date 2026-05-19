@@ -6,16 +6,18 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
 #include <boost/redis/detail/writer_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/logger.hpp>
 #include <boost/redis/request.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include "sansio_utils.hpp"
@@ -24,8 +26,11 @@
 #include <memory>
 #include <ostream>
 #include <string_view>
+#include <system_error>
 
 using namespace boost::redis;
+using boost::system::error_code;
+namespace errc = boost::system::errc;
 namespace asio = boost::asio;
 using detail::writer_fsm;
 using detail::multiplexer;
@@ -33,8 +38,7 @@ using detail::writer_action_type;
 using detail::consume_result;
 using detail::writer_action;
 using detail::connection_state;
-using boost::system::error_code;
-using boost::asio::cancellation_type_t;
+using detail::cancellation_type;
 using namespace std::chrono_literals;
 
 // Operators
@@ -109,7 +113,8 @@ struct test_elem {
 
 struct fixture : detail::log_fixture {
    connection_state st{{make_logger()}};
-   writer_fsm fsm;
+   // Timeout condition is arbitrary
+   writer_fsm fsm{std::errc::broken_pipe};
 
    fixture()
    {
@@ -129,13 +134,12 @@ void test_single_request()
    fix.st.mpx.add(item1.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
    // The write completes successfully. The request is written, and we go back to sleep.
-   act = fix.fsm
-            .resume(fix.st, error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item1.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
    BOOST_TEST(item1.elm->is_written());
 
@@ -143,13 +147,12 @@ void test_single_request()
    fix.st.mpx.add(item2.elm);
 
    // The wait is cancelled to signal we've got a new request
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item2.elm->is_staged());
 
    // Write successful
-   act = fix.fsm
-            .resume(fix.st, error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item2.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
    BOOST_TEST(item2.elm->is_written());
 
@@ -171,7 +174,7 @@ void test_request_arrives_while_writing()
    fix.st.mpx.add(item1.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
@@ -180,15 +183,13 @@ void test_request_arrives_while_writing()
 
    // The write completes successfully. The request is written,
    // and we start writing the new one
-   act = fix.fsm
-            .resume(fix.st, error_code(), item1.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item1.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_written());
    BOOST_TEST(item2.elm->is_staged());
 
    // Write successful
-   act = fix.fsm
-            .resume(fix.st, error_code(), item2.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item2.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
    BOOST_TEST(item2.elm->is_written());
 
@@ -207,19 +208,50 @@ void test_no_request_at_startup()
    test_elem item;
 
    // Start. There is no request, so we wait
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // A request arrives
    fix.st.mpx.add(item.elm);
 
-   // The wait is cancelled to signal we've got a new request
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   // The wait is cancelled (with a non-empty ec signal) to indicate new data
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
    // Write successful
-   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type::none);
+   BOOST_TEST_EQ(act, writer_action::wait(4s));
+   BOOST_TEST(item.elm->is_written());
+
+   // Logs
+   fix.check_log({
+      {logger::level::debug, "Writer task: 24 bytes written."},
+   });
+}
+
+// If the wait is signaled with any error, we considered it a notification.
+// Important because Asio and Corosio might signal this differently
+void test_wait_canceled_other_code()
+{
+   // Setup
+   fixture fix;
+   test_elem item;
+
+   // Start. There is no request, so we wait
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
+   BOOST_TEST_EQ(act, writer_action::wait(4s));
+
+   // A request arrives
+   fix.st.mpx.add(item.elm);
+
+   // The wait is cancelled (with a non-empty ec signal) to indicate new data
+   act = fix.fsm.resume(fix.st, make_error_code(errc::protocol_error), 0u, cancellation_type::none);
+   BOOST_TEST_EQ(act, writer_action::write_some(4s));
+   BOOST_TEST(item.elm->is_staged());
+
+   // Write successful
+   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
    BOOST_TEST(item.elm->is_written());
 
@@ -240,27 +272,27 @@ void test_short_writes()
    fix.st.mpx.add(item1.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
    // We write a few bytes. It's not the entire message, so we write again
-   act = fix.fsm.resume(fix.st, error_code(), 2u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 2u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
    // We write some more bytes, but still not the entire message.
-   act = fix.fsm.resume(fix.st, error_code(), 5u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 5u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
    // A zero size write doesn't cause trouble
-   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item1.elm->is_staged());
 
    // Complete writing the message (the entire payload is 24 bytes long)
-   act = fix.fsm.resume(fix.st, error_code(), 17u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 17u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
    BOOST_TEST(item1.elm->is_written());
 
@@ -282,16 +314,16 @@ void test_ping()
    constexpr std::string_view ping_payload = "*2\r\n$4\r\nPING\r\n$8\r\nping_msg\r\n";
 
    // Start. There is no request, so we wait
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // No request arrives during the wait interval so a ping is added
-   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST_EQ(fix.st.mpx.get_write_buffer(), ping_payload);
 
    // Write successful
-   act = fix.fsm.resume(fix.st, error_code(), ping_payload.size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), ping_payload.size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // Simulate a successful response to the PING
@@ -320,12 +352,12 @@ void test_health_checks_disabled()
    fix.st.mpx.add(item.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(0s));
    BOOST_TEST(item.elm->is_staged());
 
    // The write completes successfully. The request is written, and we go back to sleep.
-   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), item.req.payload().size(), cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(0s));
    BOOST_TEST(item.elm->is_written());
 
@@ -343,16 +375,16 @@ void test_ping_error()
    error_code ec;
 
    // Start. There is no request, so we wait
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // No request arrives during the wait interval so a ping is added
-   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
 
    // Write successful
    const auto ping_size = fix.st.mpx.get_write_buffer().size();
-   act = fix.fsm.resume(fix.st, error_code(), ping_size, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), ping_size, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // Simulate an error response to the PING
@@ -381,14 +413,14 @@ void test_write_error()
    fix.st.mpx.add(item.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
    // The write completes with an error (possibly with partial success).
    // The request is still staged, and the writer exits.
    // Use an error we control so we can check logs
-   act = fix.fsm.resume(fix.st, error::empty_field, 2u, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error::empty_field, 2u, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::empty_field));
    BOOST_TEST(item.elm->is_staged());
 
@@ -410,12 +442,12 @@ void test_write_timeout()
    fix.st.mpx.add(item.elm);
 
    // Start. A write is triggered, and the request is marked as staged
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
-   // The write times out, so it completes with operation_aborted
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type_t::none);
+   // The write times out. An ec matching the timeout condition is reported.
+   act = fix.fsm.resume(fix.st, make_error_code(errc::broken_pipe), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::write_timeout));
    BOOST_TEST(item.elm->is_staged());
 
@@ -439,13 +471,13 @@ void test_cancel_write()
    fix.st.mpx.add(item.elm);
 
    // Start. A write is triggered
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled and failed with operation_aborted
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 2u, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 2u, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
    BOOST_TEST(item.elm->is_staged());
 
    // Logs
@@ -466,14 +498,14 @@ void test_cancel_write_edge()
    fix.st.mpx.add(item.elm);
 
    // Start. A write is triggered
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::write_some(4s));
    BOOST_TEST(item.elm->is_staged());
 
    // Write cancelled but without error
    act = fix.fsm
-            .resume(fix.st, error_code(), item.req.payload().size(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+            .resume(fix.st, error_code(), item.req.payload().size(), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
    BOOST_TEST(item.elm->is_written());
 
    // Logs
@@ -491,19 +523,16 @@ void test_cancel_wait()
    test_elem item;
 
    // Start. There is no request, so we wait
-   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), 0u, cancellation_type::none);
    BOOST_TEST_EQ(act, writer_action::wait(4s));
 
    // Sanity check: the writer doesn't touch the multiplexer after a cancellation
    fix.st.mpx.add(item.elm);
 
-   // Cancel the wait, setting the cancellation state
-   act = fix.fsm.resume(
-      fix.st,
-      asio::error::operation_aborted,
-      0u,
-      asio::cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   // Cancel the wait, setting the cancellation state.
+   // The pass-through ec is superseded by the cancellation state.
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, 0u, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
    BOOST_TEST(item.elm->is_waiting());
 
    // Logs
@@ -519,6 +548,7 @@ int main()
    test_single_request();
    test_request_arrives_while_writing();
    test_no_request_at_startup();
+   test_wait_canceled_other_code();
    test_short_writes();
    test_health_checks_disabled();
 

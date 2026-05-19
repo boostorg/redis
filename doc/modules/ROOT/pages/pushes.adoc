@@ -15,6 +15,12 @@ The most common case is
 https://redis.io/docs/latest/develop/pubsub/[Pub/Sub messages]
 triggered by `PUBLISH`. The following example shows a typical receiver:
 
+[tabs]
+========
+Asio::
++
+--
+
 [source,cpp]
 ----
 auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
@@ -62,19 +68,84 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    }
 }
 ----
+--
+
+Corosio::
++
+--
+
+[source,cpp]
+----
+capy::io_task<> receiver(co_connection& conn)
+{
+   generic_flat_response resp;
+   conn.set_receive_response(resp);
+
+   // Subscribe to the channel 'mychannel'. You can add any number of channels here.
+   request req;
+   req.subscribe({"mychannel"});
+   auto [sub_ec] = co_await conn.exec(req);
+   if (sub_ec) {
+      std::cerr << "Error subscribing: " << sub_ec << std::endl;
+      co_return {};
+   }
+
+   // You're now subscribed to 'mychannel'. Pushes sent over this channel will be stored
+   // in resp. If the connection encounters a network error and reconnects to the server,
+   // it will automatically subscribe to 'mychannel' again. This is transparent to the user.
+   // You need to use the specialized request::subscribe() function (instead of request::push)
+   // to enable this behavior.
+
+   // Loop to read Redis push messages. The loop terminates when receive() reports an error
+   // (e.g. cancellation when the surrounding when_any cascade tears down the run loop).
+   while (true) {
+      // Wait for pushes
+      auto [ec] = co_await conn.receive();
+
+      // Check for errors and cancellations
+      if (ec) {
+         std::cerr << "Error during receive: " << ec << std::endl;
+         co_return {};
+      }
+
+      // This can happen if a SUBSCRIBE command errored (e.g. insufficient permissions)
+      if (resp.has_error()) {
+         std::cerr << "The receive response contains an error: " << resp.error().diagnostic
+                   << std::endl;
+         co_return {};
+      }
+
+      // The response must be consumed without suspending the
+      // coroutine i.e. without the use of async operations.
+      for (push_view elem : push_parser(resp.value())) {
+         std::cout << "Received message from channel " << elem.channel << ": " << elem.payload
+                   << "\n";
+      }
+
+      resp.value().clear();
+   }
+}
+----
+--
+
+========
 
 Summary of the steps:
 
-* Call xref:reference:boost/redis/basic_connection.adoc[`connection::set_receive_response`]
+* Call xref:reference:boost/redis/basic_connection.adoc[`connection::set_receive_response`] /
+  xref:reference:boost/redis/co_connection/set_receive_response.adoc[`co_connection::set_receive_response`]
   before any other receive-related calls so that the connection stores incoming pushes in the
   given object. The library does not copy the response; you must keep it alive for the
   duration of the receive loop.
 * Build a request with xref:reference:boost/redis/request.adoc[`request::subscribe`]
   (or `psubscribe`) and execute it. If the connection drops and is re-established,
   an equivalent `SUBSCRIBE` is sent automatically.
-* Loop while xref:reference:boost/redis/basic_connection.adoc[`connection::will_reconnect`]
-  is true (i.e. until the connection is cancelled).
-* Call xref:reference:boost/redis/basic_connection.adoc[`connection::async_receive2`]
+* Loop until the connection is cancelled.
+  In Asio, gate the loop on xref:reference:boost/redis/basic_connection.adoc[`connection::will_reconnect`].
+  In Corosio, run until xref:reference:boost/redis/co_connection/receive.adoc[`co_connection::receive`]
+  reports an error (e.g. cancellation when the surrounding `when_any` tears down the run loop).
+* Call xref:reference:boost/redis/basic_connection.adoc[`connection::async_receive2`] /
+  xref:reference:boost/redis/co_connection/receive.adoc[`co_connection::receive`]
   to wait until at least one push is available. This function also participates in
   push flow control (see <<flow-control>>).
 * After completion, `resp` holds the raw RESP3 nodes for the received pushes
@@ -107,20 +178,27 @@ flow control. After a certain number of pushes have been read and not yet consum
 stops reading until the application drains the receive buffer. This creates backpressure
 at the TCP level.
 
-The pending count is reset each time `async_receive2` completes. You must still free
+The pending count is reset each time `async_receive2` (Asio) /
+`receive` (Corosio)
+completes. You must still free
 memory by calling `resp3::flat_tree::clear()` (or equivalent) on the response, as in
 the example.
 
-WARNING: Do not call xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`] from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
+WARNING: Do not call
+xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`connection::async_exec`] /
+xref:reference:boost/redis/co_connection/exec-00.adoc[`co_connection::exec`]
+from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
 
 
 == Subscribe confirmations
 
 Every time you subscribe to a channel, Redis sends a push as a confirmation. These confirmations
-are stored in your receive response and cause `async_receive2` to complete like any
+are stored in your receive response and cause `async_receive2` (Asio) /
+`receive` (Corosio)
+to complete like any
 other push. `push_parser` skips these messages, since they don't contain application-level information.
 
-As a result, *`async_receive2` will complete while the `push_parser` range is empty*
+As a result, *the receive call will complete while the `push_parser` range is empty*
 when only confirmations are received. Your code should handle an empty range correctly.
 
 To work with subscribe confirmations or other push shapes, use the raw nodes in
@@ -137,6 +215,11 @@ async operation.
 
 For example, the following is incorrect:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 auto [ec] = co_await conn->async_receive2(asio::as_tuple);
@@ -145,9 +228,29 @@ auto [ec] = co_await conn->async_receive2(asio::as_tuple);
 co_await websocket.async_send(push_parser(resp.value()));
 resp.value().clear();
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+auto [ec] = co_await conn.receive();
+// DON'T DO THIS: more pushes may be read while the WebSocket send runs,
+// and they are discarded when you clear(), causing a race.
+co_await websocket.send(push_parser(resp.value()));
+resp.value().clear();
+----
+--
+========
 
 Instead, copy or compose the message without I/O, then clear, then send:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 auto [ec] = co_await conn->async_receive2(asio::as_tuple);
@@ -161,6 +264,26 @@ resp.value().clear();
 // Now it's OK to suspend the coroutine
 co_await websocket.async_write(msg);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+auto [ec] = co_await conn.receive();
+
+// Compose the WebSocket message without any I/O (no suspension).
+// msg must not reference resp.
+auto msg = compose_websocket_message(push_parser(resp.value()));
+
+resp.value().clear();
+
+// Now it's OK to suspend the coroutine
+co_await websocket.write(msg);
+----
+--
+========
 
 == SUBSCRIBE errors
 

@@ -8,3 +8,4 @@
 #define BOOST_ALLOW_DEPRECATED  // avoid mrdocs errors with the BOOST_DEPRECATED macro
 
 #include <boost/redis.hpp>
+#include <boost/redis/co_connection.hpp>

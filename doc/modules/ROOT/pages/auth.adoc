@@ -23,6 +23,11 @@ and build the desired setup request in
 without auth). To authenticate, clear the default setup and push a
 `HELLO` command that includes your credentials:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 config cfg;
@@ -30,20 +35,56 @@ cfg.use_setup = true;
 cfg.setup.clear();   // Remove the default HELLO 3
 cfg.setup.hello("my_username", "my_password");
 
-co_await conn.async_run(cfg);
+co_await conn->async_run(cfg);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+config cfg;
+cfg.use_setup = true;
+cfg.setup.clear();   // Remove the default HELLO 3
+cfg.setup.hello("my_username", "my_password");
+
+co_await conn.run(cfg);
+----
+--
+========
 
 Authentication is just one use of this mechanism.
 For example, to select a particular logical database (see the Redis
 https://redis.io/commands/select/[SELECT] command), add a `SELECT`
 command after the `HELLO`:
 
+[tabs]
+========
+Asio::
++
+--
 [source,cpp]
 ----
 config cfg;
 cfg.use_setup = true;
 cfg.setup.push("SELECT", 42); // select the logical database 42 after the default HELLO 3
 
-co_await conn.async_run(cfg);
+co_await conn->async_run(cfg);
 ----
+--
+
+Corosio::
++
+--
+[source,cpp]
+----
+config cfg;
+cfg.use_setup = true;
+cfg.setup.push("SELECT", 42); // select the logical database 42 after the default HELLO 3
+
+co_await conn.run(cfg);
+----
+--
+========
 

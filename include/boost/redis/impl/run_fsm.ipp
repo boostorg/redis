@@ -19,23 +19,19 @@
 #include <boost/redis/impl/sentinel_utils.hpp>
 #include <boost/redis/impl/setup_request_utils.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/asio/local/basic_endpoint.hpp>  // for BOOST_ASIO_HAS_LOCAL_SOCKETS
 #include <boost/system/error_code.hpp>
 
 namespace boost::redis::detail {
 
-inline system::error_code check_config(const config& cfg)
+inline system::error_code check_config(const config& cfg, bool unix_sockets_supported)
 {
    if (!cfg.unix_socket.empty()) {
       if (cfg.use_ssl)
          return error::unix_sockets_ssl_unsupported;
       if (use_sentinel(cfg))
          return error::sentinel_unix_sockets_unsupported;
-#ifndef BOOST_ASIO_HAS_LOCAL_SOCKETS
-      return error::unix_sockets_unsupported;
-#endif
+      if (!unix_sockets_supported)
+         return error::unix_sockets_unsupported;
    }
    return system::error_code{};
 }
@@ -89,13 +85,13 @@ struct log_traits<any_address_view> {
 run_action run_fsm::resume(
    connection_state& st,
    system::error_code ec,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
 
       // Check config
-      ec = check_config(st.cfg);
+      ec = check_config(st.cfg, unix_sockets_supported_);
       if (ec) {
          log_err(st.logger, "Invalid configuration: ", ec);
          stored_ec_ = ec;
@@ -126,7 +122,7 @@ run_action run_fsm::resume(
             // Check for cancellations
             if (is_terminal_cancel(cancel_state)) {
                log_debug(st.logger, "Run: cancelled (4)");
-               return {asio::error::operation_aborted};
+               return {make_error_code(system::errc::operation_canceled)};
             }
 
             // Check for errors
@@ -141,7 +137,7 @@ run_action run_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (1)");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          if (ec) {
@@ -193,7 +189,7 @@ run_action run_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (2)");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
 
 sleep_and_reconnect:
@@ -209,7 +205,7 @@ sleep_and_reconnect:
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Run: cancelled (3)");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
       }
    }

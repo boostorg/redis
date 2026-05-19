@@ -10,7 +10,7 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 namespace net = boost::asio;
 using boost::redis::connection;

@@ -17,10 +17,13 @@ project(boost_redis_mrdocs LANGUAGES CXX)
 # only to our target of interest
 set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
 
+# We want docs for the Corosio API, too
+set(BOOST_REDIS_COROSIO_API ON)
+
 # Add Boost
 add_subdirectory($ENV{BOOST_SRC_DIR} deps/boost)
 
 # Add the target for mrdocs to analyze
 add_executable(mrdocs mrdocs.cpp)
-target_link_libraries(mrdocs PRIVATE Boost::redis)
+target_link_libraries(mrdocs PRIVATE Boost::redis Boost::redis_corosio)
 set_target_properties(mrdocs PROPERTIES EXPORT_COMPILE_COMMANDS ON)

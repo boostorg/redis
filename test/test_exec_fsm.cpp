@@ -6,15 +6,16 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/multiplexer.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include "sansio_utils.hpp"
@@ -25,7 +26,8 @@
 #include <utility>
 
 using namespace boost::redis;
-namespace asio = boost::asio;
+namespace errc = boost::system::errc;
+using detail::cancellation_type;
 using detail::exec_fsm;
 using detail::multiplexer;
 using detail::exec_action_type;
@@ -33,7 +35,6 @@ using detail::consume_result;
 using detail::exec_action;
 using detail::connection_state;
 using boost::system::error_code;
-using boost::asio::cancellation_type_t;
 
 #define BOOST_REDIS_EXEC_SWITCH_CASE(elem) \
    case exec_action_type::elem: return "exec_action_type::" #elem
@@ -141,13 +142,13 @@ void test_success()
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   auto act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -163,7 +164,7 @@ void test_success()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
@@ -180,13 +181,13 @@ void test_parse_error()
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   auto act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -204,7 +205,7 @@ void test_parse_error()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error::empty_field, 0u));
 
    // All memory should have been freed by now
@@ -222,10 +223,10 @@ void test_cancel_if_not_connected()
    exec_fsm fsm(std::move(input.elm));
 
    // Initiate. We're not connected, so the request gets cancelled
-   auto act = fsm.resume(false, st, cancellation_type_t::none);
+   auto act = fsm.resume(false, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::immediate);
 
-   act = fsm.resume(false, st, cancellation_type_t::none);
+   act = fsm.resume(false, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error::not_connected));
 
    // We didn't leave memory behind
@@ -242,13 +243,13 @@ void test_not_connected()
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(false, st, cancellation_type_t::none);
+   auto act = fsm.resume(false, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -264,7 +265,7 @@ void test_not_connected()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
@@ -280,13 +281,13 @@ void test_cancel_waiting()
 {
    constexpr struct {
       const char* name;
-      asio::cancellation_type_t type;
+      cancellation_type type;
    } test_cases[] = {
-      {"terminal", asio::cancellation_type_t::terminal                                     },
-      {"partial",  asio::cancellation_type_t::partial                                      },
-      {"total",    asio::cancellation_type_t::total                                        },
-      {"mixed",    asio::cancellation_type_t::partial | asio::cancellation_type_t::terminal},
-      {"all",      asio::cancellation_type_t::all                                          },
+      {"terminal", cancellation_type::terminal                                                        },
+      {"partial",  cancellation_type::partial                                                         },
+      {"total",    cancellation_type::total                                                           },
+      {"mixed",    cancellation_type::partial | cancellation_type::terminal                           },
+      {"all",      cancellation_type::terminal | cancellation_type::partial | cancellation_type::total},
    };
 
    for (const auto& tc : test_cases) {
@@ -300,16 +301,16 @@ void test_cancel_waiting()
       BOOST_TEST_EQ_MSG(st.mpx.prepare_write(), 1u, tc.name);
 
       // Initiate and wait
-      auto act = fsm.resume(true, st, cancellation_type_t::none);
+      auto act = fsm.resume(true, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
-      act = fsm.resume(true, st, cancellation_type_t::none);
+      act = fsm.resume(true, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
-      act = fsm.resume(true, st, cancellation_type_t::none);
+      act = fsm.resume(true, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // We get notified because the request got cancelled
       act = fsm.resume(true, st, tc.type);
-      BOOST_TEST_EQ_MSG(act, exec_action(asio::error::operation_aborted), tc.name);
+      BOOST_TEST_EQ_MSG(act, make_error_code(errc::operation_canceled), tc.name);
       BOOST_TEST_EQ_MSG(input.weak_elm.expired(), true, tc.name);  // we didn't leave memory behind
    }
 }
@@ -320,10 +321,10 @@ void test_cancel_notwaiting_terminal_partial()
 {
    constexpr struct {
       const char* name;
-      asio::cancellation_type_t type;
+      cancellation_type type;
    } test_cases[] = {
-      {"terminal", asio::cancellation_type_t::terminal},
-      {"partial",  asio::cancellation_type_t::partial },
+      {"terminal", cancellation_type::terminal},
+      {"partial",  cancellation_type::partial },
    };
 
    for (const auto& tc : test_cases) {
@@ -333,12 +334,12 @@ void test_cancel_notwaiting_terminal_partial()
       exec_fsm fsm(std::move(input->elm));
 
       // Initiate
-      auto act = fsm.resume(false, st, cancellation_type_t::none);
+      auto act = fsm.resume(false, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::setup_cancellation, tc.name);
-      act = fsm.resume(true, st, cancellation_type_t::none);
+      act = fsm.resume(true, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::notify_writer, tc.name);
 
-      act = fsm.resume(true, st, cancellation_type_t::none);
+      act = fsm.resume(true, st, cancellation_type::none);
       BOOST_TEST_EQ_MSG(act, exec_action_type::wait_for_response, tc.name);
 
       // The multiplexer starts writing the request
@@ -347,7 +348,7 @@ void test_cancel_notwaiting_terminal_partial()
 
       // A cancellation arrives
       act = fsm.resume(true, st, tc.type);
-      BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted));
+      BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
       input.reset();  // Verify we don't access the request or response after completion
 
       error_code ec;
@@ -372,12 +373,12 @@ void test_cancel_notwaiting_total()
    error_code ec;
 
    // Initiate
-   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   auto act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -385,7 +386,7 @@ void test_cancel_notwaiting_total()
    BOOST_TEST(st.mpx.commit_write(st.mpx.get_write_buffer().size()));
 
    // We got requested a cancellation here, but we can't honor it
-   act = fsm.resume(true, st, asio::cancellation_type_t::total);
+   act = fsm.resume(true, st, cancellation_type::total);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful read
@@ -397,7 +398,7 @@ void test_cancel_notwaiting_total()
    BOOST_TEST_EQ(input.done_calls, 1u);
 
    // This will awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 11u));
 
    // All memory should have been freed by now
@@ -415,13 +416,13 @@ void test_subscription_tracking_success()
    exec_fsm fsm(std::move(input.elm));
 
    // Initiate
-   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   auto act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a successful write
@@ -430,7 +431,7 @@ void test_subscription_tracking_success()
 
    // The request doesn't have a response, so this will
    // awaken the exec operation, and should complete the operation
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action(error_code(), 0u));
 
    // All memory should have been freed by now
@@ -456,13 +457,13 @@ void test_subscription_tracking_error()
    exec_fsm fsm(std::move(input.elm));
 
    // Initiate
-   auto act = fsm.resume(true, st, cancellation_type_t::none);
+   auto act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::setup_cancellation);
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::notify_writer);
 
    // We should now wait for a response
-   act = fsm.resume(true, st, cancellation_type_t::none);
+   act = fsm.resume(true, st, cancellation_type::none);
    BOOST_TEST_EQ(act, exec_action_type::wait_for_response);
 
    // Simulate a write error, which would trigger a reconnection
@@ -470,8 +471,8 @@ void test_subscription_tracking_error()
    st.mpx.cancel_on_conn_lost();
 
    // This awakens the request
-   act = fsm.resume(true, st, cancellation_type_t::none);
-   BOOST_TEST_EQ(act, exec_action(asio::error::operation_aborted, 0u));
+   act = fsm.resume(true, st, cancellation_type::none);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled, 0u));
 
    // All memory should have been freed by now
    BOOST_TEST(input.weak_elm.expired());

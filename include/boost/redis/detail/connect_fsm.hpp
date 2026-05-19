@@ -9,6 +9,8 @@
 #ifndef BOOST_REDIS_CONNECT_FSM_HPP
 #define BOOST_REDIS_CONNECT_FSM_HPP
 
+#include <boost/redis/detail/transport_type.hpp>
+
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
@@ -18,14 +20,6 @@
 namespace boost::redis::detail {
 
 struct buffered_logger;
-
-// What transport is redis_stream using?
-enum class transport_type
-{
-   tcp,          // plaintext TCP
-   tcp_tls,      // TLS over TCP
-   unix_socket,  // UNIX domain sockets
-};
 
 struct redis_stream_state {
    transport_type type{transport_type::tcp};

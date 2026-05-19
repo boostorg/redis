@@ -15,7 +15,7 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 #include <iostream>
 #include <string>
@@ -54,7 +54,7 @@ void test_auth_success()
 
    conn.async_run(cfg, [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, asio::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);

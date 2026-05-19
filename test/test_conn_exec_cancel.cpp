@@ -70,7 +70,7 @@ void test_cancel_pending()
          req,
          ignore,
          net::bind_cancellation_slot(sig.slot(), [&](error_code ec, std::size_t sz) {
-            BOOST_TEST_EQ(ec, net::error::operation_aborted);
+            BOOST_TEST_EQ(ec, canceled_condition());
             BOOST_TEST_EQ(sz, 0u);
             called = true;
          }));
@@ -116,7 +116,7 @@ void test_cancel_written()
 
    // Run the connection
    conn.async_run(cfg, [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -127,14 +127,14 @@ void test_cancel_written()
    auto blpop_cb = [&](error_code ec, std::size_t) {
       req1.reset();
       r1.reset();
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       exec1_finished = true;
    };
    conn.async_exec(*req1, *r1, net::cancel_after(500ms, blpop_cb));
 
    // The first PING will be cancelled, too. Use partial cancellation here.
    auto req2_cb = [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       exec2_finished = true;
    };
    conn.async_exec(
@@ -203,7 +203,7 @@ void test_cancel_on_connection_lost_written()
    // Run the connection
    auto cfg = make_test_config();
    conn.async_run(cfg, [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -219,7 +219,7 @@ void test_cancel_on_connection_lost_written()
    });
 
    conn.async_exec(req1, ignore, [&](error_code ec, std::size_t) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       exec1_finished = true;
    });
 
@@ -251,7 +251,7 @@ void test_cancel_operation_exec()
 
    // Run the connection
    conn.async_run(make_test_config(), [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 

@@ -9,12 +9,14 @@
 #ifndef BOOST_REDIS_WRITER_FSM_HPP
 #define BOOST_REDIS_WRITER_FSM_HPP
 
-#include <boost/asio/cancellation_type.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
+
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <chrono>
 #include <cstddef>
+#include <system_error>
 
 // Sans-io algorithm for the writer task, as a finite state machine
 
@@ -75,16 +77,19 @@ public:
 };
 
 class writer_fsm {
+   std::error_condition timeout_cond_;
    int resume_point_{0};
 
 public:
-   writer_fsm() = default;
+   writer_fsm(std::error_condition timeout_cond) noexcept
+   : timeout_cond_(timeout_cond)
+   { }
 
    writer_action resume(
       connection_state& st,
       system::error_code ec,
       std::size_t bytes_written,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 }  // namespace boost::redis::detail

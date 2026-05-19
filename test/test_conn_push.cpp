@@ -68,7 +68,7 @@ void test_async_receive_waiting_for_push()
    });
 
    conn.async_run(make_test_config(), [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -112,7 +112,7 @@ void test_async_receive_push_available()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);
@@ -165,7 +165,7 @@ void test_sync_receive()
    });
 
    conn.async_run(make_test_config(), [&](error_code ec) {
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
       run_finished = true;
    });
 
@@ -266,7 +266,7 @@ struct test_async_receive_cancelled_on_reconnection_impl {
 
       conn.async_run(make_test_config(), [&](error_code ec) {
          run_finished = true;
-         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         BOOST_TEST_EQ(ec, canceled_condition());
       });
 
       ioc.run_for(test_timeout);
@@ -361,7 +361,7 @@ void test_consecutive_receives()
 
    conn.async_run(make_test_config(), [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    });
 
    ioc.run_for(test_timeout);

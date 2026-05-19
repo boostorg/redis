@@ -10,6 +10,7 @@
 #include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/adapter/any_adapter.hpp>
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
 #include <boost/redis/detail/exec_one_fsm.hpp>
@@ -72,6 +73,22 @@ inline std::chrono::steady_clock::time_point compute_expiry(
                                : std::chrono::steady_clock::now() + timeout;
 }
 
+// Translates Asio's cancellation type into the common one used by the FSMs.
+// Enumerator values match but are not guaranteed to remain like this.
+// This function also filters any unknown Asio cancellation types.
+// TODO: unit test
+constexpr cancellation_type to_redis_cancellation(asio::cancellation_type_t t) noexcept
+{
+   int res = 0;
+   if ((t & asio::cancellation_type::terminal) != asio::cancellation_type_t::none)
+      res |= static_cast<int>(cancellation_type::terminal);
+   if ((t & asio::cancellation_type::partial) != asio::cancellation_type_t::none)
+      res |= static_cast<int>(cancellation_type::partial);
+   if ((t & asio::cancellation_type::total) != asio::cancellation_type_t::none)
+      res |= static_cast<int>(cancellation_type::total);
+   return static_cast<cancellation_type>(res);
+}
+
 template <class Executor>
 struct connection_impl {
    using clock_type = std::chrono::steady_clock;
@@ -112,7 +129,7 @@ struct connection_impl {
             auto act = fsm_.resume(
                obj_->is_open(),
                obj_->st_,
-               self.get_cancellation_state().cancelled());
+               to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
             // Do what the FSM said
             switch (act.type()) {
@@ -304,7 +321,7 @@ struct exec_one_op {
          conn_->st_.mpx,
          ec,
          bytes_written,
-         self.get_cancellation_state().cancelled());
+         to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
       switch (act.type) {
          case exec_one_action_type::done: self.complete(act.ec); return;
@@ -346,7 +363,10 @@ struct sentinel_resolve_op {
    void operator()(Self& self, system::error_code ec = {})
    {
       auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
-      sentinel_action act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+      sentinel_action act = fsm_.resume(
+         conn_->st_,
+         ec,
+         to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
       switch (act.get_type()) {
          case sentinel_action::type::done: self.complete(act.error()); return;
@@ -382,7 +402,8 @@ auto async_sentinel_resolve(connection_impl<Executor>& conn, CompletionToken&& t
 template <class Executor>
 struct writer_op {
    connection_impl<Executor>* conn_;
-   writer_fsm fsm_;
+   // asio timeouts => operation_aborted
+   writer_fsm fsm_{system::error_code(asio::error::operation_aborted).default_error_condition()};
 
    explicit writer_op(connection_impl<Executor>& conn) noexcept
    : conn_(&conn)
@@ -396,7 +417,7 @@ struct writer_op {
          conn->st_,
          ec,
          bytes_written,
-         self.get_cancellation_state().cancelled());
+         to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
       switch (act.type()) {
          case writer_action_type::done: self.complete(act.error()); return;
@@ -419,7 +440,8 @@ struct writer_op {
 template <class Executor>
 struct reader_op {
    connection_impl<Executor>* conn_;
-   reader_fsm fsm_;
+   // asio timeouts => operation_aborted
+   reader_fsm fsm_{system::error_code(asio::error::operation_aborted).default_error_condition()};
 
 public:
    reader_op(connection_impl<Executor>& conn) noexcept
@@ -431,7 +453,11 @@ public:
    {
       for (;;) {
          auto* conn = conn_;  // Prevent potential use-after-move errors with cancel_after
-         auto act = fsm_.resume(conn->st_, n, ec, self.get_cancellation_state().cancelled());
+         auto act = fsm_.resume(
+            conn->st_,
+            n,
+            ec,
+            to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
          switch (act.get_type()) {
             case reader_fsm::action::type::read_some:
@@ -459,7 +485,7 @@ template <class Executor>
 class run_op {
 private:
    connection_impl<Executor>* conn_;
-   run_fsm fsm_{};
+   run_fsm fsm_{unix_sockets_supported()};
 
    template <class CompletionToken>
    auto reader(CompletionToken&& token)
@@ -498,7 +524,10 @@ public:
    template <class Self>
    void operator()(Self& self, system::error_code ec = {})
    {
-      auto act = fsm_.resume(conn_->st_, ec, self.get_cancellation_state().cancelled());
+      auto act = fsm_.resume(
+         conn_->st_,
+         ec,
+         to_redis_cancellation(self.get_cancellation_state().cancelled()));
 
       switch (act.type) {
          case run_action_type::done: self.complete(act.ec); return;

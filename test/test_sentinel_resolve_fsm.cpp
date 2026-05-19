@@ -7,13 +7,14 @@
 //
 
 #include <boost/redis/config.hpp>
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/sentinel_resolve_fsm.hpp>
 #include <boost/redis/error.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/detail/errc.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -24,12 +25,13 @@
 
 using namespace boost::redis;
 namespace asio = boost::asio;
+namespace errc = boost::system::errc;
+using detail::cancellation_type;
 using detail::sentinel_resolve_fsm;
 using detail::sentinel_action;
 using detail::connection_state;
 using detail::tree_from_resp3;
 using boost::system::error_code;
-using boost::asio::cancellation_type_t;
 
 static char const* to_string(sentinel_action::type t)
 {
@@ -110,11 +112,11 @@ void test_success()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
 
    // Now send the request
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       // clang-format off
@@ -126,7 +128,7 @@ void test_success()
    });
 
    // We received a valid request, so we're done
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -161,11 +163,11 @@ void test_success_replica()
    fix.st.eng.get().seed(static_cast<std::uint_fast32_t>(183984887232u));
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
 
    // Now send the request
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       // clang-format off
@@ -182,7 +184,7 @@ void test_success_replica()
    });
 
    // We received a valid request, so we're done
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The address of one of the replicas is stored.
@@ -214,15 +216,15 @@ void test_one_connect_error()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
 
    // This errors, so we connect to the 2nd sentinel
-   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
 
    // Now send the request
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
@@ -230,7 +232,7 @@ void test_one_connect_error()
    });
 
    // We received a valid request, so we're done
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -256,21 +258,21 @@ void test_one_request_network_error()
    fixture fix;
 
    // Initiate, connect to the 1st Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
 
    // It fails, so we connect to the 2nd sentinel. This one succeeds
-   act = fix.fsm.resume(fix.st, error::write_timeout, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error::write_timeout, cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -297,9 +299,9 @@ void test_one_request_parse_error()
    fixture fix;
 
    // Initiate, connect to the 1st Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "+OK\r\n",
@@ -307,15 +309,15 @@ void test_one_request_parse_error()
    });
 
    // This fails parsing, so we connect to the 2nd sentinel. This one succeeds
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -343,9 +345,9 @@ void test_one_request_error_node()
    fixture fix;
 
    // Initiate, connect to the 1st Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "-ERR needs authentication\r\n",
@@ -353,15 +355,15 @@ void test_one_request_error_node()
    });
 
    // This fails, so we connect to the 2nd sentinel. This one succeeds
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -388,9 +390,9 @@ void test_one_master_unknown()
    fixture fix;
 
    // Initiate, connect to the 1st Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "_\r\n",
@@ -399,15 +401,15 @@ void test_one_master_unknown()
 
    // It doesn't know about our master, so we connect to the 2nd sentinel.
    // This one succeeds
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The master's address is stored
@@ -435,9 +437,9 @@ void test_one_no_replicas()
    fix.st.cfg.sentinel.server_role = role::replica;
 
    // Initiate, connect to the 1st Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
@@ -446,9 +448,9 @@ void test_one_no_replicas()
    });
 
    // This errors, so we connect to the 2nd sentinel. This one succeeds
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       // clang-format off
@@ -459,7 +461,7 @@ void test_one_no_replicas()
       "*0\r\n",
       // clang-format on
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code());
 
    // The replica's address is stored
@@ -486,9 +488,9 @@ void test_error()
    fixture fix;
 
    // 1st Sentinel doesn't know about the master
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "_\r\n",
@@ -496,13 +498,13 @@ void test_error()
    });
 
    // Move to the 2nd Sentinel, which fails to connect
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host2", "2000"}));
 
    // Move to the 3rd Sentinel, which has authentication misconfigured
-   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error::connect_timeout, cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host3", "3000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "-ERR unauthorized\r\n",
@@ -510,7 +512,7 @@ void test_error()
    });
 
    // Sentinel list exhausted
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::sentinel_resolve_failed));
 
    // The Sentinel list is not updated
@@ -551,16 +553,16 @@ void test_error_replica()
    fix.st.cfg.sentinel.server_role = role::replica;
 
    // Initiate, connect to the only Sentinel, and send the request
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
    fix.st.sentinel_resp_nodes = tree_from_resp3({
       "*2\r\n$9\r\ntest.host\r\n$4\r\n6380\r\n",
       "*0\r\n",
       "*0\r\n",
    });
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, error_code(error::sentinel_resolve_failed));
 
    // Logs
@@ -585,12 +587,12 @@ void test_cancel_connect()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
 
    // Cancellation
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Logs
    fix.check_log({
@@ -606,12 +608,12 @@ void test_cancel_connect_edge()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
 
    // Cancellation (without error code)
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Logs
    fix.check_log({
@@ -627,12 +629,12 @@ void test_cancel_request()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fix.fsm.resume(fix.st, asio::error::operation_aborted, cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Logs
    fix.check_log({
@@ -649,12 +651,12 @@ void test_cancel_request_edge()
    fixture fix;
 
    // Initiate. We should connect to the 1st sentinel
-   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   auto act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, (address{"host1", "1000"}));
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::none);
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::none);
    BOOST_TEST_EQ(act, sentinel_action::request());
-   act = fix.fsm.resume(fix.st, error_code(), cancellation_type_t::terminal);
-   BOOST_TEST_EQ(act, error_code(asio::error::operation_aborted));
+   act = fix.fsm.resume(fix.st, error_code(), cancellation_type::terminal);
+   BOOST_TEST_EQ(act, make_error_code(errc::operation_canceled));
 
    // Logs
    fix.check_log({

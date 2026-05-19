@@ -34,6 +34,15 @@ namespace boost {
 namespace redis {
 namespace detail {
 
+constexpr bool unix_sockets_supported()
+{
+#ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
+   return true;
+#else
+   return false;
+#endif
+}
+
 template <class Executor>
 class redis_stream {
    asio::ssl::context ssl_ctx_;

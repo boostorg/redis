@@ -35,7 +35,8 @@ jobs:
     - name: Build a Boost distribution using B2
       run: |
         python3 tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }}
 
     # No Redis server is available on this job, so integration tests are skipped.
     # Unit tests are built and run via the CMake superproject build.
@@ -48,8 +49,7 @@ jobs:
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
           --build-shared-libs ${{ matrix.build-shared-libs }} \
-          --integration-tests 0 \
-          "--cxxflags=//WX"
+          --integration-tests 0
 
     - name: Run add_subdirectory tests
       run: |
@@ -58,8 +58,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
     - name: Run find_package tests with the built cmake distribution
       run: |
@@ -68,8 +67,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
     - name: Run find_package tests with the built b2 distribution
       run: |
@@ -78,8 +76,7 @@ jobs:
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
           --generator "${{ matrix.generator }}" \
-          --build-shared-libs ${{ matrix.build-shared-libs }} \
-          "--cxxflags=//WX"
+          --build-shared-libs ${{ matrix.build-shared-libs }}
 
   windows-b2:
     name: "B2 ${{matrix.toolset}}"
@@ -127,7 +124,7 @@ jobs:
             cxxstd: '17'
             build-type: 'Debug'
             server: "redis:8.2.1-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: gcc-11
             install: g++-11
@@ -135,7 +132,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "valkey/valkey:8.1.3-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: gcc-11
             install: g++-11
@@ -143,7 +140,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Release'
             server: "redis:7.4.5-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: gcc-12
             install: g++-12
@@ -159,7 +156,7 @@ jobs:
             cxxstd: '17'
             build-type: 'Debug'
             server: "valkey/valkey:8.1.3-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: gcc-13
             install: g++-13
@@ -189,7 +186,7 @@ jobs:
             cxxstd: '17'
             build-type: 'Debug'
             server: "redis:7.4.5-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: gcc-15
             install: g++-15
@@ -213,7 +210,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "redis:7.4.5-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-12
             install: clang-12
@@ -221,7 +218,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "redis:8.2.1-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-13
             install: clang-13
@@ -229,7 +226,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "valkey/valkey:8.1.3-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           # clang-14 is the default in Ubuntu 22.04
           - toolset: clang-14
@@ -238,7 +235,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "redis:7.4.5-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-14
             install: 'clang-14 libc++-14-dev libc++abi-14-dev'
@@ -248,7 +245,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-14
             install: 'clang-14 libc++-14-dev libc++abi-14-dev'
@@ -258,6 +255,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "valkey/valkey:8.1.3-alpine"
+            corosio-api: '0'
 
           - toolset: clang-15
             install: clang-15
@@ -265,7 +263,7 @@ jobs:
             cxxstd: '20'
             build-type: 'Debug'
             server: "redis:7.4.5-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-16
             install: clang-16
@@ -274,7 +272,7 @@ jobs:
             build-type: 'Debug'
             cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system has no UNIX socket support, we build correctly
             server: "redis:8.2.1-alpine"
-            corosio-tests: '0'
+            corosio-api: '0'
 
           - toolset: clang-17
             install: clang-17
@@ -299,6 +297,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "valkey/valkey:8.1.3-alpine"
+            corosio-api: '0' # This libc++ version doesn't have stop_token
 
           - toolset: clang-18
             install: 'clang-18 libc++-18-dev libc++abi-18-dev'
@@ -308,6 +307,7 @@ jobs:
             cxxflags: '-stdlib=libc++'
             ldflags: '-lc++'
             server: "redis:8.2.1-alpine"
+            corosio-api: '0' # This libc++ version doesn't have stop_token
 
           - toolset: clang-19
             install: clang-19
@@ -392,7 +392,8 @@ jobs:
     - name: Build a Boost distribution using B2
       run: |
         docker exec builder /boost-redis/tools/ci.py build-b2-distro \
-          --toolset ${{ matrix.toolset }}
+          --toolset ${{ matrix.toolset }} \
+          --cxxstd ${{ matrix.cxxstd }}
 
     # The CMake superproject build also drives the project tests, including
     # integration tests against the Redis server set up above.
@@ -402,6 +403,7 @@ jobs:
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }} \
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 
@@ -411,6 +413,7 @@ jobs:
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }} \
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 
@@ -420,6 +423,7 @@ jobs:
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }} \
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 
@@ -429,6 +433,7 @@ jobs:
           --build-type ${{ matrix.build-type }} \
           --cxxstd ${{ matrix.cxxstd }} \
           --toolset ${{ matrix.toolset }} \
+          --corosio-api ${{ matrix.corosio-api == '' && '1' || matrix.corosio-api }} \
           "--cxxflags=${{ matrix.cxxflags }} -Werror" \
           "--ldflags=${{ matrix.ldflags }}"
 

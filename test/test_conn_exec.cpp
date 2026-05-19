@@ -11,7 +11,7 @@
 #include <boost/asio/detached.hpp>
 #include <boost/core/lightweight_test.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 #include <cstddef>
 #include <iostream>

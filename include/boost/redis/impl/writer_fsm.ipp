@@ -19,9 +19,8 @@
 #include <boost/redis/impl/log_utils.hpp>
 #include <boost/redis/logger.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/system/detail/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -57,7 +56,7 @@ writer_action writer_fsm::resume(
    connection_state& st,
    system::error_code ec,
    std::size_t bytes_written,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -81,13 +80,13 @@ writer_action writer_fsm::resume(
 
                // Check for cancellations and translate error codes
                if (is_terminal_cancel(cancel_state))
-                  ec = asio::error::operation_aborted;
-               else if (ec == asio::error::operation_aborted)
+                  ec = make_error_code(system::errc::operation_canceled);
+               else if (ec == timeout_cond_)
                   ec = error::write_timeout;
 
                // Check for errors
                if (ec) {
-                  if (ec == asio::error::operation_aborted) {
+                  if (ec == system::errc::operation_canceled) {
                      log_debug(st.logger, "Writer task: cancelled (1).");
                   } else {
                      log_err(st.logger, "Error writing data to the server: ", ec);
@@ -107,7 +106,7 @@ writer_action writer_fsm::resume(
          // Check for cancellations
          if (is_terminal_cancel(cancel_state)) {
             log_debug(st.logger, "Writer task: cancelled (2).");
-            return system::error_code(asio::error::operation_aborted);
+            return make_error_code(system::errc::operation_canceled);
          }
 
          // If we weren't notified, it's because there is no data and we should send a health check

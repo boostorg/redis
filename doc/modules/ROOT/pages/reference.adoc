@@ -23,6 +23,8 @@ xref:reference:boost/redis/connection.adoc[`connection`]
 
 xref:reference:boost/redis/basic_connection.adoc[`basic_connection`]
 
+xref:reference:boost/redis/co_connection.adoc[`co_connection`]
+
 xref:reference:boost/redis/address.adoc[`address`]
 
 xref:reference:boost/redis/role.adoc[`role`]

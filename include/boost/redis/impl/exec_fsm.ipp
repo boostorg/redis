@@ -9,30 +9,22 @@
 #ifndef BOOST_REDIS_EXEC_FSM_IPP
 #define BOOST_REDIS_EXEC_FSM_IPP
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connection_state.hpp>
 #include <boost/redis/detail/coroutine.hpp>
 #include <boost/redis/detail/exec_fsm.hpp>
+#include <boost/redis/error.hpp>
 #include <boost/redis/request.hpp>
 
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/system/errc.hpp>
 
 namespace boost::redis::detail {
-
-inline bool is_partial_or_terminal_cancel(asio::cancellation_type_t type)
-{
-   return !!(type & (asio::cancellation_type_t::partial | asio::cancellation_type_t::terminal));
-}
-
-inline bool is_total_cancel(asio::cancellation_type_t type)
-{
-   return !!(type & asio::cancellation_type_t::total);
-}
 
 exec_action exec_fsm::resume(
    bool connection_is_open,
    connection_state& st,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -79,11 +71,11 @@ exec_action exec_fsm::resume(
          // Total cancellation can only be handled if the request hasn't been sent yet.
          // Partial and terminal cancellation can always be served
          if (
-            (is_total_cancel(cancel_state) && elem_->is_waiting()) ||
-            is_partial_or_terminal_cancel(cancel_state)) {
+            (contains_total(cancel_state) && elem_->is_waiting()) ||
+            contains_partial(cancel_state) || contains_terminal(cancel_state)) {
             st.mpx.cancel(elem_);
             elem_.reset();  // Deallocate memory before finalizing
-            return exec_action{asio::error::operation_aborted};
+            return exec_action{make_error_code(system::errc::operation_canceled)};
          }
       }
    }

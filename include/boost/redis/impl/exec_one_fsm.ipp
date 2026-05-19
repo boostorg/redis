@@ -17,9 +17,8 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/assert.hpp>
+#include <boost/system/errc.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <cstddef>
@@ -30,7 +29,7 @@ exec_one_action exec_one_fsm::resume(
    multiplexer& mpx,
    system::error_code ec,
    std::size_t bytes_transferred,
-   asio::cancellation_type_t cancel_state)
+   cancellation_type cancel_state)
 {
    switch (resume_point_) {
       BOOST_REDIS_CORO_INITIAL
@@ -40,7 +39,7 @@ exec_one_action exec_one_fsm::resume(
 
       // Errors and cancellations
       if (is_terminal_cancel(cancel_state))
-         return system::error_code{asio::error::operation_aborted};
+         return make_error_code(system::errc::operation_canceled);
       if (ec)
          return ec;
 
@@ -61,7 +60,7 @@ exec_one_action exec_one_fsm::resume(
 
          // Errors and cancellations
          if (is_terminal_cancel(cancel_state))
-            return system::error_code{asio::error::operation_aborted};
+            return make_error_code(system::errc::operation_canceled);
          if (ec)
             return ec;
 

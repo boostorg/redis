@@ -46,7 +46,7 @@ void test_per_operation_cancellation(std::string_view name, net::cancellation_ty
    // Run the connection
    auto run_cb = [&](error_code ec) {
       run_finished = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
    conn.async_run(make_test_config(), net::bind_cancellation_slot(sig.slot(), run_cb));
 

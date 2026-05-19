@@ -9,7 +9,7 @@
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "common.hpp"
+#include "asio_common.hpp"
 
 #include <cstddef>
 #include <iostream>
@@ -49,7 +49,7 @@ void test_async_run_exits()
    auto c3 = [&](error_code ec, std::size_t) {
       c3_called = true;
       std::clog << "c3: " << ec.message() << std::endl;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
 
    auto c2 = [&](error_code ec, std::size_t) {

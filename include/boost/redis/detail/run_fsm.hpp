@@ -9,9 +9,9 @@
 #ifndef BOOST_REDIS_RUN_FSM_HPP
 #define BOOST_REDIS_RUN_FSM_HPP
 
+#include <boost/redis/detail/cancellation_type.hpp>
 #include <boost/redis/detail/connect_params.hpp>
 
-#include <boost/asio/cancellation_type.hpp>
 #include <boost/system/error_code.hpp>
 
 // Sans-io algorithm for async_run, as a finite state machine
@@ -48,16 +48,19 @@ struct run_action {
 };
 
 class run_fsm {
+   bool unix_sockets_supported_;
    int resume_point_{0};
    system::error_code stored_ec_;
 
 public:
-   run_fsm() = default;
+   run_fsm(bool unix_sockets_supported) noexcept
+   : unix_sockets_supported_(unix_sockets_supported)
+   { }
 
    run_action resume(
       connection_state& st,
       system::error_code ec,
-      asio::cancellation_type_t cancel_state);
+      cancellation_type cancel_state);
 };
 
 connect_params make_run_connect_params(const connection_state& st);

@@ -26,6 +26,8 @@ asciidoc:
   attributes:
     # Scrolling problems appear without this
     page-pagination: ''
+  extensions:
+    - '@asciidoctor/tabs'
 
 content:
   sources:

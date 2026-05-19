@@ -67,13 +67,13 @@ void test_request_cancel_if_unresponded_true()
    auto c2 = [&](error_code ec, std::size_t) {
       c2_called = true;
       std::cout << "c2" << std::endl;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
 
    auto c1 = [&](error_code ec, std::size_t) {
       c1_called = true;
       std::cout << "c1" << std::endl;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
 
    auto c0 = [&](error_code ec, std::size_t) {
@@ -147,7 +147,7 @@ void test_request_cancel_if_unresponded_false()
 
    auto c1 = [&](error_code ec, std::size_t) {
       c1_called = true;
-      BOOST_TEST_EQ(ec, net::error::operation_aborted);
+      BOOST_TEST_EQ(ec, canceled_condition());
    };
 
    auto c0 = [&](error_code ec, std::size_t) {
