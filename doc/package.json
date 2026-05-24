@@ -2,6 +2,7 @@
   "dependencies": {
     "@cppalliance/antora-downloads-extension": "^0.0.2",
     "@cppalliance/antora-cpp-reference-extension": "^0.1.0",
+    "@cppalliance/antora-cpp-tagfiles-extension": "git://github.com/cppalliance/antora-cpp-tagfiles-extension#86317a5d3a5745db15a7cd8b15d643140a56aa5c",
     "antora": "^3.1.10"
   }
 }

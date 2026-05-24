@@ -8,7 +8,7 @@
 
 = Logging
 
-xref:reference:boost/redis/basic_connection/async_run-04.adoc[`connection::async_run`]
+cpp:basic_connection::async_run[`connection::async_run`]
 is a complex algorithm, with features like built-in reconnection.
 This can make configuration problems, like a misconfigured hostname, difficult to debug -
 Boost.Redis will keep retrying to connect to the same hostname over and over.
@@ -16,7 +16,7 @@ For this reason, Boost.Redis incorporates a lightweight logging solution, and
 *will log some status messages to stderr by default*.
 
 Logging can be customized by passing a
-xref:reference:boost/redis/logger.adoc[`logger`] object to the connection's constructor. For example, logging can be disabled by writing:
+cpp:logger[] object to the connection's constructor. For example, logging can be disabled by writing:
 
 [source,cpp]
 ----
@@ -26,7 +26,7 @@ connection conn {ioc, logger{logger::level::disabled}};
 
 Every message logged by the library is attached a
 https://en.wikipedia.org/wiki/Syslog#Severity_level[syslog-like severity]
-tag (a xref:reference:boost/redis/logger/level.adoc[`logger::level`]).
+tag (a cpp:logger::level[]).
 You can filter messages by severity by creating a `logger` with a specific level:
 
 [source,cpp]

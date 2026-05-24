@@ -65,21 +65,21 @@ auto receiver(std::shared_ptr<connection> conn) -> asio::awaitable<void>
 
 Summary of the steps:
 
-* Call xref:reference:boost/redis/basic_connection.adoc[`connection::set_receive_response`]
+* Call cpp:basic_connection::set_receive_response[`connection::set_receive_response`]
   before any other receive-related calls so that the connection stores incoming pushes in the
   given object. The library does not copy the response; you must keep it alive for the
   duration of the receive loop.
-* Build a request with xref:reference:boost/redis/request.adoc[`request::subscribe`]
+* Build a request with cpp:request::subscribe[]
   (or `psubscribe`) and execute it. If the connection drops and is re-established,
   an equivalent `SUBSCRIBE` is sent automatically.
-* Loop while xref:reference:boost/redis/basic_connection.adoc[`connection::will_reconnect`]
+* Loop while cpp:basic_connection::will_reconnect[`connection::will_reconnect`]
   is true (i.e. until the connection is cancelled).
-* Call xref:reference:boost/redis/basic_connection.adoc[`connection::async_receive2`]
+* Call cpp:basic_connection::async_receive2[`connection::async_receive2`]
   to wait until at least one push is available. This function also participates in
   push flow control (see <<flow-control>>).
 * After completion, `resp` holds the raw RESP3 nodes for the received pushes
-  (xref:reference:boost/redis/resp3/node_view.adoc[`resp3::node_view`]).
-  For Pub/Sub messages produced by `PUBLISH`, use xref:reference:boost/redis/push_parser.adoc[`push_parser`]
+  (cpp:resp3::node_view[]).
+  For Pub/Sub messages produced by `PUBLISH`, use cpp:push_parser[]
   to iterate over them. Each parsed message exposes the channel, the payload, and, for
   pattern subscriptions (`PSUBSCRIBE`), the matched pattern.
 * Call `resp.value().clear()` to discard the current push data and make room for the
@@ -94,7 +94,7 @@ traffic. Boost.Redis relies on RESP3 to multiplex them on a single connection.
 
 == Dynamic Pub/Sub tracking
 
-When you execute a request built with xref:reference:boost/redis/request.adoc[`request::subscribe`]
+When you execute a request built with cpp:request::subscribe[]
 (or `psubscribe`, `unsubscribe`, `punsubscribe`), the connection tracks it. After a reconnect, it
 re-issues the subscribe commands to restore any subscriptions that were active before the reconnect.
 You can dynamically subscribe and unsubscribe to channels; tracking is fully dynamic.
@@ -111,7 +111,7 @@ The pending count is reset each time `async_receive2` completes. You must still 
 memory by calling `resp3::flat_tree::clear()` (or equivalent) on the response, as in
 the example.
 
-WARNING: Do not call xref:reference:boost/redis/basic_connection/async_exec-02.adoc[`async_exec`] from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
+WARNING: Do not call cpp:basic_connection::async_exec[`async_exec`] from within the receiver loop. The response to your request may be behind enough pushes might to trigger the flow control mechanism, causing a deadlock.
 
 
 == Subscribe confirmations
@@ -124,7 +124,7 @@ As a result, *`async_receive2` will complete while the `push_parser` range is em
 when only confirmations are received. Your code should handle an empty range correctly.
 
 To work with subscribe confirmations or other push shapes, use the raw nodes in
-xref:reference:boost/redis/generic_flat_response.adoc[`generic_flat_response`]
+cpp:generic_flat_response[]
 directly (see <<advanced-scenarios>>).
 
 [#suspending-the-receiver]
@@ -166,7 +166,7 @@ co_await websocket.async_write(msg);
 
 `SUBSCRIBE` can fail (e.g. due to ACL rules). Because of how the protocol works, such
 errors may be delivered as push-like data. Using
-xref:reference:boost/redis/generic_flat_response.adoc[`generic_flat_response`]
+cpp:generic_flat_response[]
 (an alias for `adapter::result<resp3::flat_tree>`, similar to `std::expected`) lets you detect them: check
 `resp.has_error()` and handle the error before iterating. See the example at the top
 of this page.
