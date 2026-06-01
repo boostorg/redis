@@ -111,6 +111,10 @@ class redis_stream {
          system::error_code ec,
          const asio::ip::tcp::endpoint& selected_endpoint)
       {
+         // TODO: move this to the FSM
+         if (!ec) {
+            obj_.stream_.next_layer().set_option(asio::ip::tcp::no_delay{true});
+         }
          auto act = fsm_.resume(
             ec,
             selected_endpoint,
