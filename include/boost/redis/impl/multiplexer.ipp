@@ -58,7 +58,7 @@ void multiplexer::cancel(std::shared_ptr<elem> const& ptr)
 {
    if (ptr->is_waiting()) {
       // We can safely remove it from the queue, since it hasn't been sent yet
-      reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), ptr));
+      reqs_.erase(std::remove(std::begin(reqs_), std::end(reqs_), ptr), std::end(reqs_));
    } else {
       // Removing the request would cause trouble when the response arrived.
       // Mark it as abandoned, so the response is discarded when it arrives
