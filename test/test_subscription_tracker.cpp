@@ -115,6 +115,91 @@ void test_unsubscribe()
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
+// An argument-less unsubscribe removes all the channels, but no patterns
+void test_unsubscribe_all()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.subscribe({"ch1", "ch2"});
+   req1.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req1);
+
+   // Unsubscribe from all channels
+   req2.unsubscribe();
+   tracker.commit_changes(req2);
+
+   // Only the patterns survive
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// An argument-less punsubscribe removes all the patterns, but no channels
+void test_punsubscribe_all()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.subscribe({"ch1", "ch2"});
+   req1.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req1);
+
+   // Unsubscribe from all patterns
+   req2.punsubscribe();
+   tracker.commit_changes(req2);
+
+   // Only the channels survive
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch1", "ch2");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// An argument-less unsubscribe on an empty state is not a problem
+void test_unsubscribe_all_empty_state()
+{
+   subscription_tracker tracker;
+   request req, req_output;
+
+   req.unsubscribe();
+   req.punsubscribe();
+   tracker.commit_changes(req);
+
+   tracker.compose_subscribe_request(req_output);
+   BOOST_TEST_EQ(req_output.payload(), "");
+}
+
+// Empty channel/pattern names are tracked like any other name,
+// and are not affected by the argument-less overloads being present
+void test_empty_channel_name()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Subscribe to a channel and a pattern with an empty name
+   req1.subscribe({""});
+   req1.psubscribe({""});
+   tracker.commit_changes(req1);
+
+   // They are restored
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "");
+   req_expected.push("PSUBSCRIBE", "");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+
+   // Unsubscribing from the empty channel only affects the channel
+   req2.unsubscribe({""});
+   tracker.commit_changes(req2);
+
+   req_output.clear();
+   req_expected.clear();
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("PSUBSCRIBE", "");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
 // After an unsubscribe, we can subscribe again
 void test_resubscribe()
 {
@@ -142,6 +227,32 @@ void test_resubscribe()
    tracker.compose_subscribe_request(req_output);
    req_expected.push("SUBSCRIBE", "ch1", "ch2");
    req_expected.push("PSUBSCRIBE", "ch1*", "ch2*");
+   BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
+}
+
+// Changes are applied in order, so subscriptions added after an
+// argument-less unsubscribe in the same request are preserved
+void test_unsubscribe_all_then_subscribe()
+{
+   subscription_tracker tracker;
+   request req1, req2, req_output, req_expected;
+
+   // Add some changes to the tracker
+   req1.subscribe({"ch1", "ch2"});
+   req1.psubscribe({"ch1*", "ch2*"});
+   tracker.commit_changes(req1);
+
+   // Clear everything, then subscribe again, in a single request
+   req2.unsubscribe();
+   req2.punsubscribe();
+   req2.subscribe({"ch3"});
+   req2.psubscribe({"ch3*"});
+   tracker.commit_changes(req2);
+
+   // Only the new subscriptions are present
+   tracker.compose_subscribe_request(req_output);
+   req_expected.push("SUBSCRIBE", "ch3");
+   req_expected.push("PSUBSCRIBE", "ch3*");
    BOOST_TEST_EQ(req_output.payload(), req_expected.payload());
 }
 
@@ -265,7 +376,12 @@ int main()
    test_subscribe_psubscribe();
    test_subscribe_psubscribe_same_arg();
    test_unsubscribe();
+   test_unsubscribe_all();
+   test_punsubscribe_all();
+   test_unsubscribe_all_empty_state();
+   test_empty_channel_name();
    test_resubscribe();
+   test_unsubscribe_all_then_subscribe();
    test_subscribe_twice();
    test_lone_unsubscribe();
    test_empty();
