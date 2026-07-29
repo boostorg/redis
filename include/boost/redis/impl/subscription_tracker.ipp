@@ -15,7 +15,8 @@
 
 namespace boost::redis::detail {
 
-// Given a
+// Given a request and a change, returns an owning string
+// with the channel or pattern name affected by the change
 inline std::string get_channel_owning(const request& req, const pubsub_change& ch)
 {
    return std::string(req.payload().substr(ch.channel_offset, ch.channel_size));
