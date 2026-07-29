@@ -834,6 +834,106 @@ struct test_pubsub_state_restoration_impl {
 };
 void test_pubsub_state_restoration() { test_pubsub_state_restoration_impl{}.run(); }
 
+// (P)UNSUBSCRIBE (without arguments) can be used with pubsub state restoration
+struct test_pubsub_state_restoration_unsubscribe_all_impl {
+   net::io_context ioc;
+   connection conn{ioc};
+   request req{};
+   response<std::string> resp_str{};
+   bool exec_finished = false;
+
+   void sub()
+   {
+      // Subscribe to some channels and patterns
+      req.clear();
+      req.subscribe({"ch1", "ch2", "ch3"});              // active: 1, 2, 3
+      req.psubscribe({"ch1*", "ch2*", "ch3*", "ch4*"});  // active: 1, 2, 3, 4
+      conn.async_exec(req, ignore, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+         unsub();
+      });
+   }
+
+   void unsub()
+   {
+      // Unsubscribe from all channels and patterns.
+      req.clear();
+      req.unsubscribe();
+      req.punsubscribe();
+
+      // Leave one subscribed channel to make checks stronger.
+      req.subscribe({"ch9"});
+
+      // Validate that we're subscribed to what we expect
+      req.push("CLIENT", "INFO");
+
+      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+
+         // We are subscribed to 1 channel and 0 patterns
+         BOOST_TEST(std::get<0>(resp_str).has_value());
+         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "1");
+         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "0");
+
+         quit();
+      });
+   }
+
+   void quit()
+   {
+      // Trigger a reconnection
+      req.clear();
+      req.push("QUIT");
+
+      conn.async_exec(req, ignore, [this](error_code, std::size_t) {
+         // we don't know if this request will complete successfully or not
+         client_info();
+      });
+   }
+
+   void client_info()
+   {
+      req.clear();
+      req.push("CLIENT", "INFO");
+      req.get_config().cancel_if_unresponded = false;
+
+      conn.async_exec(req, resp_str, [this](error_code ec, std::size_t) {
+         BOOST_TEST_EQ(ec, error_code());
+
+         // We are subscribed to 1 channel and 0 patterns
+         BOOST_TEST(std::get<0>(resp_str).has_value());
+         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "sub"), "1");
+         BOOST_TEST_EQ(find_client_info(std::get<0>(resp_str).value(), "psub"), "0");
+
+         exec_finished = true;
+         conn.cancel();
+      });
+   }
+
+   void run()
+   {
+      // Start the request chain
+      sub();
+
+      // Start running
+      bool run_finished = false;
+      conn.async_run(make_test_config(), [&run_finished](error_code ec) {
+         BOOST_TEST_EQ(ec, net::error::operation_aborted);
+         run_finished = true;
+      });
+
+      ioc.run_for(test_timeout);
+
+      // Done
+      BOOST_TEST(exec_finished);
+      BOOST_TEST(run_finished);
+   }
+};
+void test_pubsub_state_restoration_unsubscribe_all()
+{
+   test_pubsub_state_restoration_unsubscribe_all_impl{}.run();
+}
+
 }  // namespace
 
 int main()
@@ -853,6 +953,7 @@ int main()
    test_push_consumer();
    test_unsubscribe();
    test_pubsub_state_restoration();
+   test_pubsub_state_restoration_unsubscribe_all();
 
    return boost::report_errors();
 }
