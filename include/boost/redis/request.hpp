@@ -32,10 +32,13 @@ enum class pubsub_change_type
    unsubscribe,
    psubscribe,
    punsubscribe,
+   unsubscribe_all,
+   punsubscribe_all,
 };
 
 struct pubsub_change {
    pubsub_change_type type;
+   // Unused for unsubscribe_all and punsubscribe_all
    std::size_t channel_offset;
    std::size_t channel_size;
 };
@@ -577,6 +580,29 @@ public:
    }
 
    /**
+    * @brief Appends an argument-less UNSUBSCRIBE command to the end of the request.
+    *
+    * The resulting command is `UNSUBSCRIBE`, which unsubscribes
+    * from all the channels the connection is subscribed to.
+    * Pattern subscriptions (created by `PSUBSCRIBE`) are not affected.
+    *
+    * Subscriptions removed using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    *
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
+    */
+   void unsubscribe()
+   {
+      push_pubsub_all("UNSUBSCRIBE", detail::pubsub_change_type::unsubscribe_all);
+   }
+
+   /**
     * @brief Appends a PSUBSCRIBE command to the end of the request.
     *
     * If `patterns` contains `{"news.*", "events.*"}`, the resulting command
@@ -724,6 +750,29 @@ public:
          patterns_end);
    }
 
+   /**
+    * @brief Appends an argument-less PUNSUBSCRIBE command to the end of the request.
+    *
+    * The resulting command is `PUNSUBSCRIBE`, which unsubscribes
+    * from all the patterns the connection is subscribed to.
+    * Channel subscriptions (created by `SUBSCRIBE`) are not affected.
+    *
+    * Subscriptions removed using this function are tracked
+    * to enable PubSub state restoration. After successfully executing
+    * the request, the connection will store any newly subscribed channels and patterns.
+    * Every time a reconnection happens,
+    * a suitable `SUBSCRIBE`/`PSUBSCRIBE` command is issued automatically,
+    * to restore the subscriptions that were active before the reconnection.
+    *
+    * PubSub store restoration only happens when using @ref subscribe,
+    * @ref unsubscribe, @ref psubscribe or @ref punsubscribe.
+    * Subscription commands added by @ref push or @ref push_range are not tracked.
+    */
+   void punsubscribe()
+   {
+      push_pubsub_all("PUNSUBSCRIBE", detail::pubsub_change_type::punsubscribe_all);
+   }
+
    /** @brief Appends a HELLO 3 command to the end of the request.
     *
     * Equivalent to adding the Redis command `HELLO 3`.
@@ -789,6 +838,9 @@ private:
    std::vector<detail::pubsub_change> pubsub_changes_{};
 
    void add_pubsub_arg(detail::pubsub_change_type type, std::string_view value);
+
+   // Adds an argument-less UNSUBSCRIBE/PUNSUBSCRIBE command, with tracking
+   void push_pubsub_all(std::string_view cmd, detail::pubsub_change_type type);
 
    template <class ForwardIt>
    void push_pubsub(
