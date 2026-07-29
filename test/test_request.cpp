@@ -30,11 +30,13 @@ namespace {
 const char* to_string(pubsub_change_type type)
 {
    switch (type) {
-      case pubsub_change_type::subscribe:    return "subscribe";
-      case pubsub_change_type::unsubscribe:  return "unsubscribe";
-      case pubsub_change_type::psubscribe:   return "psubscribe";
-      case pubsub_change_type::punsubscribe: return "punsubscribe";
-      default:                               return "<unknown pubsub_change_type>";
+      case pubsub_change_type::subscribe:        return "subscribe";
+      case pubsub_change_type::unsubscribe:      return "unsubscribe";
+      case pubsub_change_type::psubscribe:       return "psubscribe";
+      case pubsub_change_type::punsubscribe:     return "punsubscribe";
+      case pubsub_change_type::unsubscribe_all:  return "unsubscribe_all";
+      case pubsub_change_type::punsubscribe_all: return "punsubscribe_all";
+      default:                                   return "<unknown pubsub_change_type>";
    }
 }
 
@@ -328,6 +330,22 @@ void test_unsubscribe_initializer_list()
    fix.check_unsubscribe();
 }
 
+// The version with no arguments (unsubscribe from all channels) works
+void test_unsubscribe_no_args()
+{
+   request req;
+
+   req.unsubscribe();
+
+   BOOST_TEST_EQ(req.payload(), "*1\r\n$11\r\nUNSUBSCRIBE\r\n");
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::unsubscribe_all, ""},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
 // --- psubscribe ---
 void test_psubscribe_iterators()
 {
@@ -440,6 +458,50 @@ void test_punsubscribe_initializer_list()
    fix.req.punsubscribe({"ch1", "ch2"});
 
    fix.check_punsubscribe();
+}
+
+// The version with no arguments (unsubscribe from all patterns) works
+void test_punsubscribe_no_args()
+{
+   request req;
+
+   req.punsubscribe();
+
+   BOOST_TEST_EQ(req.payload(), "*1\r\n$12\r\nPUNSUBSCRIBE\r\n");
+   BOOST_TEST_EQ(req.get_commands(), 1u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::punsubscribe_all, ""},
+   };
+   check_pubsub_changes(req, expected_changes);
+}
+
+// Empty channel and pattern names are legal, and are not confused
+// with the argument-less overloads
+void test_pubsub_empty_channel_name()
+{
+   request req;
+
+   req.subscribe({""});
+   req.unsubscribe({""});
+   req.psubscribe({""});
+   req.punsubscribe({""});
+
+   constexpr std::string_view expected =
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$0\r\n\r\n"
+      "*2\r\n$11\r\nUNSUBSCRIBE\r\n$0\r\n\r\n"
+      "*2\r\n$10\r\nPSUBSCRIBE\r\n$0\r\n\r\n"
+      "*2\r\n$12\r\nPUNSUBSCRIBE\r\n$0\r\n\r\n";
+   BOOST_TEST_EQ(req.payload(), expected);
+   BOOST_TEST_EQ(req.get_commands(), 4u);
+   BOOST_TEST_EQ(req.get_expected_responses(), 0u);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe,    ""},
+      {pubsub_change_type::unsubscribe,  ""},
+      {pubsub_change_type::psubscribe,   ""},
+      {pubsub_change_type::punsubscribe, ""},
+   };
+   check_pubsub_changes(req, expected_changes);
 }
 
 // Mixing regular commands and pubsub commands is OK
@@ -645,6 +707,37 @@ void test_append_pubsub()
    check_pubsub_changes(req1, expected_changes);
 }
 
+// Append correctly handles the argument-less unsubscribe overloads,
+// which have no associated channel or pattern
+void test_append_pubsub_all()
+{
+   request req1;
+   req1.subscribe({"ch1"});
+   req1.unsubscribe();
+
+   request req2;
+   req2.psubscribe({"ch2*"});
+   req2.punsubscribe();
+
+   req1.append(req2);
+
+   constexpr std::string_view expected =
+      "*2\r\n$9\r\nSUBSCRIBE\r\n$3\r\nch1\r\n"
+      "*1\r\n$11\r\nUNSUBSCRIBE\r\n"
+      "*2\r\n$10\r\nPSUBSCRIBE\r\n$4\r\nch2*\r\n"
+      "*1\r\n$12\r\nPUNSUBSCRIBE\r\n";
+   BOOST_TEST_EQ(req1.payload(), expected);
+   BOOST_TEST_EQ(req1.get_commands(), 4u);
+   BOOST_TEST_EQ(req1.get_expected_responses(), 0u);
+   const pubsub_change_str expected_changes[] = {
+      {pubsub_change_type::subscribe,        "ch1" },
+      {pubsub_change_type::unsubscribe_all,  ""    },
+      {pubsub_change_type::psubscribe,       "ch2*"},
+      {pubsub_change_type::punsubscribe_all, ""    },
+   };
+   check_pubsub_changes(req1, expected_changes);
+}
+
 // If the target is empty and the source has pubsub changes, that's OK
 void test_append_pubsub_target_empty()
 {
@@ -724,6 +817,7 @@ int main()
    test_unsubscribe_iterators_convertible_string_view();
    test_unsubscribe_range();
    test_unsubscribe_initializer_list();
+   test_unsubscribe_no_args();
 
    test_psubscribe_iterators();
    test_psubscribe_iterators_empty();
@@ -736,7 +830,9 @@ int main()
    test_punsubscribe_iterators_convertible_string_view();
    test_punsubscribe_range();
    test_punsubscribe_initializer_list();
+   test_punsubscribe_no_args();
 
+   test_pubsub_empty_channel_name();
    test_mix_pubsub_regular();
 
    test_hello();
@@ -751,6 +847,7 @@ int main()
    test_append_source_empty();
    test_append_both_empty();
    test_append_pubsub();
+   test_append_pubsub_all();
    test_append_pubsub_target_empty();
 
    test_clear();
