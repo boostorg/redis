@@ -1,0 +1,89 @@
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+= Multi-threading
+
+* Before doing multi-threading, think twice if you need it.
+  You can get very far with single-threaded I/O event loops.
+  Recall that all functions in Boost.Redis are async,
+  so multiple tasks may run concurrently even if using a single thread.
+* If you are performing computation intensive tasks, consider deferring
+  these to a thread pool, and keeping the I/O event loop single-threaded.
+* Multiple threads performing I/O require synchronization that has overhead.
+  Always measure performance before switching to multi-threading.
+
+== Asio multi-threading refresher
+
+Boost.Redis follows Asio's conventions regarding multi-threading:
+
+* I/O objects (like `connection`) don't have any built-in synchronization
+  support. This way, no overhead in single-threaded cases. It is
+  your responsibility, as a user, to add proper guards.
+* A multi-threaded application is running an execution context with
+  many threads running handlers. Easiest way is using `thread_pool` (TODO: insert example).
+* The way to ensure thread-safety is by using strands. A strand is a special executor
+  that ensures that no two handlers run in parallel, preventing race conditions.
+* You need a strand if two handlers may run in parallel and access
+  a shared data structure. Some examples (use a tcp socket for these):
+  ** Serial socket read, then write: no strand needed here because all operations
+     are strictly sequential.
+  ** Parallel socket read and write: a strand is needed here (show tha race-y example,
+     then the correct example. Use make_parallel_group).
+  ** Read with timeout: a strand is needed here (show tha race-y example,
+     then the correct example. Use make_parallel_group).
+* Strands have shared ownership. Once you create a strand, all subsequent copies
+  refer to the same underlying strand. Strands created by different `asio::make_strand`
+  calls are however different. Handlers submitted to them are allowed to run
+  in parallel (as acquiring different instances of `std::mutex` would do). (show example).
+* Never use `std::mutex` or `std::condition_variable` - these block
+  the calling thread, which prevents it from running other tasks. This would be akin
+  to calling a blocking function - against the async rules!
+* Strands should not be used to synchronize tasks. E.g. to signal the completion
+  of an event, or to make one task suspend until another finishes.
+  This should be done using channels and timers. Put it another way,
+  if your program uses a single-threaded I/O context, and it still uses
+  strands, you're doing it wrong.
+* It's easy to get it wrong. Use -fsanitize=thread with your code
+  and perform a stress test to double-check.
+
+== In Boost.Redis
+
+When using a connection in a multi-threaded program, the connection
+should be protected by a strand. All tasks that manipulate the connection -
+executing requests, receiving pushes, or cancelling it - need to go through the
+same strand.
+
+Consider a server (full example: TODO: link to cpp20_echo_server_multithreaded.cpp).
+The server is handling multiple sessions. Every session is independent of each
+other, so it gets a different strand.
+
+TODO: server program showing the accept loop, and an echo server, without redis yet.
+Strand per connection. Not technically required at this point, but good practice because
+you will end up adding `cancel_after` at some point. Show how C++20 coroutines always
+dispatch evth through the executor and that makes them good for this.
+
+Now let's add Boost.Redis. Because the connection is shared, it needs a separate
+strand, and all should go through it:
+
+TODO: show cpp20_echo_server_multithreaded snippet showing the session,
+and why it can't be a raw co_await.
+
+Cancellation also needs to be guarded:
+
+TODO: show cpp20_echo_server_multithreaded snippet showing signal handling.
+
+== If you are not using C++20 coroutines
+
+* Prefer C++20 coroutines if possible. co_spawn will dispatch all completions using
+  the passed executor.
+* If you are not, you need to be more careful. Eager completion tokens,
+  like callbacks, run the initiation inline, regardless of the associated
+  executor:
+
+TODO: show the callback equivalent to cpp20_echo_server_multithreaded snippet
+showing the session.
