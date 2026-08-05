@@ -14,10 +14,12 @@
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/asio/this_coro.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/asio/use_awaitable.hpp>
 
 #include <iostream>
+#include <memory>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
@@ -68,19 +70,26 @@ auto listener(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    }
 }
 
+auto wait_for_signals(std::shared_ptr<connection> conn) -> asio::awaitable<void>
+{
+   auto ex = co_await asio::this_coro::executor;
+   asio::signal_set sig_set(ex, SIGINT, SIGTERM);
+   co_await sig_set.async_wait();
+   conn->cancel();
+}
+
 auto co_main(config cfg) -> asio::awaitable<void>
 {
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(asio::make_strand(ex));
+
    asio::co_spawn(ex, listener(conn), asio::detached);
    asio::co_spawn(
       conn->get_executor(),
       conn->async_run(cfg, asio::use_awaitable),
       asio::consign(asio::detached, conn));
 
-   signal_set sig_set(ex, SIGINT, SIGTERM);
-   co_await sig_set.async_wait();
-   conn->cancel();
+   co_await asio::co_spawn(conn->get_executor(), wait_for_signals(conn));
 }
 
 int main(int argc, char* argv[])
