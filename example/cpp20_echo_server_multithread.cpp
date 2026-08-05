@@ -4,12 +4,16 @@
  * accompanying file LICENSE.txt)
  */
 
+#include <boost/redis/config.hpp>
 #include <boost/redis/connection.hpp>
 
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/consign.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/experimental/cancellation_condition.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/signal_set.hpp>
@@ -20,6 +24,7 @@
 
 #include <iostream>
 #include <memory>
+#include <string_view>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
@@ -37,10 +42,12 @@ auto echo_server_session(asio::ip::tcp::socket socket, std::shared_ptr<connectio
 {
    request req;
    response<std::string> resp;
+   std::string buffer;
 
-   for (std::string buffer;;) {
+   for (;;) {
       auto n = co_await asio::async_read_until(socket, asio::dynamic_buffer(buffer, 1024), "\n");
-      req.push("PING", buffer);
+      auto msg = std::string_view(buffer).substr(0u, n);
+      req.push("PING", msg);
 
       co_await asio::co_spawn(
          conn->get_executor(),
@@ -70,12 +77,18 @@ auto listener(std::shared_ptr<connection> conn) -> asio::awaitable<void>
    }
 }
 
-auto wait_for_signals(std::shared_ptr<connection> conn) -> asio::awaitable<void>
+auto wait_for_signals() -> asio::awaitable<void>
 {
    auto ex = co_await asio::this_coro::executor;
    asio::signal_set sig_set(ex, SIGINT, SIGTERM);
    co_await sig_set.async_wait();
-   conn->cancel();
+}
+
+auto my_run(config cfg, std::shared_ptr<connection> conn) -> asio::awaitable<void>
+{
+   std::clog << "Run starting" << std::endl;
+   auto [ec] = co_await conn->async_run(cfg, asio::as_tuple);
+   std::clog << "Run finished: " << ec << ": " << ec.message() << std::endl;
 }
 
 auto co_main(config cfg) -> asio::awaitable<void>
@@ -83,13 +96,11 @@ auto co_main(config cfg) -> asio::awaitable<void>
    auto ex = co_await asio::this_coro::executor;
    auto conn = std::make_shared<connection>(asio::make_strand(ex));
 
-   asio::co_spawn(ex, listener(conn), asio::detached);
-   asio::co_spawn(
-      conn->get_executor(),
-      conn->async_run(cfg, asio::use_awaitable),
-      asio::consign(asio::detached, conn));
-
-   co_await asio::co_spawn(conn->get_executor(), wait_for_signals(conn));
+   co_await asio::experimental::make_parallel_group(
+      asio::co_spawn(ex, listener(conn)),
+      asio::co_spawn(conn->get_executor(), wait_for_signals()),
+      asio::co_spawn(conn->get_executor(), my_run(std::move(cfg), conn)))
+      .async_wait(asio::experimental::wait_for_one(), asio::deferred);
 }
 
 int main(int argc, char* argv[])
@@ -107,7 +118,7 @@ int main(int argc, char* argv[])
          if (p)
             std::rethrow_exception(p);
       });
-      ctx.attach();
+      ctx.join();
 
    } catch (std::exception const& e) {
       std::cerr << "(main) " << e.what() << std::endl;
