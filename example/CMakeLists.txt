@@ -28,10 +28,11 @@ boost_redis_make_testable_example(cpp20_unix_sockets boost_redis_examples_main)
 boost_redis_make_testable_example(cpp20_timeouts     boost_redis_examples_main)
 boost_redis_make_testable_example(cpp20_sentinel     boost_redis_examples_main)
 
-boost_redis_make_example(cpp20_subscriber  boost_redis_examples_main)
-boost_redis_make_example(cpp20_streams     boost_redis_examples_main)
-boost_redis_make_example(cpp20_echo_server boost_redis_examples_main)
-boost_redis_make_example(cpp20_intro_tls   boost_redis_examples_main)
+boost_redis_make_example(cpp20_subscriber                boost_redis_examples_main)
+boost_redis_make_example(cpp20_streams                   boost_redis_examples_main)
+boost_redis_make_example(cpp20_echo_server               boost_redis_examples_main)
+boost_redis_make_example(cpp20_echo_server_multithread   boost_redis_examples_main)
+boost_redis_make_example(cpp20_intro_tls                 boost_redis_examples_main)
 
 # We test the protobuf example only on gcc.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
