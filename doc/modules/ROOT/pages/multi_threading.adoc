@@ -77,6 +77,23 @@ Cancellation also needs to be guarded:
 
 TODO: show cpp20_echo_server_multithreaded snippet showing signal handling.
 
+Strands serialize handlers, not tasks. For example, if you run the following
+in a connection that uses a strand:
+
+```
+// TODO: sanitize this
+make_parallel_group(
+  conn.async_exec(req1, res1),
+  conn.async_exec(req2, res2)
+);
+```
+
+Both requests will be sent to the server as soon as possible,
+and may be pipelined together (as in the single-threaded case).
+Concretely, a strand **does not cause req2 to wait for req1 to be
+completed before it is sent to the server**. It is the handlers that
+get serialized, not the requests.
+
 == If you are not using C++20 coroutines
 
 * Prefer C++20 coroutines if possible. co_spawn will dispatch all completions using
