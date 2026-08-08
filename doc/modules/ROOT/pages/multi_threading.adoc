@@ -263,19 +263,33 @@ or `make_parallel_group`, needs to be guarded, too. If you're using `co_spawn`
 as per above, guarding happens automatically, as `co_spawn` runs cancellations
 through the passed executor. For example, the following is safe:
 
-```
-TODO
+[source,cpp]
+----
+auto co_main(config cfg) -> asio::awaitable<void>
+{
+   // `ex` is a regular execution context (not a strand)
+   auto ex = co_await asio::this_coro::executor;
 
-auto strand = asio::make_strand(co_await asio::this_coro::executor);
-auto conn = std::make_shared<connection>(strand);
-asio::signal_set signals (...);
+   // Create the connection and the strand that guards it
+   auto conn_strand = asio::make_strand(ex);
+   auto conn = std::make_shared<connection>(conn_strand);
 
-co_await make_parallel_group(
-   asio::co_spawn(strand, conn.async_run(...)),
-   signals.async_wait()
-);
-```
+   // Shut the server down cleanly when the user hits Ctrl-C.
+   // The signal set doesn't touch the connection, so it needs no protection.
+   asio::signal_set signals(ex, SIGINT, SIGTERM);
 
+   co_await asio::experimental::make_parallel_group(
+      // Use a strand to protect the connection.
+      // You need co_spawn here. In particular, using `conn->async_run(cfg)`
+      // is NOT safe, because cancellation would be unguarded.
+      asio::co_spawn(conn_strand, conn->async_run(cfg, asio::use_awaitable)),
+
+      // When a signal is received, the task running the connection will be cancelled.
+      // This is safe because co_spawn also protects cancellations.
+      signals.async_wait(asio::deferred))
+      .async_wait(asio::experimental::wait_for_one(), asio::deferred);
+}
+----
 
 === Strands serialize handlers, not requests
 
@@ -309,8 +323,13 @@ It is the handlers that get serialized, not the requests.
 Prefer pass:[C++20] coroutines when you can: `co_spawn` dispatches every completion
 and every cancellation handler through the executor you pass it, which is what makes the pattern above work.
 
-If you can't, you need to be more careful. Eager completion tokens, like plain
-callbacks, run the initiation inline in the calling thread, regardless of any
+Another option is using stackful coroutines with `asio::yield_context`.
+All the principles explained here work - `asio::spawn` provides the same
+guarantees regarding executors as `asio::co_spawn`.
+
+If you are using callbacks, you need to be more careful.
+Callbacks are eager completion tokens, meaning that they run
+the initiation inline in the calling thread, regardless of any
 executor associated to the handler. The following is therefore *incorrect*, even
 though the callback is bound to the connection's strand:
 
