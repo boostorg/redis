@@ -6,6 +6,7 @@
 * xref:auth.adoc[]
 * xref:logging.adoc[]
 * xref:sentinel.adoc[]
+* xref:multi_threading.adoc[]
 * xref:benchmarks.adoc[]
 * xref:comparison.adoc[]
 * xref:examples.adoc[]
