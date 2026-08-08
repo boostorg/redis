@@ -80,12 +80,12 @@ auto echo_server_session(asio::ip::tcp::socket socket, std::shared_ptr<connectio
       // async_exec is an initiating function that reads and mutates the
       // connection's internal state, so it must run on the
       // connection's strand (not the session's).
+      // co_spawn allows creating a new coroutine
+      // bound to `conn->get_executor()`, which returns
+      // the connection's strand.
       //
       // asio::use_awaitable produces a lazy awaitable
       // that is not started until co_spawn is co_await'ed.
-      // `conn->get_executor()` returns the connection's strand,
-      // so all state mutation happens under protection.
-      //
       // By default, co_spawn returns an object that can be
       // co_await'ed, like other async operations.
       //
