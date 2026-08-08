@@ -259,14 +259,20 @@ Cancelling the connection mutates its state, too, so it needs the same protectio
 Explicit calls to xref:reference:boost/redis/basic_connection/cancel.adoc[`connection::cancel`] can be protected with strands, as we've seen.
 
 Per-operation cancellation, usually triggered by `asio::cancel_after`
-or `make_parallel_group`, needs to be guarded, too. For example,
-the following is incorrect
+or `make_parallel_group`, needs to be guarded, too. If you're using `co_spawn`
+as per above, guarding happens automatically, as `co_spawn` runs cancellations
+through the passed executor. For example, the following is safe:
 
 ```
 TODO
+
+auto strand = asio::make_strand(co_await asio::this_coro::executor);
+auto conn = std::make_shared<connection>(strand);
+asio::signal_set signals (...);
+
 co_await make_parallel_group(
-   conn.async_exec(...),
-   timer.async_wait()
+   asio::co_spawn(strand, conn.async_run(...)),
+   signals.async_wait()
 );
 ```
 
