@@ -24,8 +24,22 @@ I/O objects, like xref:reference:boost/redis/basic_connection.adoc[`connection`]
 don't have any built-in synchronization. This keeps single-threaded programs free
 of overhead, and makes adding the required guards your responsibility.
 
-A multi-threaded application runs an execution context with several threads
-invoking handlers. The easiest way to get one is
+There are two ways to approach multi-threading with Asio:
+
+* Running a single execution context, with many threads executing the handlers.
+  This option is more universal and requires less setup, but needs you to protect
+  your code from data races explicitly.
+* Creating one `io_context` per thread. Implementing this requires a way to distribute
+  your work among your threads. If you are implementing a server, you can distribute
+  sessions in a round-robin fashion. Because each `io_context` is managed by a single
+  thread, no additional protection is required. To use this pattern,
+  create one `connection` object per thread.
+
+This section focuses on the former option, since the latter doesn't require
+any special handling.
+
+The easiest way to create an execution context served by several
+threads is by using
 https://www.boost.org/doc/libs/latest/doc/html/boost_asio/reference/thread_pool.html[`asio::thread_pool`]:
 
 [source,cpp]
