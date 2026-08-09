@@ -11,6 +11,7 @@ import stat
 from shutil import rmtree, copytree, ignore_patterns
 import argparse
 import multiprocessing
+import sys
 
 
 # Variables
@@ -94,6 +95,13 @@ def _deduce_boost_branch() -> str:
         ref = os.environ.get('DRONE_BRANCH', '')
         ci = 'Drone'
         res = 'master' if ref == 'master' else 'develop'
+    elif os.environ.get('APPVEYOR') is not None:
+        # APPVEYOR_REPO_BRANCH holds the target branch for both regular builds
+        # and PR builds (the PR's base branch), so it's the right analogue of
+        # GitHub's GITHUB_BASE_REF.
+        ref = os.environ.get('APPVEYOR_REPO_BRANCH', '')
+        ci = 'AppVeyor'
+        res = 'master' if ref == 'master' else 'develop'
     else:
         ci = 'Unknown'
         ref = ''
@@ -131,7 +139,7 @@ def _setup_boost(
     # Install Boost dependencies
     _run(["git", "config", "submodule.fetchJobs", "8"])
     _run(["git", "submodule", "update", "-q", "--init", "tools/boostdep"])
-    _run(["python3", "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
+    _run([sys.executable, "tools/boostdep/depinst/depinst.py", "--include", "example", "redis"])
 
     # Bootstrap
     if _is_windows:
