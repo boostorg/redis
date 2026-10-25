@@ -58,7 +58,7 @@ using result = system::result<Value, error>;
 BOOST_NORETURN inline void throw_exception_from_error(error const& e, boost::source_location const&)
 {
    throw system::system_error(
-      system::error_code(detail::resp3_type_to_error(e.data_type)),
+      system::error_code(boost::redis::detail::resp3_type_to_error(e.data_type)),
       e.diagnostic);
 }
 

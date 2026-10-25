@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <iterator>
 #include <memory>
+#include <utility>
 
 namespace boost::redis {
 
@@ -33,6 +34,32 @@ struct flat_buffer {
    std::size_t size = 0u;
    std::size_t capacity = 0u;
    std::size_t reallocs = 0u;
+
+   flat_buffer() = default;
+   flat_buffer(std::unique_ptr<char[]> d, std::size_t s, std::size_t c, std::size_t r) noexcept
+   : data(std::move(d))
+   , size(s)
+   , capacity(c)
+   , reallocs(r)
+   {
+   }
+   flat_buffer(flat_buffer&& other) noexcept
+   : data(std::move(other.data))
+   , size(std::exchange(other.size, 0u))
+   , capacity(std::exchange(other.capacity, 0u))
+   , reallocs(std::exchange(other.reallocs, 0u))
+   {
+   }
+   flat_buffer& operator=(flat_buffer&& other) noexcept
+   {
+      if (this != &other) {
+         data = std::move(other.data);
+         size = std::exchange(other.size, 0u);
+         capacity = std::exchange(other.capacity, 0u);
+         reallocs = std::exchange(other.reallocs, 0u);
+      }
+      return *this;
+   }
 };
 
 }  // namespace detail
@@ -96,7 +123,7 @@ public:
     * @par Exception safety
     * No-throw guarantee.
     */
-   flat_tree(flat_tree&& other) noexcept = default;
+   flat_tree(flat_tree&& other) noexcept;
 
    /**
     * @brief Copy constructor.
@@ -122,7 +149,7 @@ public:
     * @par Exception safety
     * No-throw guarantee.
     */
-   flat_tree& operator=(flat_tree&& other) = default;
+   flat_tree& operator=(flat_tree&& other) noexcept;
 
    /**
     * @brief Copy assignment.

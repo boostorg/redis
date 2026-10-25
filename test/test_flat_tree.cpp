@@ -4,8 +4,9 @@
  * accompanying file LICENSE.txt)
  */
 
-#include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/flat_tree.hpp>
+#include <boost/redis/adapter/result.hpp>
+#include <boost/redis/adapter/adapt.hpp>
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
@@ -528,6 +529,7 @@ void test_clear_tmp()
    t.clear();
    check_nodes(t, {});
    BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+   BOOST_TEST_EQ(t.data_size(), 0u);
 
    // The nodes in the tmp area are still alive. Adding the remaining yields the full message
    BOOST_TEST(parse_checked(t, p, "*2\r\n+hello\r\n+world\r\n"));
@@ -538,6 +540,7 @@ void test_clear_tmp()
    };
    check_nodes(t, expected_nodes);
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+   BOOST_TEST_EQ(t.data_size(), 10u);
 }
 
 // Clearing having only tmp area is safe
@@ -731,6 +734,54 @@ void test_move_ctor()
    BOOST_TEST_EQ(t2.data_capacity(), 512u);
    BOOST_TEST_EQ(t2.get_reallocs(), 1u);
    BOOST_TEST_EQ(t2.get_total_msgs(), 1u);
+
+   // The moved-from object is empty and valid
+   check_nodes(t, {});
+   BOOST_TEST(t.empty());
+   BOOST_TEST_EQ(t.size(), 0u);
+   BOOST_TEST_EQ(t.data_size(), 0u);
+   BOOST_TEST_EQ(t.data_capacity(), 0u);
+   BOOST_TEST_EQ(t.get_total_msgs(), 0u);
+
+   // Iterators on moved-from are empty
+   BOOST_TEST(t.begin() == t.end());
+   BOOST_TEST(t.rbegin() == t.rend());
+
+   // Checked access on moved-from throws std::out_of_range
+   BOOST_TEST_THROWS(t.at(0), std::out_of_range);
+
+   // Comparison with another empty tree works
+   flat_tree empty_tree;
+   BOOST_TEST(t == empty_tree);
+   BOOST_TEST(empty_tree == t);
+   BOOST_TEST(!(t == t2));
+   BOOST_TEST(t != t2);
+
+   // Copying the moved-from object produces an empty tree without errors
+   flat_tree t3{t};
+   check_nodes(t3, {});
+   BOOST_TEST(t3.empty());
+
+   // Copy-assigning the moved-from object works
+   flat_tree t4;
+   t4 = t;
+   check_nodes(t4, {});
+   BOOST_TEST(t4.empty());
+
+   // Reserve on the moved-from object works
+   t.reserve(256u, 16u);
+   BOOST_TEST(t.empty());
+   BOOST_TEST_GE(t.data_capacity(), 256u);
+   BOOST_TEST_GE(t.capacity(), 16u);
+
+   // Clear and reuse work on the moved-from object
+   t.clear();
+   add_nodes(t, "+again\r\n");
+   expected_nodes = {
+      {type::simple_string, 1u, 0u, "again"},
+   };
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 5u);
 }
 
 // Moving an empty object doesn't cause trouble
@@ -1007,6 +1058,41 @@ void test_move_assign()
    BOOST_TEST_EQ(t.data_capacity(), 512u);
    BOOST_TEST_EQ(t.get_reallocs(), 1u);
    BOOST_TEST_EQ(t.get_total_msgs(), 1u);
+
+   // The moved-from object is empty and valid
+   check_nodes(t2, {});
+   BOOST_TEST(t2.empty());
+   BOOST_TEST_EQ(t2.size(), 0u);
+   BOOST_TEST_EQ(t2.data_size(), 0u);
+   BOOST_TEST_EQ(t2.data_capacity(), 0u);
+   BOOST_TEST_EQ(t2.get_total_msgs(), 0u);
+
+   // Checked access on moved-from throws std::out_of_range
+   BOOST_TEST_THROWS(t2.at(0), std::out_of_range);
+
+   // Self-move assignment is safe
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+   t = std::move(t);
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+   check_nodes(t, expected_nodes);
+   BOOST_TEST_EQ(t.data_size(), 10u);
+
+   // Self-move assignment on empty/moved-from object is safe
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
+   t2 = std::move(t2);
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+   BOOST_TEST(t2.empty());
+   BOOST_TEST_EQ(t2.data_capacity(), 0u);
 }
 
 // The lhs is empty and doesn't have any capacity
