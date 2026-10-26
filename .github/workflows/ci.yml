@@ -261,7 +261,6 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '20'
             build-type: 'Debug'
-            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system has no UNIX socket support, we build correctly
             server: "redis:8.2.1-alpine"
 
           - toolset: clang-17
@@ -277,6 +276,7 @@ jobs:
             container: ubuntu:24.04
             cxxstd: '20'
             build-type: 'Debug'
+            cxxflags: '-DBOOST_ASIO_DISABLE_LOCAL_SOCKETS=1' # If a system has no UNIX socket support, we build correctly
             server: "redis:7.4.5-alpine"
 
           - toolset: clang-18
