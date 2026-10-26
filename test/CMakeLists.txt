@@ -9,6 +9,10 @@ if (MSVC)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(boost_redis_project_options INTERFACE -Wall -Wextra)
 endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # Remove a spurious gcc warning in Asio headers
+  target_compile_options(boost_redis_project_options INTERFACE -Wno-maybe-uninitialized)
+endif()
 
 add_library(boost_redis_src STATIC boost_redis.cpp)
 target_link_libraries(boost_redis_src PRIVATE boost_redis_project_options)
