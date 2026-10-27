@@ -35,6 +35,7 @@ local requirements =
         <define>_CRT_SECURE_NO_WARNINGS=1 # suppress MSVC warnings
         <toolset>msvc:<cxxflags>"/bigobj"
         <target-os>windows:<define>_WIN32_WINNT=0x0601
+        <toolset>gcc:<cxxflags>-Wno-maybe-uninitialized # spurious gcc warning in Asio
         [ requires
             cxx14_constexpr
             cxx14_generic_lambdas
