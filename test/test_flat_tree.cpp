@@ -1071,26 +1071,14 @@ void test_move_assign()
    BOOST_TEST_THROWS(t2.at(0), std::out_of_range);
 
    // Self-move assignment is safe
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wself-move"
-#endif
-   t = std::move(t);
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+   auto& temp = t;
+   t = std::move(temp);
    check_nodes(t, expected_nodes);
    BOOST_TEST_EQ(t.data_size(), 10u);
 
    // Self-move assignment on empty/moved-from object is safe
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wself-move"
-#endif
-   t2 = std::move(t2);
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+   auto& temp2 = t2;
+   t2 = std::move(temp2);
    BOOST_TEST(t2.empty());
    BOOST_TEST_EQ(t2.data_capacity(), 0u);
 }
