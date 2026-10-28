@@ -17,7 +17,6 @@
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
 #include <boost/asio/error.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
 
 #include "common.hpp"
