@@ -8,7 +8,13 @@
 
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # Nightly run, to catch breakages caused by other Boost libs.
+  # The time tries to conflict as least as possible with peak usage.
+  schedule:
+    - cron: '22 5 * * *'
 
 jobs:
   windows-cmake:
