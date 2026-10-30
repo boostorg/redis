@@ -39,11 +39,11 @@
 #include <boost/asio/cancel_at.hpp>
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/channel.hpp>
 #include <boost/asio/compose.hpp>
 #include <boost/asio/deferred.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/asio/experimental/cancellation_condition.hpp>
-#include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/immediate.hpp>
 #include <boost/asio/io_context.hpp>
@@ -78,12 +78,8 @@ struct connection_impl {
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, Executor>;
 
-   using receive_channel_type = asio::experimental::channel<
-      Executor,
-      void(system::error_code, std::size_t)>;
-   using exec_notifier_type = asio::experimental::channel<
-      Executor,
-      void(system::error_code, std::size_t)>;
+   using receive_channel_type = asio::channel<Executor, void(system::error_code, std::size_t)>;
+   using exec_notifier_type = asio::channel<Executor, void(system::error_code, std::size_t)>;
 
    redis_stream<Executor> stream_;
    timer_type writer_timer_;     // timer used for write timeouts
@@ -1128,9 +1124,7 @@ private:
    using clock_traits_type = asio::wait_traits<clock_type>;
    using timer_type = asio::basic_waitable_timer<clock_type, clock_traits_type, executor_type>;
 
-   using receive_channel_type = asio::experimental::channel<
-      executor_type,
-      void(system::error_code, std::size_t)>;
+   using receive_channel_type = asio::channel<executor_type, void(system::error_code, std::size_t)>;
 
    auto use_ssl() const noexcept { return impl_->cfg_.use_ssl; }
 

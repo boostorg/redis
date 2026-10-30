@@ -10,8 +10,8 @@
 #include <boost/redis/detail/receive_fsm.hpp>
 
 #include <boost/asio/cancellation_type.hpp>
+#include <boost/asio/channel_error.hpp>
 #include <boost/asio/error.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -26,7 +26,7 @@ using net::cancellation_type_t;
 using detail::receive_action;
 using detail::receive_fsm;
 using detail::connection_state;
-namespace channel_errc = net::experimental::channel_errc;
+namespace channel_errc = net::channel_errc;
 using action_type = receive_action::action_type;
 
 // Operators
