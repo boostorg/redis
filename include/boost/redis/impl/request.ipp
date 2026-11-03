@@ -68,6 +68,17 @@ void request::add_pubsub_arg(detail::pubsub_change_type type, std::string_view v
    pubsub_changes_.push_back({type, offset, value.size()});
 }
 
+void request::push_pubsub_all(std::string_view cmd, detail::pubsub_change_type type)
+{
+   resp3::add_header(payload_, resp3::type::array, 1);
+   resp3::add_bulk(payload_, cmd);
+
+   // Track the change. These change types have no associated channel or pattern
+   pubsub_changes_.push_back({type, 0u, 0u});
+
+   ++commands_;  // these commands don't have a response
+}
+
 void request::hello() { push("HELLO", "3"); }
 
 void request::hello(std::string_view username, std::string_view password)

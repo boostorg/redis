@@ -9,6 +9,7 @@
 
 #include <boost/redis/resp3/parser.hpp>
 #include <boost/redis/resp3/type.hpp>
+#include <boost/redis/error.hpp>
 
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
@@ -116,20 +117,23 @@ void deserialize(std::string_view const& data, Adapter adapter, system::error_co
 {
    adapter.on_init();
 
-   parser parser;
-   while (!parser.done()) {
-      auto const res = parser.consume(data, ec);
+   parser p;
+   while (!p.done()) {
+      auto const res = p.consume(data, ec);
       if (ec)
          return;
 
-      BOOST_ASSERT(res.has_value());
+      if (!res) {
+         ec = error::incompatible_size; // Incomplete message.
+         return;
+      }
 
       adapter.on_node(res.value(), ec);
       if (ec)
          return;
    }
 
-   BOOST_ASSERT(parser.get_consumed() == std::size(data));
+   BOOST_ASSERT(p.get_consumed() == std::size(data));
 
    adapter.on_done();
 }

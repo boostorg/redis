@@ -15,6 +15,13 @@
 
 namespace boost::redis::detail {
 
+// Given a request and a change, returns an owning string
+// with the channel or pattern name affected by the change
+inline std::string get_channel_owning(const request& req, const pubsub_change& ch)
+{
+   return std::string(req.payload().substr(ch.channel_offset, ch.channel_size));
+}
+
 void subscription_tracker::clear()
 {
    channels_.clear();
@@ -24,13 +31,16 @@ void subscription_tracker::clear()
 void subscription_tracker::commit_changes(const request& req)
 {
    for (const auto& ch : request_access::pubsub_changes(req)) {
-      std::string channel{req.payload().substr(ch.channel_offset, ch.channel_size)};
       switch (ch.type) {
-         case pubsub_change_type::subscribe:    channels_.insert(std::move(channel)); break;
-         case pubsub_change_type::unsubscribe:  channels_.erase(std::move(channel)); break;
-         case pubsub_change_type::psubscribe:   pchannels_.insert(std::move(channel)); break;
-         case pubsub_change_type::punsubscribe: pchannels_.erase(std::move(channel)); break;
-         default:                               BOOST_ASSERT(false);
+         case pubsub_change_type::subscribe:   channels_.insert(get_channel_owning(req, ch)); break;
+         case pubsub_change_type::unsubscribe: channels_.erase(get_channel_owning(req, ch)); break;
+         case pubsub_change_type::psubscribe:  pchannels_.insert(get_channel_owning(req, ch)); break;
+         case pubsub_change_type::punsubscribe:
+            pchannels_.erase(get_channel_owning(req, ch));
+            break;
+         case pubsub_change_type::unsubscribe_all:  channels_.clear(); break;
+         case pubsub_change_type::punsubscribe_all: pchannels_.clear(); break;
+         default:                                   BOOST_ASSERT(false);
       }
    }
 }

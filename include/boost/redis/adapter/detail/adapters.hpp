@@ -113,6 +113,11 @@ struct from_bulk_impl {
    template <class String>
    static void apply(T& t, resp3::basic_node<String> const& node, system::error_code& ec)
    {
+      if (node.data_type == resp3::type::null) {
+         ec = redis::error::resp3_null;
+         return;
+      }
+
       converter<T>::apply(t, node, ec);
    }
 };
@@ -125,7 +130,9 @@ struct from_bulk_impl<std::optional<T>> {
       resp3::basic_node<String> const& node,
       system::error_code& ec)
    {
-      if (node.data_type != resp3::type::null) {
+      if (node.data_type == resp3::type::null) {
+        op.reset();
+      } else {
          op.emplace(T{});
          converter<T>::apply(op.value(), node, ec);
       }
@@ -422,6 +429,55 @@ public:
 };
 
 template <class Result>
+class vector_pair {
+private:
+   bool on_key_ = true;
+
+public:
+   void on_value_available(Result&) { }
+   void on_init() { }
+   void on_done() { }
+
+   template <class String>
+   void
+   on_node(
+      Result& res,
+      resp3::basic_node<String> const& nd,
+      system::error_code& ec)
+   {
+      if (is_aggregate(nd.data_type)) {
+         auto const m = element_multiplicity(nd.data_type);
+         if (m != 2u) {
+            ec = redis::error::expects_resp3_map;
+            return;
+         }
+
+         // The container is not required to be empty, so take the current size
+         // into account.
+         res.reserve(res.size() + m * nd.aggregate_size);
+         return;
+      }
+
+      BOOST_ASSERT(nd.aggregate_size == 1);
+
+      if (nd.depth < 1) {
+         ec = redis::error::expects_resp3_map;
+         return;
+      }
+
+      if (on_key_) {
+         res.push_back({});
+         boost_redis_from_bulk(res.back().first, nd, ec);
+      } else {
+         boost_redis_from_bulk(res.back().second, nd, ec);
+      }
+
+      on_key_ = !on_key_;
+   }
+};
+
+
+template <class Result>
 class array_impl {
 private:
    int i_ = -1;
@@ -534,6 +590,11 @@ struct impl_map<std::vector<T, Allocator>> {
    using type = vector_impl<std::vector<T, Allocator>>;
 };
 
+template <class T, class U, class Allocator>
+struct impl_map<std::vector<std::pair<T, U>, Allocator>> {
+   using type = vector_pair<std::vector<std::pair<T, U>, Allocator>>;
+};
+
 template <class T, std::size_t N>
 struct impl_map<std::array<T, N>> {
    using type = array_impl<std::array<T, N>>;
@@ -585,7 +646,6 @@ public:
    : result_(t)
    {
       if (result_) {
-         result_->value() = T{};
          impl_.on_value_available(result_->value());
       }
    }

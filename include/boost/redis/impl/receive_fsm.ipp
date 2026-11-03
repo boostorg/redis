@@ -11,8 +11,8 @@
 #include <boost/redis/detail/receive_fsm.hpp>
 #include <boost/redis/error.hpp>
 
+#include <boost/asio/channel_error.hpp>
 #include <boost/asio/error.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/assert.hpp>
 
 namespace boost::redis::detail {
@@ -67,7 +67,7 @@ receive_action receive_fsm::resume(
          }
 
          // If we get any unknown errors, propagate them (shouldn't happen, but just in case)
-         if (ec != asio::experimental::channel_errc::channel_cancelled) {
+         if (ec != asio::channel_errc::channel_cancelled) {
             st.receive2_running = false;
             return ec;
          }

@@ -1,0 +1,384 @@
+//
+// Copyright (c) 2026 Marcelo Zimbres Silva (mzimbres@gmail.com),
+// Ruben Perez Hidalgo (rubenperez038 at gmail dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+= Multi-threading
+
+Before reaching for multi-threading, consider whether you actually need it:
+
+* You can get very far with a single-threaded I/O event loop. All functions in
+  Boost.Redis are asynchronous, so many tasks can run concurrently on a single thread.
+* If your workload is CPU-bound, consider offloading the computation to a thread pool
+  and keeping the I/O event loop single-threaded.
+* Performing I/O from several threads requires synchronization, which
+  has a cost. Always measure before switching to multi-threading.
+
+== Asio multi-threading refresher
+
+Boost.Redis follows Asio's conventions regarding multi-threading.
+I/O objects, like xref:reference:boost/redis/basic_connection.adoc[`connection`],
+don't have any built-in synchronization. This keeps single-threaded programs free
+of overhead, and makes adding the required guards your responsibility.
+
+There are two ways to approach multi-threading with Asio:
+
+* Running a single execution context, with many threads executing the handlers.
+  This option is more universal and requires less setup, but needs you to protect
+  your code from data races explicitly.
+* Creating one `io_context` per thread. Implementing this requires a way to distribute
+  your work among your threads. If you are implementing a server, you can distribute
+  sessions in a round-robin fashion. Because each `io_context` is managed by a single
+  thread, no additional protection is required. To use this pattern,
+  create one `connection` object per thread.
+
+This section focuses on the former option, since the latter doesn't require
+any special handling.
+
+The easiest way to create an execution context served by several
+threads is by using
+https://www.boost.org/doc/libs/latest/doc/html/boost_asio/reference/thread_pool.html[`asio::thread_pool`]:
+
+[source,cpp]
+----
+// A context with 4 threads. Work submitted to ctx may run in any of them.
+asio::thread_pool ctx{4u};
+
+// Start a C++20 coroutine in the context.
+// Async handlers underlying the coroutine run
+// in any of the 4 threads in the pool.
+asio::co_spawn(ctx, co_main(), asio::detached);
+----
+
+The way to make code thread-safe is by using _strands_. A strand is an executor
+that guarantees that no two handlers submitted to it run in parallel, which
+prevents data races.
+
+You need a strand when two handlers may run in parallel and access the same data. For example, given a TCP socket:
+
+* Reading and then writing, sequentially, needs no strand.
+Only one operation is ever in flight, so the socket is never accessed concurrently:
++
+[source,cpp]
+----
+auto echo_session(asio::ip::tcp::socket socket) -> asio::awaitable<void>
+{
+   // No strand required: the read and the write never overlap.
+   std::string buffer;
+   auto n = co_await asio::async_read_until(socket, asio::dynamic_buffer(buffer, 1024), "\n");
+   co_await asio::async_write(socket, asio::buffer(buffer, n));
+}
+----
+
+* Reading and writing in parallel does need a strand.
+  The following contains a data race,
+  because `ex` may run the reader and the writer in two different
+  threads at the same time:
++
+[source,cpp]
+----
+auto session(asio::ip::tcp::socket socket) -> asio::awaitable<void>
+{
+   auto ex = co_await asio::this_coro::executor;  // Not a strand!
+
+   // INCORRECT: reader and writer access the same socket in parallel.
+   co_await asio::experimental::make_parallel_group(
+      asio::co_spawn(ex, reader(socket)),
+      asio::co_spawn(ex, writer(socket)))
+      .async_wait(asio::experimental::wait_for_one(), asio::deferred);
+}
+----
++
+Spawning both tasks on the same strand fixes it:
++
+[source,cpp]
+----
+auto session(asio::ip::tcp::socket socket) -> asio::awaitable<void>
+{
+   // Both tasks share a single strand, so their handlers never overlap.
+   auto st = asio::make_strand(co_await asio::this_coro::executor);
+
+   co_await asio::experimental::make_parallel_group(
+      asio::co_spawn(st, reader(socket)),
+      asio::co_spawn(st, writer(socket)))
+      .async_wait(asio::experimental::wait_for_one(), asio::deferred);
+}
+----
+
+* Reading with a timeout also needs a strand.
+  `asio::cancel_after` runs a timer in parallel with the read,
+  and the timer may expire in a different thread than
+  the one running the read:
++
+[source,cpp]
+----
+// Only safe if this coroutine runs on a strand.
+auto n = co_await asio::async_read_until(
+   socket,
+   asio::dynamic_buffer(buffer, 1024),
+   "\n",
+   asio::cancel_after(30s));
+----
+
+*Strands have shared ownership*. Copying a strand yields another handle to the same
+underlying strand, while each call to `asio::make_strand` creates a new, independent
+one. Handlers submitted to different strands may run in parallel, much like
+locking two different `std::mutex` objects.
+
+
+*Don't use `std::mutex` or `std::condition_variable` in asynchronous tasks*. These block the calling thread, preventing it from running other tasks,
+which defeats the purpose of asynchronous code.
+
+*Don't use strands to synchronize tasks*, e.g. to signal that an event
+happened, or to make a task wait until another one finishes.
+Use channels and timers for that.
+Put another way: if your program uses a single-threaded
+execution context and still needs strands, something is wrong.
+
+Getting this right is hard. *Build your code with `-fsanitize=thread`*
+and run a stress test to double-check.
+
+== Multi-threading in Boost.Redis
+
+When a connection is used by a multi-threaded program, it must be protected by a
+strand. Tasks using the connection in any way, including calling
+`async_run`, `async_exec`, `async_receive2` and `cancel`,
+need to go through the same strand.
+
+As an example, consider a TCP server that answers every line it receives by
+`PING`-ing a Redis server with it. The server handles many sessions, each one
+independent of the others, so each session gets a strand of its own. The full
+program is available as
+{site-url}/example/cpp20_echo_server_multithread.cpp[cpp20_echo_server_multithread.cpp].
+
+Let's start with the plain TCP server, before introducing Boost.Redis:
+
+[source,cpp]
+----
+// Handles a single TCP client, echoing back every line it receives.
+auto echo_server_session(asio::ip::tcp::socket socket) -> asio::awaitable<void>
+{
+   std::string buffer;
+   for (;;) {
+      // Read from the socket until finding a newline
+      auto n = co_await asio::async_read_until(socket, asio::dynamic_buffer(buffer, 1024), "\n");
+
+      // Write the message back to the client
+      co_await asio::async_write(socket, asio::buffer(buffer, n));
+
+      // Clean the buffer
+      buffer.erase(0, n);
+   }
+}
+
+// Listens for TCP connections.
+auto listener() -> asio::awaitable<void>
+{
+   // Listen for TCP connections in port 55555.
+   // `ex` here points to a regular execution context (not to a strand)
+   auto ex = co_await asio::this_coro::executor;
+   asio::ip::tcp::acceptor acc(ex, {asio::ip::tcp::v4(), 55555});
+   for (;;) {
+      // Every session runs on a separate strand, so sessions run in
+      // parallel and stay internally serialized.
+      asio::co_spawn(
+         asio::make_strand(ex),
+         echo_server_session(co_await acc.async_accept()),
+         asio::detached);
+   }
+}
+----
+
+All the operations in a session are strictly sequential, so the strand is not
+technically required yet. It is good practice nonetheless: as soon as you add
+something like `asio::cancel_after`, parallelism appears, and with it the need
+for the strand.
+
+Note that the socket is created with the acceptor's executor, which is not a
+strand. This is fine when using pass:[C++20] coroutines: `co_spawn` binds the
+coroutine's executor to every operation started inside it, so all the handlers
+of a session are dispatched through the session's strand regardless of the
+executor the socket was built with.
+
+Now let's add Boost.Redis. The connection is shared by all sessions, so it gets
+a strand of its own, and every access to it goes through that strand:
+
+[source,cpp]
+----
+auto echo_server_session(asio::ip::tcp::socket socket, std::shared_ptr<connection> conn)
+   -> asio::awaitable<void>
+{
+   // These live in the coroutine frame, and are private to this session.
+   request req;
+   response<std::string> resp;
+   std::string buffer;
+
+   for (;;) {
+      // Read from the socket until finding a newline
+      auto n = co_await asio::async_read_until(socket, asio::dynamic_buffer(buffer, 1024), "\n");
+
+      // Compose the PING request
+      auto msg = std::string_view(buffer).substr(0u, n);
+      req.push("PING", msg);
+
+      // Use the connection.
+      // conn->get_executor() returns the connection's strand.
+      // We use co_spawn to run a new coroutine that uses
+      // the connection's strand as executor.
+      // Writing `co_await conn->async_exec(...)` would have been
+      // a race condition because this coroutine is running in the session's 
+      // strand, not the connection's
+      co_await asio::co_spawn(
+         conn->get_executor(),
+         conn->async_exec(req, resp, asio::use_awaitable));
+
+      // We're now back on the session's strand.
+      // Write the message back to the TCP client.
+      co_await asio::async_write(socket, asio::buffer(std::get<0>(resp).value()));
+
+      // Cleanup
+      std::get<0>(resp).value().clear();
+      req.clear();
+      buffer.erase(0, n);
+   }
+}
+----
+
+Some notes:
+
+* As explained in the code, a plain
+  `+co_await conn->async_exec(req, resp)+` doesn't work here
+  because each session runs on its own strand, which doesn't
+  protect the connection.
+* `asio::use_awaitable` produces a lazy awaitable that is not started until 
+  `co_spawn` is awaited. This means that the initiation happens under protection.
+* By default, `co_spawn` returns an object that can be awaited, like any other
+  asynchronous operation. After `co_spawn` completes, the coroutine
+  keeps executing through the session's strand.
+* `req` and `resp` are owned by the session but are used from the
+  connection's strand. This is safe because the session
+  stays suspended for the whole duration of `async_exec`,
+  and has no other task running in parallel.
+
+TIP: Treat strands like mutexes: hold them for as short a time as possible. This is
+especially true for the connection's strand, since it is shared by every session.
+
+=== Guarding cancellation
+
+Cancelling the connection mutates its state, too, so it needs the same protection.
+
+Explicit calls to xref:reference:boost/redis/basic_connection/cancel.adoc[`connection::cancel`] can be protected with strands, as we've seen.
+
+Per-operation cancellation, usually triggered by `asio::cancel_after`
+or `make_parallel_group`, needs to be guarded, too. If you're using `co_spawn`
+as per above, guarding happens automatically, as `co_spawn` runs cancellations
+through the passed executor. For example, the following is safe:
+
+[source,cpp]
+----
+auto co_main(config cfg) -> asio::awaitable<void>
+{
+   // `ex` is a regular execution context (not a strand)
+   auto ex = co_await asio::this_coro::executor;
+
+   // Create the connection and the strand that guards it
+   auto conn_strand = asio::make_strand(ex);
+   auto conn = std::make_shared<connection>(conn_strand);
+
+   // Shut the server down cleanly when the user hits Ctrl-C.
+   // The signal set doesn't touch the connection, so it needs no protection.
+   asio::signal_set signals(ex, SIGINT, SIGTERM);
+
+   co_await asio::experimental::make_parallel_group(
+      // Use a strand to protect the connection.
+      // You need co_spawn here. In particular, using `conn->async_run(cfg)`
+      // is NOT safe, because cancellation would be unguarded.
+      asio::co_spawn(conn_strand, conn->async_run(cfg, asio::use_awaitable)),
+
+      // When a signal is received, the task running the connection will be cancelled.
+      // This is safe because co_spawn also protects cancellations.
+      signals.async_wait(asio::deferred))
+      .async_wait(asio::experimental::wait_for_one(), asio::deferred);
+}
+----
+
+=== Strands serialize handlers, not requests
+
+Given a connection guarded by a strand, and a coroutine already running on that
+strand:
+
+[source,cpp]
+----
+auto exec_two(connection& conn) -> asio::awaitable<void>
+{
+   // The current coroutine is running through a strand
+   
+   request req1, req2;
+   response<std::string> res1, res2;
+   // Fill the requests here...
+
+   co_await asio::experimental::make_parallel_group(
+      conn.async_exec(req1, res1, asio::deferred),
+      conn.async_exec(req2, res2, asio::deferred))
+      .async_wait(asio::experimental::wait_for_all(), asio::deferred);
+}
+----
+
+Both requests are sent to the server as soon as possible, and may be pipelined
+together, exactly as in the single-threaded case. In particular, the strand
+*does not make `req2` wait for `req1` to complete before it is sent*.
+It is the handlers that get serialized, not the requests.
+
+== If you are not using pass:[C++20] coroutines
+
+Prefer pass:[C++20] coroutines when you can: `co_spawn` dispatches every completion
+and every cancellation handler through the executor you pass it, which is what makes the pattern above work.
+
+Another option is using stackful coroutines with `asio::yield_context`.
+All the principles explained here work - `asio::spawn` provides the same
+guarantees regarding executors as `asio::co_spawn`.
+
+If you are using callbacks, you need to be more careful.
+Callbacks are eager completion tokens, meaning that they run
+the initiation inline in the calling thread, regardless of any
+executor associated to the handler. The following is therefore *incorrect*, even
+though the callback is bound to the connection's strand:
+
+[source,cpp]
+----
+void session::exec()
+{
+   // INCORRECT: async_exec is initiated in the calling thread, which is the
+   // session's strand, and not the connection's.
+   conn->async_exec(
+      req,
+      resp,
+      asio::bind_executor(conn->get_executor(), [this](error_code ec, std::size_t n) {
+         on_exec_done(ec, n);
+      }));
+}
+----
+
+You have to reach the connection's strand yourself, before invoking the initiating
+function:
+
+[source,cpp]
+----
+void session::exec()
+{
+   asio::dispatch(conn->get_executor(), [this]() {
+      // We're now running on the connection's strand, so it's safe to
+      // initiate the operation.
+      conn->async_exec(
+         req,
+         resp,
+         // Get back to the session's strand to handle the result.
+         asio::bind_executor(session_strand_, [this](error_code ec, std::size_t n) {
+            on_exec_done(ec, n);
+         }));
+   });
+}
+----

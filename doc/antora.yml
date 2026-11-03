@@ -11,5 +11,5 @@ version: ~
 nav:
   - modules/ROOT/nav.adoc
 ext:
-  cpp-reference:
+  cppReference:
     config: doc/mrdocs.yml

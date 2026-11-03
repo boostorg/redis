@@ -52,6 +52,14 @@ void print(std::vector<T> const& cont)
    std::cout << "\n";
 }
 
+template <class U, class V>
+void print(std::vector<std::pair<U, V>> const& cont)
+{
+   for (auto const& e : cont)
+      std::cout << e.first << ": " << e.second << "\n";
+   std::cout << "\n";
+}
+
 // Stores the content of some STL containers in Redis.
 auto store(std::shared_ptr<connection> conn) -> awaitable<void>
 {
@@ -77,13 +85,15 @@ auto hgetall(std::shared_ptr<connection> conn) -> awaitable<void>
    request req;
    req.push("HGETALL", "hset-key");
 
-   // Responses as tuple elements.
-   response<std::map<std::string, std::string>> resp;
+   // Responses as a std::map
+   response<std::map<std::string, std::string>> resp1;
+   co_await conn->async_exec(req, resp1);
+   print(std::get<0>(resp1).value());
 
-   // Executes the request and reads the response.
-   co_await conn->async_exec(req, resp);
-
-   print(std::get<0>(resp).value());
+   // Responses as vector<pair<string, string>>
+   response<std::vector<std::pair<std::string, std::string>>> resp2;
+   co_await conn->async_exec(req, resp2);
+   print(std::get<0>(resp2).value());
 }
 
 auto mget(std::shared_ptr<connection> conn) -> awaitable<void>

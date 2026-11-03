@@ -16,8 +16,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 
 namespace boost::redis::resp3 {
 
@@ -42,8 +44,10 @@ inline void rebase_strings(view_tree& nodes, const char* old_base, const char* n
 inline std::size_t compute_capacity(std::size_t current, std::size_t requested)
 {
    std::size_t res = (std::max)(current, static_cast<std::size_t>(512u));
-   while (res < requested)
+   while (res < requested && res <= (std::numeric_limits<std::size_t>::max)() / 2u)
       res *= 2u;
+   if (res < requested)
+      res = requested;
    return res;
 }
 
@@ -75,7 +79,8 @@ inline void copy_assign(flat_buffer& buff, const flat_buffer& other)
    }
 
    // Copy the contents
-   std::copy(other.data.get(), other.data.get() + other.size, buff.data.get());
+   if (other.size > 0u)
+      std::copy(other.data.get(), other.data.get() + other.size, buff.data.get());
    buff.size = other.size;
 }
 
@@ -95,7 +100,8 @@ inline void grow(flat_buffer& buff, std::size_t new_capacity, view_tree& nodes)
    // Copy any data into the newly allocated space
    const char* data_before = buff.data.get();
    char* data_after = new_buffer.get();
-   std::copy(data_before, data_before + buff.size, data_after);
+   if (buff.size > 0u)
+      std::copy(data_before, data_before + buff.size, data_after);
 
    // Update the string views so they don't dangle
    rebase_strings(nodes, data_before, data_after);
@@ -120,10 +126,12 @@ inline void erase_first(flat_buffer& buff, std::size_t num_bytes, view_tree& nod
 
       // Move all that we're gonna keep to the start of the buffer
       auto bytes_left = buff.size - num_bytes;
-      std::memmove(buff.data.get(), old_base, bytes_left);
+      if (bytes_left > 0u) {
+         std::memmove(buff.data.get(), old_base, bytes_left);
+         rebase_strings(nodes, old_base, buff.data.get());
+      }
 
-      // Rebase strings
-      rebase_strings(nodes, old_base, buff.data.get());
+      buff.size = bytes_left;
    }
 }
 
@@ -147,6 +155,28 @@ inline std::string_view append(flat_buffer& buff, std::string_view value, view_t
 }
 
 }  // namespace detail
+
+flat_tree::flat_tree(flat_tree&& other) noexcept
+: data_{std::move(other.data_)}
+, view_tree_{std::move(other.view_tree_)}
+, total_msgs_{std::exchange(other.total_msgs_, 0u)}
+, node_tmp_offset_{std::exchange(other.node_tmp_offset_, 0u)}
+, data_tmp_offset_{std::exchange(other.data_tmp_offset_, 0u)}
+{
+}
+
+flat_tree& flat_tree::operator=(flat_tree&& other) noexcept
+{
+   if (this != &other) {
+      data_ = std::move(other.data_);
+      view_tree_ = std::move(other.view_tree_);
+      total_msgs_ = std::exchange(other.total_msgs_, 0u);
+      node_tmp_offset_ = std::exchange(other.node_tmp_offset_, 0u);
+      data_tmp_offset_ = std::exchange(other.data_tmp_offset_, 0u);
+   }
+
+   return *this;
+}
 
 flat_tree::flat_tree(flat_tree const& other)
 : data_{detail::copy_construct(other.data_)}

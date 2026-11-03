@@ -250,10 +250,152 @@ void test_check_counter_adapter()
    BOOST_TEST_EQ(done, 1);
 }
 
+void test_deserialize_insuficient_data()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "%4\r\n+key1\r\n+value1\r\n+key2\r\n+value2\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{boost::redis::error::incompatible_size});
+}
+
+void test_vector_pair_from_resp3_map()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n+key2\r\n+value2\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+
+    container_t const res = {{"key1", "value1"}, {"key2", "value2"}};
+    BOOST_TEST(resp.value() == res);
+}
+
+void test_vector_pair_from_resp3_map_key_is_null1()
+{
+    using container_t = std::vector<std::pair<std::optional<std::string>, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n_\r\n+value2\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    container_t const res = {{"key1", "value1"}, {std::nullopt, "value2"}};
+    BOOST_TEST(resp.value() == res);
+}
+
+void test_vector_pair_from_resp3_map_key_is_null2()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n_\r\n+value2\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{boost::redis::error::resp3_null});
+}
+
+void test_vector_pair_from_resp3_map_value_is_null1()
+{
+    using container_t = std::vector<std::pair<std::string, std::optional<std::string>>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n+key2\r\n_\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    container_t const res = {{"key1", "value1"}, {"key2", std::nullopt}};
+    BOOST_TEST(resp.value() == res);
+}
+
+void test_vector_pair_from_resp3_map_value_is_null2()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n+key2\r\n_\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{boost::redis::error::resp3_null});
+}
+
+void test_vector_pair_from_resp3_map_key_and_value_are_null()
+{
+    using container_t = std::vector<std::pair<std::optional<std::string>, std::optional<std::string>>>;
+    result<container_t> resp;
+
+    char const* wire = "%2\r\n+key1\r\n+value1\r\n_\r\n_\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    container_t const res = {{"key1", "value1"}, {std::nullopt, std::nullopt}};
+    BOOST_TEST(resp.value() == res);
+}
+
+void test_vector_pair_from_resp3_array()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire = "*4\r\n+key1\r\n+value1\r\n+key2\r\n+value2\r\n";
+
+    error_code ec;
+    deserialize(wire, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, boost::redis::error::expects_resp3_map);
+}
+
+void test_vector_pair_append()
+{
+    using container_t = std::vector<std::pair<std::string, std::string>>;
+    result<container_t> resp;
+
+    char const* wire1 = "%1\r\n+key1\r\n+value1\r\n";
+    char const* wire2 = "%1\r\n+key2\r\n+value2\r\n";
+    char const* wire3 = "%1\r\n+key3\r\n+value3\r\n";
+
+    container_t res;
+    error_code ec;
+
+    deserialize(wire1, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    res.push_back({"key1", "value1"});
+    BOOST_TEST(resp.value() == res);
+
+    deserialize(wire2, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    res.push_back({"key2", "value2"});
+    BOOST_TEST(resp.value() == res);
+
+    deserialize(wire3, adapt2(resp), ec);
+    BOOST_TEST_EQ(ec, error_code{});
+    res.push_back({"key3", "value3"});
+    BOOST_TEST(resp.value() == res);
+}
+
 }  // namespace
 
 int main()
 {
+   test_vector_pair_from_resp3_map_key_and_value_are_null();
+   test_vector_pair_from_resp3_map_value_is_null1();
+   test_vector_pair_from_resp3_map_value_is_null2();
+   test_vector_pair_from_resp3_map_key_is_null1();
+   test_vector_pair_from_resp3_map_key_is_null2();
+   test_deserialize_insuficient_data();
+   test_vector_pair_from_resp3_map();
+   test_vector_pair_from_resp3_array();
+   test_vector_pair_append();
    test_low_level_sync_sans_io();
    test_issue_210_empty_set();
    test_issue_210_non_empty_set_size_one();

@@ -12,8 +12,8 @@
 #include <boost/redis/resp3/node.hpp>
 #include <boost/redis/response.hpp>
 
+#include <boost/asio/channel_error.hpp>
 #include <boost/asio/error.hpp>
-#include <boost/asio/experimental/channel_error.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/core/lightweight_test.hpp>
 
@@ -217,7 +217,7 @@ struct test_async_receive_cancelled_on_reconnection_impl {
    void start_receive_reconnection()
    {
       conn.async_receive([this](error_code ec, std::size_t) {
-         BOOST_TEST_EQ(ec, net::experimental::channel_errc::channel_cancelled);
+         BOOST_TEST_EQ(ec, net::channel_errc::channel_cancelled);
          BOOST_TEST_EQ(resp.get_total_msgs(), 0u);
          start_subscribe2();
       });
@@ -293,7 +293,7 @@ void test_consecutive_receives()
    std::function<void()> launch_push_consumer = [&]() {
       conn.async_receive([&](error_code ec, std::size_t) {
          if (ec) {
-            BOOST_TEST_EQ(ec, net::experimental::error::channel_cancelled);
+            BOOST_TEST_EQ(ec, net::channel_errc::channel_cancelled);
             push_consumer_finished = true;
             resp.clear();
             return;
