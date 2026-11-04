@@ -36,6 +36,9 @@ local requirements =
         <toolset>msvc:<cxxflags>"/bigobj"
         <target-os>windows:<define>_WIN32_WINNT=0x0601
         <toolset>gcc:<cxxflags>-Wno-maybe-uninitialized # spurious gcc warning in Asio
+        # Asio applies __attribute__((unused)) to non-static data members, which
+        # which requires gcc >= 12 (https://github.com/chriskohlhoff/asio/issues/1784)
+        <toolset>gcc-11:<cxxflags>-Wno-attributes
         [ requires
             cxx14_constexpr
             cxx14_generic_lambdas

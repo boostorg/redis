@@ -12,6 +12,12 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   # Remove a spurious gcc warning in Asio headers
   target_compile_options(boost_redis_project_options INTERFACE -Wno-maybe-uninitialized)
+
+  # Asio applies __attribute__((unused)) to non-static data members, which
+  # requires gcc >= 12 (https://github.com/chriskohlhoff/asio/issues/1784)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12)
+    target_compile_options(boost_redis_project_options INTERFACE -Wno-attributes)
+  endif()
 endif()
 
 add_library(boost_redis_src STATIC boost_redis.cpp)
