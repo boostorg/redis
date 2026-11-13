@@ -7,6 +7,24 @@
 
 = Changelog
 
+== Boost 1.93
+
+* (Pull request https://github.com/boostorg/redis/pull/436[436])
+  Added subscription tracking support for `UNSUBSCRIBE` and `PUNSUBSCRIBE`
+  without arguments.
+* (Pull request https://github.com/boostorg/redis/pull/434[434])
+  Added support for storing RESP3 maps in `std::vector<std::pair<T, U>>`
+  objects.
+* (Pull request https://github.com/boostorg/redis/pull/438[438])
+  Added a documentation page and an example on multi-threaded scenarios.
+* (Pull request https://github.com/boostorg/redis/pull/441[441])
+  Fixed several cases of undefined behavior in `flat_tree` operations on
+  moved-from objects. Thanks to `@aouxwoux` for the fix.
+* (Pull request https://github.com/boostorg/redis/pull/441[441])
+  Fixed a bug that caused `flat_tree::data_size()` to report an incorrect
+  value after calling `flat_tree::clear()`. Thanks to `@aouxwoux` for the fix.
+
+
 == Boost 1.92
 
 * (Pull request https://github.com/boostorg/redis/pull/428[428])
